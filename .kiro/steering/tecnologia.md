@@ -47,6 +47,36 @@ El jugador va a escribir `REPITE 99999` y recursiones sin caso base. No debe pod
   ni un error genérico: `Detuve la ejecución: la tortuga llevaba demasiados pasos. ¿Hay una repetición
   que nunca termina?`
 
+## Los personajes se dibujan por código
+
+La tortuga y el fantasma de Kiro se construyen con trazos de Canvas 2D en `motor/personajes.ts`. **No
+hay imágenes, ni sprites, ni SVG externos.** El proyecto no tiene carpeta de activos gráficos.
+
+Razón: los personajes no son decoración estática, son la interfaz que comunica el estado de la
+ejecución. Cada estado tendría que ser un archivo aparte, y las combinaciones se multiplican.
+
+`personajes.ts` recibe estado y devuelve dibujo. Los estados que tiene que representar:
+
+- **Rumbo de la tortuga**, en cualquier ángulo. Se debe leer de un vistazo hacia dónde mira.
+- **Kiro montado** sobre el caparazón, y **Kiro desmontado** flotando al lado en el modo paso a paso.
+- **Inclinación de Kiro** hacia el próximo giro, como anticipación visual.
+- **Lápiz arriba o abajo**, con la animación de Kiro levantándolo. El cambio de estado nunca es
+  invisible.
+- **Ocultos**, para `OCULTATORTUGA` y `MUESTRATORTUGA`.
+- **Dos tortugas a la vez** en la reproducción en paralelo, distinguibles sin depender del color.
+- **Celebración**, al ganar estrellas.
+
+Consecuencias que conviene aprovechar:
+
+- Escala sin pérdida a cualquier tamaño de lienzo.
+- Nada que precargar, así que no hay pantalla de carga ni estados intermedios sin personaje.
+- El color y el grosor salen del tema de la interfaz, así que un modo de alto contraste no necesita
+  arte nuevo.
+- Todo el repositorio queda redistribuible bajo MIT sin depender de la licencia de un activo gráfico.
+
+En la reproducción en paralelo, **Kiro monta su propia tortuga** y la del jugador va sin jinete. Es la
+forma más directa de comunicar cuál recorrido es de quién.
+
 ## Accesibilidad
 
 Requisito de producto, no un extra:
