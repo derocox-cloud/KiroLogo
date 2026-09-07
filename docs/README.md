@@ -3,6 +3,9 @@
 El proyecto se aborda en **ocho specs**: una de cimientos y una por mundo. Cada archivo de
 `docs/prompts/` es el texto listo para pegar al iniciar la spec correspondiente.
 
+Para entender **por qué** el proyecto es como es, y qué se descartó en el camino, está la
+[bitácora](bitacora.md). El steering dice qué hacer; la bitácora dice de dónde salió cada regla.
+
 ## Cómo usar estos prompts
 
 1. Abrir una sesión de tipo **Spec**.

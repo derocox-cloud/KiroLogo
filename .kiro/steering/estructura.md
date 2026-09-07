@@ -2,10 +2,22 @@
 
 ```
 KiroLogo/
+├── LICENSE                      MIT
+├── README.md
+├── .gitignore
+├── .nvmrc                       Node 24
+├── amplify.yml                  compilación en AWS Amplify Hosting
 ├── index.html
-├── package.json
+├── package.json                 name KiroLogo, private true, engines Node >= 24
+├── package-lock.json            versionado, el despliegue usa npm ci
 ├── tsconfig.json
-├── vite.config.ts
+├── vite.config.ts               base '/'
+├── .kiro/
+│   └── steering/                las reglas del proyecto, versionadas
+├── docs/
+│   ├── README.md                plan de las ocho specs
+│   ├── bitacora.md              cómo se concibió el juego y por qué
+│   └── prompts/                 el prompt de creación de cada spec
 └── src/
     ├── main.ts                  punto de entrada, arma la pantalla
     ├── lenguaje/                el pseudo-lenguaje KiroLogo

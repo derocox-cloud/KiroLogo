@@ -2,6 +2,8 @@
 
 ## Stack
 
+- **Node 24 LTS** como entorno de desarrollo, fijado en el `.nvmrc` de la raíz. Se gestiona con `fnm`,
+  y `package.json` declara `engines` pidiendo Node ≥ 24.
 - **TypeScript** en modo estricto.
 - **Vite** como bundler y servidor de desarrollo.
 - **Canvas 2D** para el lienzo, la tortuga y Kiro. Sin motor de juego.
@@ -11,6 +13,24 @@
 
 Razón: el juego es un intérprete más un lienzo. Un motor de juego o un framework de UI agregarían
 peso y capas sin resolver el problema real, que es el pipeline léxico → sintáctico → ejecución.
+
+**Todas las versiones se fijan**, sin rangos abiertos. Al arrancar el proyecto, las últimas eran
+Vite 8.2.2, Vitest 5.0.0 y TypeScript 7.0.2.
+
+Advertencia sobre TypeScript 7: es el port nativo del compilador. El lenguaje es el mismo, pero el
+ecosistema alrededor puede no estar igual de maduro. Si aparece fricción con alguna herramienta, la
+última 5.x es una alternativa legítima. Lo que no es negociable es dejar la versión fija.
+
+## Control de versiones
+
+- Rama principal: `main`.
+- **El steering se versiona con el código.** Los archivos de `.kiro/steering` son las reglas del
+  proyecto y tienen que viajar en el repositorio, revisarse en un diff y evolucionar con confirmaciones
+  como cualquier otra cosa. No son notas personales.
+- Los mensajes de confirmación se escriben en español, igual que el resto del proyecto, y explican el
+  **por qué** del cambio, no solo el qué.
+- El directorio local de trabajo puede llamarse distinto al repositorio. No es parte del nombre del
+  proyecto.
 
 ## Arquitectura del intérprete
 

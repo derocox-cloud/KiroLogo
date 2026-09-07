@@ -27,6 +27,8 @@ No es un andamiaje vacío. Al terminar esta spec quiero poder jugar ese nivel en
 - Campo `engines` pidiendo Node ≥ 24, coherente con el `.nvmrc` que ya está en el repositorio.
 - Toda dependencia que se agregue va con versión fija y con licencia compatible con MIT.
 - `package-lock.json` versionado, porque el despliegue usa `npm ci`.
+- `README.md` en la raíz: qué es KiroLogo, cómo levantarlo en desarrollo, cómo correr las pruebas, y
+  enlaces al steering y a `docs/`. Corto; la documentación de fondo ya existe.
 
 **Despliegue**
 
