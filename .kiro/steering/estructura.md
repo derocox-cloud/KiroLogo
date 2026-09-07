@@ -1,7 +1,7 @@
 # Estructura del proyecto
 
 ```
-logo-game/
+kirologo/
 ├── index.html
 ├── package.json
 ├── tsconfig.json

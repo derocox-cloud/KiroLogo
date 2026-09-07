@@ -20,7 +20,8 @@ No es un andamiaje vacío. Al terminar esta spec quiero poder jugar ese nivel en
 
 - Vite + TypeScript en modo estricto, Vitest, sin framework de UI ni backend.
 - La estructura de carpetas de `estructura.md`, creando solo los módulos que esta spec necesita.
-- `package.json` con `license: "MIT"`. El archivo `LICENSE` ya está en la raíz del repositorio.
+- `package.json` con `name: "kirologo"` y `license: "MIT"`. El archivo `LICENSE` ya está en la raíz.
+- Campo `engines` pidiendo Node ≥ 24, coherente con el `.nvmrc` que ya está en el repositorio.
 - Toda dependencia que se agregue va con versión fija y con licencia compatible con MIT.
 
 **Lenguaje** (solo el vocabulario del mundo 0: `AVANZA`, `RETROCEDE`, `GIRADERECHA`,

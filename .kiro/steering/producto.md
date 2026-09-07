@@ -150,6 +150,17 @@ calidad del feedback:
 - **Modo libre** (sandbox) siempre accesible, con galería para guardar creaciones. Suele ser donde
   nace la motivación real.
 
+## Nombre
+
+El producto se llama **KiroLogo**. En todo lo que sea identificador técnico se escribe en minúsculas y
+sin separadores: `kirologo`.
+
+- Nombre del paquete en `package.json`: `kirologo`
+- Nombre del repositorio: `kirologo`
+- En texto visible al jugador y en documentación: `KiroLogo`
+
+El directorio local de trabajo puede llamarse distinto; no es parte del nombre del proyecto.
+
 ## Licencia
 
 **MIT**, con el archivo `LICENSE` en la raíz. El campo `license` de `package.json` debe decir `MIT`.
