@@ -1,0 +1,34 @@
+# Dependencias
+node_modules/
+
+# Compilados
+dist/
+dist-ssr/
+*.local
+
+# Cachés de herramientas
+.vite/
+coverage/
+*.tsbuildinfo
+
+# Registros
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Entorno
+.env
+.env.*
+!.env.example
+
+# Editores
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# macOS
+.DS_Store
