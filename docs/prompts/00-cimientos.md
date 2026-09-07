@@ -20,7 +20,10 @@ No es un andamiaje vacío. Al terminar esta spec quiero poder jugar ese nivel en
 
 - Vite + TypeScript en modo estricto, Vitest, sin framework de UI ni backend.
 - La estructura de carpetas de `estructura.md`, creando solo los módulos que esta spec necesita.
-- `package.json` con `name: "kirologo"` y `license: "MIT"`. El archivo `LICENSE` ya está en la raíz.
+- `package.json` con `name: "KiroLogo"`, `license: "MIT"` y `private: true`. Lo de `private` no es
+  opcional: el registro de npm rechaza mayúsculas en paquetes nuevos, y el nombre del producto se
+  escribe con mayúsculas. KiroLogo es una aplicación web, no una biblioteca publicable.
+  El archivo `LICENSE` ya está en la raíz.
 - Campo `engines` pidiendo Node ≥ 24, coherente con el `.nvmrc` que ya está en el repositorio.
 - Toda dependencia que se agregue va con versión fija y con licencia compatible con MIT.
 

@@ -1,7 +1,7 @@
 # Estructura del proyecto
 
 ```
-kirologo/
+KiroLogo/
 ├── index.html
 ├── package.json
 ├── tsconfig.json

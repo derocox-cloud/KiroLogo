@@ -152,12 +152,21 @@ calidad del feedback:
 
 ## Nombre
 
-El producto se llama **KiroLogo**. En todo lo que sea identificador técnico se escribe en minúsculas y
-sin separadores: `kirologo`.
+El producto se llama **KiroLogo**, y se escribe así en todas partes: en el paquete, en el repositorio,
+en la interfaz y en la documentación. El nombre alude a los dos productos que lo hacen posible, Kiro y
+Logo, y esa lectura se pierde si se escribe todo junto en minúsculas.
 
-- Nombre del paquete en `package.json`: `kirologo`
-- Nombre del repositorio: `kirologo`
+- Nombre del paquete en `package.json`: `KiroLogo`
+- Nombre del repositorio: `KiroLogo`
 - En texto visible al jugador y en documentación: `KiroLogo`
+
+Dos consecuencias técnicas de usar mayúsculas:
+
+- `package.json` debe llevar `"private": true`. El registro de npm rechaza mayúsculas en paquetes
+  nuevos, así que KiroLogo no se publica como paquete. No es una limitación: es una aplicación web,
+  no una biblioteca.
+- Los **nombres de archivo y de carpeta** siguen en `kebab-case` minúsculas, como dice `estructura.md`.
+  La mayúscula es del nombre del producto, no de las rutas.
 
 El directorio local de trabajo puede llamarse distinto; no es parte del nombre del proyecto.
 
