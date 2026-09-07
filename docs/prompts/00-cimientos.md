@@ -26,6 +26,17 @@ No es un andamiaje vacío. Al terminar esta spec quiero poder jugar ese nivel en
   El archivo `LICENSE` ya está en la raíz.
 - Campo `engines` pidiendo Node ≥ 24, coherente con el `.nvmrc` que ya está en el repositorio.
 - Toda dependencia que se agregue va con versión fija y con licencia compatible con MIT.
+- `package-lock.json` versionado, porque el despliegue usa `npm ci`.
+
+**Despliegue**
+
+- `base: '/'` en la configuración de Vite. El destino es AWS Amplify Hosting, que sirve en la raíz del
+  dominio.
+- `amplify.yml` versionado en la raíz, con `npm ci`, `npm run build`, `artifacts.baseDirectory: dist`
+  y caché de `node_modules`.
+- En `preBuild`, forzar la versión de Node con `nvm` leyendo el `.nvmrc`. El contenedor de Amplify no
+  lo hace solo, y sin esto la compilación en la nube usa otro Node que el desarrollo local.
+- Verificar que `npm run build` produce un `dist` que funciona servido desde la raíz.
 
 **Lenguaje** (solo el vocabulario del mundo 0: `AVANZA`, `RETROCEDE`, `GIRADERECHA`,
 `GIRAIZQUIERDA`, `CENTRO`, `BORRAPANTALLA`, con sus abreviaturas)
@@ -97,6 +108,8 @@ Un solo nivel autorado, el 0.1 (`AV 100`) o equivalente, para demostrar el flujo
 9. El nivel de prueba aprueba su propio nivel con las tres estrellas ejecutando su referencia.
 10. La tortuga con Kiro montado se lee con claridad en cualquier rumbo, y el proyecto no contiene
     ningún archivo de imagen.
+11. `npm run build` genera un `dist` que funciona servido desde la raíz de un dominio, y `amplify.yml`
+    está en la raíz del repositorio con la versión de Node fijada desde el `.nvmrc`.
 
 ## Steering a consultar
 

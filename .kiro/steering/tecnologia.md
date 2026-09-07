@@ -114,6 +114,43 @@ revisión por una persona experta. Estas reglas son el piso, no la certificació
 Los niveles son datos. Agregar un nivel debe ser agregar un objeto a un arreglo, nunca escribir
 lógica nueva. Si un nivel necesita código especial, es señal de que falta una capacidad en el motor.
 
+## Despliegue
+
+**AWS Amplify Hosting**, sirviendo los archivos estáticos que produce `vite build`.
+
+Solo hosting. **No se usa el backend de Amplify**: ni Gen 2, ni Cognito, ni AppSync, ni almacenamiento
+de datos. La regla de "sin backend" del stack sigue intacta, y el progreso sigue viviendo en
+`localStorage`. Amplify aquí es un servidor de archivos con HTTPS, compilación desde el repositorio y
+un dominio.
+
+Reglas:
+
+- **`base: '/'` en Vite.** Amplify sirve en la raíz del dominio, no en un subdirectorio, así que no hay
+  que reescribir rutas de activos.
+- **`amplify.yml` va versionado en el repositorio**, no configurado a mano en la consola. Cuando el
+  archivo existe, sus valores tienen precedencia sobre lo que diga la consola, y así la compilación es
+  revisable y reproducible en lugar de ser un estado invisible de una cuenta de AWS.
+- **La versión de Node hay que forzarla en el build.** El contenedor de Amplify trae su propia versión
+  por defecto y no respeta el `.nvmrc` de forma automática. En `preBuild` se usa `nvm` leyendo el
+  `.nvmrc`, para que la compilación en la nube use exactamente el mismo Node que el desarrollo local.
+  Sin esto, un día compila y otro no, y el motivo no aparece en ningún diff.
+- **`npm ci`, no `npm install`**, con el `package-lock.json` versionado. Es lo que hace la compilación
+  determinista.
+- `artifacts.baseDirectory` es `dist`. Caché de `node_modules` entre compilaciones.
+- **Sin reescrituras de SPA** mientras el juego sea una sola página. Si más adelante hay rutas, hace
+  falta la regla que devuelve `index.html` con código 200.
+
+Seguridad:
+
+- El juego es **público y sin autenticación**, y así corresponde: no hay datos de usuario más allá del
+  progreso en `localStorage`, no se recoge información personal y no hay nada que proteger detrás de un
+  inicio de sesión. Es una decisión consciente, no un olvido.
+- **Nada sensible en el bundle.** Todo lo que se compila es público por definición. Si algún día hacen
+  falta variables de entorno, ninguna puede contener secretos.
+- **Se puede aplicar una CSP estricta sin `unsafe-eval`**, precisamente porque el intérprete se escribe
+  a mano y el proyecto nunca usa `eval` ni `new Function`. Vale la pena aprovecharlo: es un beneficio
+  gratuito de una decisión que se tomó por otras razones.
+
 ## Pruebas
 
 Prioridad, en orden:
