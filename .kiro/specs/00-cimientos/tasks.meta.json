@@ -7,6 +7,26 @@
     "3.4 Escribir la prueba de propiedad del código de semilla": {
       "status": "passed",
       "lastRunTimestamp": 1789214139843
+    },
+    "4.2 Escribir la prueba de propiedad de la normalización de la entrada": {
+      "status": "passed",
+      "lastRunTimestamp": 1789302607000
+    },
+    "4.3 Escribir la prueba de propiedad del separador decimal": {
+      "status": "passed",
+      "lastRunTimestamp": 1789302607000
+    },
+    "4.4 Escribir la prueba de propiedad de comentarios y espacio en blanco": {
+      "status": "passed",
+      "lastRunTimestamp": 1789302607000
+    },
+    "4.7 Escribir la prueba de propiedad del análisis de errores": {
+      "status": "passed",
+      "lastRunTimestamp": 1789302607000
+    },
+    "4.8 Escribir la prueba de propiedad de la precedencia del catálogo": {
+      "status": "passed",
+      "lastRunTimestamp": 1789302607000
     }
   },
   "executionHistory": {

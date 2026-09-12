@@ -121,8 +121,8 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - `generarPrograma` cubre los seis comandos del mundo 0 y sus abreviaturas, con argumentos sin signo de 0 a 999 999 y hasta 3 decimales; `generarProgramaExtendido` añade los nueve nodos reservados anidados; `generarFigura` produce polilíneas encuadradas con longitudes múltiplas de 20 entre 40 y 200 y ángulos derivables; `generarEstadoTortuga` usa posiciones en `[−600, 600]²`, a propósito más ancho que el lienzo
     - _Requisitos: 6.7, 17.3_
 
-- [ ] 4. Lexer, AST y parser
-  - [ ] 4.1 Implementar `src/lenguaje/lexer.ts` con el tipo `Token` y su prueba de ejemplos
+- [x] 4. Lexer, AST y parser
+  - [x] 4.1 Implementar `src/lenguaje/lexer.ts` con el tipo `Token` y su prueba de ejemplos
     - Declarar `TipoToken`, `TokenBase` y la unión `Token` de la sección 3.2 del diseño, con `valor` normalizado, `textoOriginal` tal como se escribió, `linea` y `columna` desde 1
     - Declarar `ResultadoLexico` y `analizarLexico(texto)` como autómata de un solo recorrido sin retroceso, según la tabla del diseño 3.3
     - Aceptar letras del alfabeto español incluidas `á é í ó ú ü ñ Ñ`, cerrando cada palabra con `buscarComando` para decidir entre `comando` e `identificador`
@@ -133,19 +133,19 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `lexer.test.ts` con los seis comandos en nombre largo y abreviatura, texto vacío, texto de solo comentarios, `avanza`/`AVANZA`/`Avanzá` con el mismo valor normalizado y distinto texto original, y los cuatro casos de error con su posición
     - _Requisitos: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8, 4.9, 4.10_
 
-  - [ ] 4.2 Escribir la prueba de propiedad de la normalización de la entrada
+  - [x] 4.2 Escribir la prueba de propiedad de la normalización de la entrada
     - **Property 1: Invariancia de escritura de la entrada**
     - **Valida: Requisitos 3.6, 4.2, 4.3**
 
-  - [ ] 4.3 Escribir la prueba de propiedad del separador decimal
+  - [x] 4.3 Escribir la prueba de propiedad del separador decimal
     - **Property 2: Invariancia del separador decimal**
     - **Valida: Requisitos 4.4**
 
-  - [ ] 4.4 Escribir la prueba de propiedad de comentarios y espacio en blanco
+  - [x] 4.4 Escribir la prueba de propiedad de comentarios y espacio en blanco
     - **Property 3: Los comentarios y el espacio en blanco no existen para el lexer**
     - **Valida: Requisitos 4.5**
 
-  - [ ] 4.5 Implementar `src/lenguaje/ast.ts` con los dos nodos vivos y los nueve reservados
+  - [x] 4.5 Implementar `src/lenguaje/ast.ts` con los dos nodos vivos y los nueve reservados
     - Declarar `NodoBase`, `NumeroLiteral` e `InvocacionComando` como los tipos vivos de esta spec
     - Declarar los nueve tipos reservados con la forma exacta de la sección 3.4 del diseño: `Repeticion`, `DefinicionProcedimiento`, `InvocacionProcedimiento`, `ReferenciaParametro`, `ExpresionAritmetica` —con los operadores `+ - * / = < >` en un solo tipo—, `CondicionalUnaRama`, `CondicionalDosRamas`, `Interrupcion` y `DevolucionValor`
     - Acompañar cada uno de los nueve con un comentario que nombre la capacidad del lenguaje y el número de la spec que la implementa
@@ -153,7 +153,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Sin archivo de prueba propio: se verifica desde las pruebas del parser, del conteo y del análisis de abstracción
     - _Requisitos: 5.2, 5.3_
 
-  - [ ] 4.6 Implementar `src/lenguaje/parser.ts` y su prueba de ejemplos
+  - [x] 4.6 Implementar `src/lenguaje/parser.ts` y su prueba de ejemplos
     - Declarar `OpcionesAnalisis` con el mundo del nivel en curso como parámetro explícito, `ResultadoSintactico` con `programa: Programa | null`, y `analizar(tokens, opciones)`
     - Implementar el descenso recursivo de una pasada que produce un nodo por comando escrito, con el nombre largo del vocabulario, su argumento numérico cuando la aridad es 1, y la línea y la columna de su primer token; admitiendo la lista vacía
     - Resolver cada palabra en tres pasos —`buscarComando`, ¿existe?, ¿su mundo es menor o igual al mundo en curso?— y delegar en el catálogo la elección del mensaje para toda palabra que no se puede ejecutar
@@ -163,11 +163,11 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `parser.test.ts` con un nodo por comando en orden, la lista vacía de un texto con solo comentarios, los nueve tipos reservados declarados y no producidos por ninguna regla, y un caso por cada situación de error incluida la recuperación por sincronización
     - _Requisitos: 5.1, 5.4, 5.5, 5.6, 5.7, 5.8, 5.9, 5.10, 5.11_
 
-  - [ ] 4.7 Escribir la prueba de propiedad del análisis de errores
+  - [x] 4.7 Escribir la prueba de propiedad del análisis de errores
     - **Property 4: El análisis de errores es determinista, ordenado y acotado**
     - **Valida: Requisitos 4.9, 5.8, 5.9**
 
-  - [ ] 4.8 Escribir la prueba de propiedad de la precedencia del catálogo
+  - [x] 4.8 Escribir la prueba de propiedad de la precedencia del catálogo
     - **Property 12: Precedencia de los cinco casos del catálogo**
     - **Valida: Requisitos 10.2, 10.3, 10.4, 10.5, 10.9, 10.10**
 
