@@ -291,8 +291,8 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - **Property 16 (parte B, encuadre): Extracción de segmentos, encuadre y veredicto geométrico**
     - **Valida: Requisitos 15.4, 15.5, 15.6, 15.8**
 
-- [ ] 11. Validador geométrico
-  - [ ] 11.1 Implementar la máscara, el mapeo de coordenadas y el trazado de segmentos
+- [x] 11. Validador geométrico
+  - [x] 11.1 Implementar la máscara, el mapeo de coordenadas y el trazado de segmentos
     - Declarar en `src/motor/validador.ts` el tipo `Mascara` como `Uint8Array` de 640 000 posiciones con índice `iy·800 + ix`, y la constante `LADO` igual a 800, sin `OffscreenCanvas`, sin `document` y sin ninguna API de Canvas
     - Implementar el mapeo `ix = ⌊x + 400⌋`, `iy = ⌊400 − y⌋`, con la convención de celda de la sección 9.3 del diseño y el centro del arreglo en `(399.5, 399.5)`
     - Implementar el trazado DDA con paso de 0.5 unidades lógicas a lo largo del segmento, encendiendo la celda de cada muestra y siempre las dos celdas de los extremos, con trazo de un píxel de ancho
@@ -300,14 +300,14 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir en `validador.test.ts` las pruebas del mapeo en las cuatro esquinas y en el origen, la ausencia de huecos en pendientes casi horizontales y casi verticales, y el segmento parcialmente fuera del arreglo
     - _Requisitos: 16.2, 16.15_
 
-  - [ ] 11.2 Implementar la dilatación separable del disco de 8 píxeles y verificarla contra fuerza bruta
+  - [x] 11.2 Implementar la dilatación separable del disco de 8 píxeles y verificarla contra fuerza bruta
     - Descomponer el disco `dx² + dy² ≤ 64` en las **17 corridas horizontales** con semianchos `w = [0, 3, 5, 6, 6, 7, 7, 7, 8, 7, 7, 7, 6, 6, 5, 3, 0]` para `dy` de −8 a 8
     - Implementar `Dilatar_corrida` en O(1) por celda con sumas de prefijo por fila, y la dilatación como el `OR` de las 17 corridas desplazadas, con coste fijo de unos 11.5 M de operaciones por máscara e independiente de la tinta
     - Ampliar `validador.test.ts` con la prueba que compara la dilatación separable, posición por posición, contra una implementación por **fuerza bruta** con el elemento estructurante circular sobre máscaras pequeñas, para fijar que la tolerancia sigue siendo 8 píxeles euclidianos exactos
     - Incluir casos con posiciones encendidas pegadas a los cuatro bordes del arreglo, donde el recorte de las sumas de prefijo es el que puede fallar
     - _Requisitos: 16.3_
 
-  - [ ] 11.3 Implementar el IoU, el exceso de trazo y las tres regiones
+  - [x] 11.3 Implementar el IoU, el exceso de trazo y las tres regiones
     - Calcular `coincidencia = Ad ∩ Bd`, `exceso = Bd \ Ad` y `falta = Ad \ Bd`, el IoU como `|coincidencia| / |Ad ∪ Bd|` y el exceso como `|exceso| / |Ad| · 100`
     - Definir el IoU como 0 cuando la unión o la máscara objetivo no tiene ninguna posición encendida, en lugar de una división indefinida
     - Conceder la coincidencia geométrica si y solo si el IoU es 0.90 o mayor **y** el exceso es 5 % o menor, comparando sin redondear y reservando el redondeo a la presentación
@@ -316,7 +316,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Ampliar `validador.test.ts` con el exceso que niega la coincidencia aunque el IoU alcance el umbral, y con la estela del jugador vacía que devuelve IoU 0, exceso 0 %, la región de falta igual al objetivo dilatado y las otras dos vacías
     - _Requisitos: 16.4, 16.5, 16.6, 16.14, 16.16_
 
-  - [ ] 11.4 Implementar la búsqueda del mejor giro y su prueba de rendimiento
+  - [x] 11.4 Implementar la búsqueda del mejor giro y su prueba de rendimiento
     - Dilatar cada máscara **una sola vez** y girar la ya dilatada, aprovechando que el disco es isótropo
     - Construir el índice de posiciones encendidas de `Ad` como un par de `Int16Array` con el desplazamiento de cada posición respecto del centro de giro, y derivar unión y exceso de la intersección con `|Ad ∪ Bd| = |Ad| + |Bd| − |coincidencia|` y `|exceso| = |Bd| − |coincidencia|`
     - Implementar el barrido de los 360 ángulos enteros sobre ese índice, con seno y coseno calculados una vez por ángulo
@@ -326,7 +326,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Ampliar `validador.test.ts` con la prueba de rendimiento del requisito 16.13: dos figuras de hasta 500 segmentos con rotación libre, resultado en 2 segundos o menos en la peor de tres mediciones consecutivas en Node; y con la comprobación de que comparar un conjunto contra sí mismo gana en el ángulo 0 con IoU 1.0 exacto
     - _Requisitos: 16.8, 16.10, 16.13_
 
-  - [ ] 11.5 Implementar `validar` con la normalización del nivel y los casos negativos
+  - [x] 11.5 Implementar `validar` con la normalización del nivel y los casos negativos
     - Declarar `Veredicto` con `coincide`, `iou`, `excesoPorcentaje`, `motivo`, `traslacion`, `angulo`, las dos máscaras dilatadas y las tres regiones, y la firma `validar(segmentosJugador, segmentosObjetivo, normalizacion)`
     - Con la traslación `libre`, trasladar **cada** figura antes de rasterizar para que el centro de su caja envolvente coincida con el centro del arreglo, con la traslación redondeada a posiciones enteras; con la traslación `fija`, rasterizar sin transformación previa
     - Con la rotación `libre`, usar la búsqueda de la tarea 11.4; con la rotación `fija`, evaluar solo el ángulo 0
@@ -334,7 +334,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Ampliar `validador.test.ts` con los dos casos negativos del requisito 29.7 partiendo de los segmentos del nivel `0.1`: el segmento adicional de 100 unidades fuera de la máscara objetivo dilatada, que niega la coincidencia indicando el exceso como motivo; y las longitudes multiplicadas por 2, que la niegan aun con traslación y rotación libres
     - _Requisitos: 16.1, 16.7, 16.9, 16.11, 16.12, 16.14, 16.17, 29.7_
 
-  - [ ] 11.6 Escribir la prueba de propiedad del veredicto geométrico
+  - [x] 11.6 Escribir la prueba de propiedad del veredicto geométrico
     - **Property 16 (parte C, validador): Extracción de segmentos, encuadre y veredicto geométrico**
     - **Valida: Requisitos 16.1, 16.4, 16.10, 16.17**
 
