@@ -205,8 +205,8 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
 - [x] 6. Punto de control — capa de lenguaje sin ejecución
   - Ejecutar `npm test` y `npm run typecheck`; asegurarse de que todas las pruebas pasan y preguntar al usuario si surgen dudas
 
-- [ ] 7. Modelo puro de la tortuga
-  - [ ] 7.1 Implementar `src/motor/tortuga.ts` y su prueba de ejemplos
+- [x] 7. Modelo puro de la tortuga
+  - [x] 7.1 Implementar `src/motor/tortuga.ts` y su prueba de ejemplos
     - Declarar `Punto`, `EstadoTortuga` con `posicion`, `rumbo`, `lapizAbajo` y `visible`, y `ESTADO_INICIAL` en `(0, 0)`, rumbo 0, lápiz abajo y visible
     - Declarar `ResultadoTortuga` e implementar `desplazar`, `girar`, `alCentro`, `conLapiz`, `conVisibilidad` y `normalizarRumbo`
     - Implementar la geometría de la sección 7.1 del diseño con el rumbo en grados y la conversión a radianes confinada dentro del módulo: rumbo 0 aumenta `y`, 90 aumenta `x`, 180 disminuye `y`, 270 disminuye `x`, y el desplazamiento hacia atrás invierte el sentido
@@ -216,7 +216,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `tortuga.test.ts` con el estado inicial, las cinco transformaciones, los rumbos 0, 90, 180, 270, 360, 450 y negativos, la comparación por identidad que detecta mutación accidental, y la ausencia de referencias a `document`, `window` y a cualquier API de Canvas
     - _Requisitos: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7, 11.8_
 
-  - [ ] 7.2 Escribir la prueba de propiedad de la tortuga
+  - [x] 7.2 Escribir la prueba de propiedad de la tortuga
     - **Property 13: La tortuga es pura y su geometría es exacta**
     - **Valida: Requisitos 11.2, 11.4, 11.6**
 
