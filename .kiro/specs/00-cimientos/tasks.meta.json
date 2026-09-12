@@ -39,6 +39,10 @@
     "5.5 Escribir la prueba de propiedad de idempotencia del formato": {
       "status": "passed",
       "lastRunTimestamp": 1789303260000
+    },
+    "7.2 Escribir la prueba de propiedad de la tortuga": {
+      "status": "passed",
+      "lastRunTimestamp": 1789304160000
     }
   },
   "executionHistory": {
