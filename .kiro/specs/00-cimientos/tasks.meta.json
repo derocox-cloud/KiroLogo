@@ -43,6 +43,22 @@
     "7.2 Escribir la prueba de propiedad de la tortuga": {
       "status": "passed",
       "lastRunTimestamp": 1789304160000
+    },
+    "8.2 Escribir la prueba de propiedad de la estructura de la secuencia de operaciones": {
+      "status": "passed",
+      "lastRunTimestamp": 1789304860000
+    },
+    "8.3 Escribir la prueba de propiedad de serialización de una operación": {
+      "status": "passed",
+      "lastRunTimestamp": 1789304860000
+    },
+    "8.5 Escribir la prueba de propiedad de las guardas": {
+      "status": "passed",
+      "lastRunTimestamp": 1789304860000
+    },
+    "8.6 Escribir la prueba de propiedad de determinismo del intérprete": {
+      "status": "passed",
+      "lastRunTimestamp": 1789304860000
     }
   },
   "executionHistory": {

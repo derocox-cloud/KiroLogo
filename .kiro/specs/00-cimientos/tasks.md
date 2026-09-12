@@ -220,8 +220,8 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - **Property 13: La tortuga es pura y su geometría es exacta**
     - **Valida: Requisitos 11.2, 11.4, 11.6**
 
-- [ ] 8. Intérprete como generador de operaciones, y las tres guardas
-  - [ ] 8.1 Implementar `src/lenguaje/interprete.ts` con la unión `Operacion` y el núcleo de ejecución
+- [x] 8. Intérprete como generador de operaciones, y las tres guardas
+  - [x] 8.1 Implementar `src/lenguaje/interprete.ts` con la unión `Operacion` y el núcleo de ejecución
     - Declarar `SentidoGiro`, `OperacionBase` con `paso`, `linea`, `profundidad`, `estadoAntes` y `estadoDespues`, y la unión `Operacion` con los seis casos `mover`, `girar`, `lapiz`, `visibilidad`, `limpiar` y `reubicar` de la sección 4.2 del diseño
     - Declarar `TipoGuarda`, `LimitesEjecucion`, `LIMITES_PREDETERMINADOS` (200 000 pasos, 100 niveles, 5 000 ms, 1 000 pasos entre mediciones), `OpcionesEjecucion` con `estadoInicial`, `comandosPermitidos`, `semilla`, `ahora` y `limites`, y `ResultadoEjecucion`
     - Implementar `ejecutar` como función generadora que emite una `Operacion` por instrucción y suspende hasta que el consumidor pide la siguiente, y que devuelve el arreglo completo junto con la guarda activada y el error
@@ -234,15 +234,15 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `interprete.test.ts` con una operación por comando para los seis del mundo 0 —cantidad, tipo, estados antes y después y número de línea—, el programa sin instrucciones, el comando no permitido y el nodo reservado
     - _Requisitos: 7.1, 7.2, 7.3, 7.4, 7.7, 7.8, 7.9, 7.10, 7.11, 7.12, 7.13, 29.13_
 
-  - [ ] 8.2 Escribir la prueba de propiedad de la estructura de la secuencia de operaciones
+  - [x] 8.2 Escribir la prueba de propiedad de la estructura de la secuencia de operaciones
     - **Property 7: Estructura de la secuencia de operaciones**
     - **Valida: Requisitos 7.2, 7.3, 7.9**
 
-  - [ ] 8.3 Escribir la prueba de propiedad de serialización de una operación
+  - [x] 8.3 Escribir la prueba de propiedad de serialización de una operación
     - **Property 8: Ida y vuelta de serialización de una operación**
     - **Valida: Requisitos 7.5**
 
-  - [ ] 8.4 Implementar las tres guardas de ejecución con su precedencia y sus pruebas de límite
+  - [x] 8.4 Implementar las tres guardas de ejecución con su precedencia y sus pruebas de límite
     - Implementar `comprobarGuardas` como **único** punto de decisión, que prueba las tres condiciones en el orden fijo pasos → recursión → tiempo y devuelve la primera
     - Comprobar la guarda de pasos justo antes de emitir cada operación, deteniéndose sin emitir la número 200 001, contando desde 1 y sin descontar las `limpiar` ni las emitidas antes de ellas
     - Comprobar la guarda de recursión en `entrarMarco`, antes de ejecutar la primera instrucción del nuevo nivel, rechazando el nivel 101 y nombrando el procedimiento culpable y la línea de la invocación
@@ -252,11 +252,11 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Ampliar `interprete.test.ts` con dos programas sintéticos armados con nodos del AST por guarda: 200 000 y 200 001 operaciones, 100 y 101 niveles de invocación anidados con una definición que se invoca a sí misma, y una `ahora` falsa que devuelve exactamente 5 000 y 5 001 ms; comprobando en cada caso el número de operaciones devueltas y el texto exacto del mensaje del catálogo
     - _Requisitos: 8.1, 8.2, 8.3, 8.4, 8.7, 8.8, 8.9, 8.10_
 
-  - [ ] 8.5 Escribir la prueba de propiedad de las guardas
+  - [x] 8.5 Escribir la prueba de propiedad de las guardas
     - **Property 10: Las guardas devuelven una ejecución parcial bien formada, con precedencia fija y sin arrastre**
     - **Valida: Requisitos 8.4, 8.9, 8.10**
 
-  - [ ] 8.6 Escribir la prueba de propiedad de determinismo del intérprete
+  - [x] 8.6 Escribir la prueba de propiedad de determinismo del intérprete
     - **Property 9 (parte A, intérprete): Determinismo del pipeline completo**
     - **Valida: Requisitos 7.6**
     - La parte B, sobre dos resoluciones del reto, se escribe en la tarea 16.2
