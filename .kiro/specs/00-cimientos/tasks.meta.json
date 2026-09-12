@@ -67,6 +67,10 @@
     "10.4 Escribir la prueba de propiedad del encuadre": {
       "status": "passed",
       "lastRunTimestamp": 1789305480000
+    },
+    "11.6 Escribir la prueba de propiedad del veredicto geométrico": {
+      "status": "passed",
+      "lastRunTimestamp": 1789306800000
     }
   },
   "executionHistory": {
