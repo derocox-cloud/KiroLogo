@@ -32,3 +32,6 @@ pnpm-debug.log*
 
 # macOS
 .DS_Store
+
+# Imagenes de referencia y concepto (los personajes se dibujan por codigo)
+assets/
