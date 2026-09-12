@@ -27,6 +27,18 @@
     "4.8 Escribir la prueba de propiedad de la precedencia del catálogo": {
       "status": "passed",
       "lastRunTimestamp": 1789302607000
+    },
+    "5.2 Escribir la prueba de propiedad de estabilidad del conteo y forma de los mensajes": {
+      "status": "passed",
+      "lastRunTimestamp": 1789303260000
+    },
+    "5.4 Escribir la prueba de propiedad de ida y vuelta entre parser e impresor": {
+      "status": "passed",
+      "lastRunTimestamp": 1789303260000
+    },
+    "5.5 Escribir la prueba de propiedad de idempotencia del formato": {
+      "status": "passed",
+      "lastRunTimestamp": 1789303260000
     }
   },
   "executionHistory": {

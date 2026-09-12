@@ -171,8 +171,8 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - **Property 12: Precedencia de los cinco casos del catálogo**
     - **Valida: Requisitos 10.2, 10.3, 10.4, 10.5, 10.9, 10.10**
 
-- [ ] 5. Conteo e impresor
-  - [ ] 5.1 Implementar `src/lenguaje/conteo.ts` y su prueba de ejemplos
+- [x] 5. Conteo e impresor
+  - [x] 5.1 Implementar `src/lenguaje/conteo.ts` y su prueba de ejemplos
     - Declarar `ResultadoConteo` y `contarInstrucciones(programa)` como la **única** función de conteo del proyecto
     - Implementar el recorrido en profundidad con la tabla de la sección 3.7 del diseño: 1 por `invocacionComando` y por `invocacionProcedimiento`; 1 más el cuerpo escrito por `repeticion`, sin multiplicar por las iteraciones; 1 más las listas por los dos condicionales; 0 por la cabecera de una definición más su cuerpo contado una sola vez; 1 por `interrupcion` y por `devolucionValor`; 0 por `numeroLiteral`, `referenciaParametro` y `expresionAritmetica`
     - Reportar `nodoDesconocidoEnConteo` nombrando el discriminante recibido, sin devolver conteo parcial
@@ -180,12 +180,12 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Terminar la prueba en 50 milisegundos o menos para un programa de 200 instrucciones y 20 niveles de anidación
     - _Requisitos: 9.1, 9.2, 9.3, 9.4, 9.5, 9.7, 9.8, 9.10_
 
-  - [ ] 5.2 Escribir la prueba de propiedad de estabilidad del conteo y forma de los mensajes
+  - [x] 5.2 Escribir la prueba de propiedad de estabilidad del conteo y forma de los mensajes
     - **Property 11: Estabilidad e inmutabilidad del conteo, y forma de los mensajes del catálogo**
     - **Valida: Requisitos 9.1, 9.9, 10.6, 10.8**
     - Escribe en `src/lenguaje/conteo.test.ts` y en `src/lenguaje/errores.test.ts`
 
-  - [ ] 5.3 Implementar `src/lenguaje/impresor.ts` y su prueba de ejemplos
+  - [x] 5.3 Implementar `src/lenguaje/impresor.ts` y su prueba de ejemplos
     - Declarar `ResultadoImpresion` e `imprimir(programa)`
     - Escribir el nombre largo en mayúsculas del vocabulario, nunca la abreviatura; una instrucción por línea; un espacio entre el nombre y cada argumento; sangría de dos espacios por nivel de anidación; cada línea con un único `\n` y sin espacios al final
     - Escribir los números con punto decimal, sin `+`, sin ceros a la derecha del último decimal significativo, usando la representación más corta que recupera el mismo valor
@@ -193,12 +193,12 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `impresor.test.ts` con `av 100` → `AVANZA 100`, `av 10,50` → `AVANZA 10.5`, y los dos casos de error
     - _Requisitos: 6.1, 6.2, 6.6_
 
-  - [ ] 5.4 Escribir la prueba de propiedad de ida y vuelta entre parser e impresor
+  - [x] 5.4 Escribir la prueba de propiedad de ida y vuelta entre parser e impresor
     - **Property 5: Ida y vuelta entre parser e impresor**
     - **Valida: Requisitos 6.3, 5.1, 6.1, 6.2, 29.5**
     - Sobre al menos 200 programas construidos con el PRNG a partir de 200 semillas explícitas, de 0 a 50 instrucciones, que en conjunto cubran los seis comandos del mundo 0 y sus abreviaturas
 
-  - [ ] 5.5 Escribir la prueba de propiedad de idempotencia del formato
+  - [x] 5.5 Escribir la prueba de propiedad de idempotencia del formato
     - **Property 6: Idempotencia del formato y estabilidad del conteo bajo la ida y vuelta**
     - **Valida: Requisitos 6.4, 6.5, 6.7**
 
