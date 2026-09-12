@@ -59,6 +59,14 @@
     "8.6 Escribir la prueba de propiedad de determinismo del intérprete": {
       "status": "passed",
       "lastRunTimestamp": 1789304860000
+    },
+    "10.2 Escribir la prueba de propiedad de extracción de segmentos": {
+      "status": "passed",
+      "lastRunTimestamp": 1789305480000
+    },
+    "10.4 Escribir la prueba de propiedad del encuadre": {
+      "status": "passed",
+      "lastRunTimestamp": 1789305480000
     }
   },
   "executionHistory": {

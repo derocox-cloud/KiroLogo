@@ -264,8 +264,8 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
 - [x] 9. Punto de control — ejecución y guardas
   - Ejecutar `npm test` y `npm run typecheck`; asegurarse de que todas las pruebas pasan y preguntar al usuario si surgen dudas
 
-- [ ] 10. Extracción de segmentos y encuadre
-  - [ ] 10.1 Implementar `src/motor/segmentos.ts` y su prueba de ejemplos
+- [x] 10. Extracción de segmentos y encuadre
+  - [x] 10.1 Implementar `src/motor/segmentos.ts` y su prueba de ejemplos
     - Declarar `Segmento` con `desde`, `hasta`, `paso` y `linea`, y `extraerSegmentos(operaciones)` como un solo recorrido en orden de `paso`
     - Aportar un segmento por cada `mover` con el lápiz abajo y longitud mayor o igual que 0.0001, copiando los puntos tal como la operación los registró, sin recortar al cuadrado de 800 × 800 y sin redondear
     - Excluir los `mover` con el lápiz arriba y los de longitud menor que 0.0001, y no aportar nada por `girar`, `reubicar`, `lapiz` ni `visibilidad`
@@ -274,11 +274,11 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `segmentos.test.ts` con un `mover` con lápiz abajo y otro con lápiz arriba, varios `limpiar`, un `limpiar` final sin movimientos posteriores, la longitud por debajo del umbral, y la conservación de `paso` y `linea` tras un `limpiar`
     - _Requisitos: 15.1, 15.2, 15.3, 15.8_
 
-  - [ ] 10.2 Escribir la prueba de propiedad de extracción de segmentos
+  - [x] 10.2 Escribir la prueba de propiedad de extracción de segmentos
     - **Property 16 (parte A, segmentos): Extracción de segmentos, encuadre y veredicto geométrico**
     - **Valida: Requisitos 15.1, 15.2, 15.3**
 
-  - [ ] 10.3 Implementar `src/motor/encuadre.ts` y su prueba de ejemplos
+  - [x] 10.3 Implementar `src/motor/encuadre.ts` y su prueba de ejemplos
     - Declarar `CajaEnvolvente` con los cuatro límites, `ancho`, `alto` y `centro`, `ResultadoEncuadre` como unión discriminada por `hayCaja`, y `calcularEncuadre(segmentos)`
     - Calcular los límites como mínimo y máximo de cada coordenada entre los puntos de partida y de llegada, con `ancho` y `alto` mayores o iguales que 0, en 50 milisegundos o menos para 500 segmentos y sin modificar la lista recibida
     - Devolver en `noEncuadrada` **cuáles** de los cuatro límites caen fuera de `[−400, 400]`, entendiendo que exactamente −400 o 400 no cuenta como fuera
@@ -287,7 +287,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `encuadre.test.ts` con la caja de una figura conocida, los casos de exactamente −400, 400 y 200 que no disparan las banderas, los dos indicadores verdaderos a la vez, y la lista vacía
     - _Requisitos: 15.4, 15.5, 15.6, 15.7, 15.8_
 
-  - [ ] 10.4 Escribir la prueba de propiedad del encuadre
+  - [x] 10.4 Escribir la prueba de propiedad del encuadre
     - **Property 16 (parte B, encuadre): Extracción de segmentos, encuadre y veredicto geométrico**
     - **Valida: Requisitos 15.4, 15.5, 15.6, 15.8**
 
