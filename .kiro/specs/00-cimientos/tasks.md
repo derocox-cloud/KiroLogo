@@ -202,7 +202,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - **Property 6: Idempotencia del formato y estabilidad del conteo bajo la ida y vuelta**
     - **Valida: Requisitos 6.4, 6.5, 6.7**
 
-- [ ] 6. Punto de control — capa de lenguaje sin ejecución
+- [x] 6. Punto de control — capa de lenguaje sin ejecución
   - Ejecutar `npm test` y `npm run typecheck`; asegurarse de que todas las pruebas pasan y preguntar al usuario si surgen dudas
 
 - [ ] 7. Modelo puro de la tortuga
