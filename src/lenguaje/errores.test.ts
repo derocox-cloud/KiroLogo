@@ -877,3 +877,83 @@ describe('errores.ts', () => {
       });
     });
   });
+
+
+
+// ============================================================================
+// Property 11 (parte catálogo): forma de los mensajes del catálogo
+// Valida: Requisitos 10.6, 10.8
+// ============================================================================
+
+import fc from 'fast-check';
+import { crearPrng } from '../azar/prng.js';
+
+describe('Property 11: forma de los mensajes del catálogo', () => {
+  // Ids de severidad `jugador` con sus parámetros generados según la semilla.
+  // Los ids de severidad `programacion` no se prueban aquí porque su texto
+  // lleva el prefijo [programación] y no van al globo de Kiro.
+
+  function crearErrorAleatorio(semilla: number): ErrorKiroLogo {
+    const prng = crearPrng(semilla);
+    const palabras = ['AVANSA', 'PINTA', 'REPIT', 'FD', 'RT', 'XY', 'GIRADRECHA'];
+    const nombres = ['REPITE', 'AVANZA', 'GIRADERECHA', 'CENTRO', 'SUBELAPIZ'];
+    const opciones: Array<() => ErrorKiroLogo> = [
+      () => crearError('caracterNoValido', {}),
+      () => crearError('numeroMalFormado', {}),
+      () => crearError('comillaSinPalabra', {}),
+      () => crearError('parametroSinNombre', {}),
+      () => crearError('palabraDesconocidaConSugerencia', { escrita: prng.elegir(palabras), sugerencia: prng.elegir(nombres) }),
+      () => crearError('palabraDesconocidaSinSugerencia', { escrita: prng.elegir(palabras) }),
+      () => crearError('comandoEnIngles', { escrita: prng.elegir(['FD', 'RT', 'BK', 'LT', 'HOME']) }),
+      () => crearError('comandoBloqueado', { nombre: prng.elegir(nombres), mundo: prng.entero(1, 5) }),
+      () => crearError('comandoBloqueadoCercano', { escrita: prng.elegir(palabras), nombre: prng.elegir(nombres), mundo: prng.entero(1, 5) }),
+      () => crearError('argumentoFaltante', { comando: prng.elegir(nombres) }),
+      () => crearError('argumentoDeTipoEquivocado', { comando: prng.elegir(nombres), recibido: '"hola' }),
+      () => crearError('corcheteSinCerrar', {}),
+      () => crearError('corcheteDeMas', {}),
+      () => crearError('corcheteInesperado', {}),
+      () => crearError('parametroInesperado', {}),
+      () => crearError('palabraInesperada', {}),
+      () => crearError('numeroInesperado', {}),
+      () => crearError('comandoNoPermitido', { nombre: prng.elegir(nombres) }),
+      () => crearError('guardaPasos', {}),
+      () => crearError('guardaRecursion', { nombre: prng.elegir(nombres) }),
+      () => crearError('guardaTiempo', {}),
+      () => crearError('progresoNoSeGuarda', {}),
+      () => crearError('rangoInvalido', { min: prng.entero(5, 20), max: prng.entero(0, 4) }),
+    ];
+    return prng.elegir(opciones)();
+  }
+
+  it('todo mensaje de jugador es una sola línea, ≤ 200 caracteres, sin huecos, sobre 200 semillas', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 4_294_967_295 }), (semilla) => {
+        const error = crearErrorAleatorio(semilla);
+        if (error.severidad !== 'jugador') return; // solo mensajes al jugador
+        // Una sola línea.
+        expect(error.mensaje).not.toContain('\n');
+        // Longitud acotada.
+        expect(error.mensaje.length).toBeLessThanOrEqual(200);
+        // Sin marcadores de plantilla ni huecos sin rellenar.
+        expect(error.mensaje).not.toContain('{');
+        expect(error.mensaje).not.toContain('}');
+        expect(error.mensaje).not.toContain('undefined');
+        expect(error.mensaje.trim().length).toBeGreaterThan(0);
+      }),
+      { seed: 111, numRuns: 200 },
+    );
+  });
+
+  it('dos invocaciones con los mismos parámetros dan el mismo texto, sobre 200 semillas', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 0, max: 4_294_967_295 }), (semilla) => {
+        const a = crearErrorAleatorio(semilla);
+        const b = crearErrorAleatorio(semilla);
+        expect(a.mensaje).toBe(b.mensaje);
+        expect(a.id).toBe(b.id);
+        expect(a.severidad).toBe(b.severidad);
+      }),
+      { seed: 112, numRuns: 200 },
+    );
+  });
+});
