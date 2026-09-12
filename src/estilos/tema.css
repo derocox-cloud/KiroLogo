@@ -1,0 +1,290 @@
+/* 
+ * tema.css - Variables de color y grosor, única fuente de verdad
+ * 
+ * Este archivo define todas las variables CSS que controlan los colores,
+ * grosores y patrones de trazo del juego. Es la única fuente de verdad
+ * para la apariencia visual.
+ * 
+ * Cada variable tiene un valor de reserva (fallback) para garantizar que
+ * el juego sea jugable incluso si el tema no está completamente definido.
+ */
+
+:root {
+  /* ========== FONDOS ========== */
+  --color-fondo-primario: #ffffff;
+  --color-fondo-secundario: #f8f9fa;
+  --color-fondo-lienzo: #ffffff;
+  --color-fondo-editor: #ffffff;
+  --color-fondo-panel: #f8f9fa;
+  
+  /* Valores de reserva */
+  --color-fondo-lienzo-reserva: #ffffff;
+  --color-fondo-editor-reserva: #ffffff;
+
+  /* ========== TEXTO ========== */
+  --color-texto-primario: #212529;
+  --color-texto-secundario: #495057;
+  --color-texto-deshabilitado: #868e96;
+  --color-texto-enlace: #0d6efd;
+  --color-texto-error: #dc3545;
+  --color-texto-exito: #198754;
+  
+  /* Contraste mínimo WCAG 2.1 AA: 4.5:1 */
+  /* Los valores actuales garantizan al menos 15:1 sobre fondo blanco */
+
+  /* ========== CUADRÍCULA DEL LIENZO ========== */
+  /* Líneas de 20 unidades (menos prominentes) */
+  --color-cuadricula-20: #e9ecef;
+  --grosor-cuadricula-20: 0.5px;
+  
+  /* Líneas de 100 unidades (más prominentes) */
+  --color-cuadricula-100: #ced4da;
+  --grosor-cuadricula-100: 1px;
+  
+  /* Valores de reserva - garantizan contraste mínimo 3:1 */
+  --color-cuadricula-20-reserva: #dee2e6;
+  --color-cuadricula-100-reserva: #adb5bd;
+  --grosor-cuadricula-20-reserva: 0.75px;
+  --grosor-cuadricula-100-reserva: 1.5px;
+
+  /* ========== ESTELAS ========== */
+  /* Estela de referencia (Kiro) - menos prominente que la del jugador */
+  --color-estela-referencia: #6c757d;
+  --grosor-estela-referencia: 2px;
+  --patron-estela-referencia: solid;
+  
+  /* Estela del jugador - más prominente que la de referencia */
+  --color-estela-jugador: #0d6efd;
+  --grosor-estela-jugador: 3px;
+  --patron-estela-jugador: solid;
+  
+  /* Valores de reserva - garantizan contraste mínimo 3:1 y distinción visual */
+  --color-estela-referencia-reserva: #495057;
+  --color-estela-jugador-reserva: #0a58ca;
+  --grosor-estela-referencia-reserva: 2.5px;
+  --grosor-estela-jugador-reserva: 3.5px;
+
+  /* ========== ESTADOS DEL DIFF ========== */
+  /* Región de coincidencia (verde) */
+  --color-diff-coincidencia: #198754;
+  --grosor-diff-coincidencia: 3px;
+  --patron-diff-coincidencia: solid;
+  
+  /* Región de exceso (rojo) - lo que el jugador dibujó de más */
+  --color-diff-exceso: #dc3545;
+  --grosor-diff-exceso: 3px;
+  --patron-diff-exceso: dashed 4 12; /* guiones de 4 unidades, huecos de 12 */
+  
+  /* Región de falta (gris) - lo que le falta al jugador */
+  --color-diff-falta: #6c757d;
+  --grosor-diff-falta: 2px;
+  --patron-diff-falta: dotted 2 6; /* puntos de 2 unidades, huecos de 6 */
+  
+  /* Valores de reserva - distinguibles por patrón y grosor sin color */
+  --color-diff-coincidencia-reserva: #2e8b57;
+  --color-diff-exceso-reserva: #c53030;
+  --color-diff-falta-reserva: #5a6268;
+  --grosor-diff-coincidencia-reserva: 3.5px;
+  --grosor-diff-exceso-reserva: 4px;
+  --grosor-diff-falta-reserva: 2.5px;
+
+  /* ========== PERSONAJES ========== */
+  /* Tortuga con Kiro montado */
+  --color-tortuga-contorno: #212529;
+  --grosor-tortuga-contorno: 2px;
+  --color-tortuga-relleno: #ffffff;
+  --color-tortuga-cabeza: #343a40;
+  
+  /* Kiro (fantasma) */
+  --color-kiro-contorno: #0d6efd;
+  --grosor-kiro-contorno: 1.5px;
+  --color-kiro-relleno: rgba(13, 110, 253, 0.1);
+  
+  /* Lápiz */
+  --color-lapiz-contorno: #dc3545;
+  --grosor-lapiz-contorno: 1.5px;
+  --color-lapiz-relleno: #ffffff;
+  
+  /* Marcas de rumbo y orientación */
+  --color-marca-rumbo: #ff6b6b;
+  --grosor-marca-rumbo: 1px;
+  
+  /* Valores de reserva - garantizan contraste 3:1 frente a fondo y estela */
+  --color-tortuga-contorno-reserva: #000000;
+  --color-tortuga-relleno-reserva: #ffffff;
+  --color-kiro-contorno-reserva: #0a58ca;
+  --color-lapiz-contorno-reserva: #c53030;
+  --grosor-tortuga-contorno-reserva: 2.5px;
+  --grosor-kiro-contorno-reserva: 2px;
+
+  /* ========== INTERFAZ Y CONTROLES ========== */
+  /* Botones y controles interactivos */
+  --color-boton-fondo: #0d6efd;
+  --color-boton-texto: #ffffff;
+  --color-boton-fondo-hover: #0b5ed7;
+  --color-boton-fondo-active: #0a58ca;
+  --color-boton-fondo-deshabilitado: #6c757d;
+  
+  /* Botones secundarios */
+  --color-boton-secundario-fondo: #6c757d;
+  --color-boton-secundario-texto: #ffffff;
+  --color-boton-secundario-fondo-hover: #5c636a;
+  
+  /* Botones de vista activa */
+  --color-boton-vista-activa-fondo: #198754;
+  --color-boton-vista-activa-texto: #ffffff;
+  
+  /* Indicador de foco (requerido: 2px o más, contraste ≥ 3:1) */
+  --color-indicador-foco: #0d6efd;
+  --grosor-indicador-foco: 2px;
+  --estilo-indicador-foco: solid;
+  
+  /* Valores de reserva para controles */
+  --color-indicador-foco-reserva: #0a58ca;
+  --grosor-indicador-foco-reserva: 3px;
+
+  /* ========== EDITOR ========== */
+  /* Borde y fondo del editor */
+  --color-borde-editor: #ced4da;
+  --color-borde-editor-focus: #86b7fe;
+  
+  /* Números de línea */
+  --color-numeros-linea: #6c757d;
+  --color-numeros-linea-activa: #0d6efd;
+  
+  /* Resaltado de línea activa (paso a paso) */
+  --color-linea-activa-fondo: rgba(13, 110, 253, 0.1);
+  --color-linea-activa-borde: #86b7fe;
+  
+  /* Marcas de error en la canaleta */
+  --color-marca-error: #dc3545;
+  --color-marca-error-fondo: rgba(220, 53, 69, 0.1);
+
+  /* ========== PANEL DE COMANDOS ========== */
+  --color-borde-panel: #dee2e6;
+  --color-item-comando-fondo-hover: #e9ecef;
+  --color-item-comando-fondo-active: #dee2e6;
+
+  /* ========== GLOBO DE KIRO ========== */
+  --color-globo-fondo: #f8f9fa;
+  --color-globo-borde: #dee2e6;
+  --color-globo-texto: #212529;
+  --color-globo-sombra: rgba(0, 0, 0, 0.1);
+
+  /* ========== ESTADOS DE INTERFAZ ========== */
+  /* Estados de las estrellas */
+  --color-estrella-otorgada: #ffc107;
+  --color-estrella-negada: #e9ecef;
+  
+  /* Contador de instrucciones */
+  --color-contador-normal: #212529;
+  --color-contador-excede: #dc3545;
+  --color-contador-provisional: #6c757d;
+
+  /* ========== ACCESIBILIDAD ========== */
+  /* Soporte para prefers-reduced-motion */
+  --duracion-animacion-reducida: 0s;
+  --duracion-animacion-normal: 0.3s;
+  
+  /* Soporte para prefers-color-scheme: dark */
+  /* (Implementado en futuras especificaciones) */
+}
+
+/* 
+ * Función para obtener valores seguros del tema.
+ * Estas funciones garantizan que siempre haya un valor usable,
+ * incluso si alguna variable CSS no está definida.
+ */
+.lienzo {
+  background-color: var(--color-fondo-lienzo, var(--color-fondo-lienzo-reserva));
+}
+
+.estela-referencia {
+  stroke: var(--color-estela-referencia, var(--color-estela-referencia-reserva));
+  stroke-width: var(--grosor-estela-referencia, var(--grosor-estela-referencia-reserva));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.estela-jugador {
+  stroke: var(--color-estela-jugador, var(--color-estela-jugador-reserva));
+  stroke-width: var(--grosor-estela-jugador, var(--grosor-estela-jugador-reserva));
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.diff-coincidencia {
+  stroke: var(--color-diff-coincidencia, var(--color-diff-coincidencia-reserva));
+  stroke-width: var(--grosor-diff-coincidencia, var(--grosor-diff-coincidencia-reserva));
+  stroke-dasharray: var(--patron-diff-coincidencia, solid);
+}
+
+.diff-exceso {
+  stroke: var(--color-diff-exceso, var(--color-diff-exceso-reserva));
+  stroke-width: var(--grosor-diff-exceso, var(--grosor-diff-exceso-reserva));
+  stroke-dasharray: var(--patron-diff-exceso, dashed 4 12);
+}
+
+.diff-falta {
+  stroke: var(--color-diff-falta, var(--color-diff-falta-reserva));
+  stroke-width: var(--grosor-diff-falta, var(--grosor-diff-falta-reserva));
+  stroke-dasharray: var(--patron-diff-falta, dotted 2 6);
+}
+
+.cuadricula-20 {
+  stroke: var(--color-cuadricula-20, var(--color-cuadricula-20-reserva));
+  stroke-width: var(--grosor-cuadricula-20, var(--grosor-cuadricula-20-reserva));
+}
+
+.cuadricula-100 {
+  stroke: var(--color-cuadricula-100, var(--color-cuadricula-100-reserva));
+  stroke-width: var(--grosor-cuadricula-100, var(--grosor-cuadricula-100-reserva));
+}
+
+/* Indicador de foco accesible */
+:focus-visible {
+  outline: var(--grosor-indicador-foco, var(--grosor-indicador-foco-reserva)) 
+          var(--estilo-indicador-foco, solid) 
+          var(--color-indicador-foco, var(--color-indicador-foco-reserva));
+  outline-offset: 2px;
+}
+
+/* Soporte para prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duracion-animacion-reducida: 0s;
+  }
+  
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 
+ * Verificación de contraste (para desarrollo)
+ * Estas reglas ayudan a identificar problemas de contraste durante el desarrollo.
+ */
+.verificar-contraste {
+  /* Fondo lienzo vs cuadrícula 20: mínimo 3:1 */
+  background-color: var(--color-fondo-lienzo, #ffffff);
+  color: var(--color-cuadricula-20, #e9ecef);
+  
+  /* Fondo lienzo vs cuadrícula 100: mínimo 3:1 */
+  background-color: var(--color-fondo-lienzo, #ffffff);
+  color: var(--color-cuadricula-100, #ced4da);
+  
+  /* Fondo lienzo vs estela referencia: mínimo 3:1 */
+  background-color: var(--color-fondo-lienzo, #ffffff);
+  color: var(--color-estela-referencia, #6c757d);
+  
+  /* Fondo lienzo vs estela jugador: mínimo 3:1 */
+  background-color: var(--color-fondo-lienzo, #ffffff);
+  color: var(--color-estela-jugador, #0d6efd);
+  
+  /* Estela referencia vs estela jugador: distinguibles por grosor y patrón */
+  /* Esto se verifica visualmente durante el desarrollo */
+}

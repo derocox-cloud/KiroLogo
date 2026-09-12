@@ -1,0 +1,169 @@
+{
+  "pbtResults": {
+    "3.2 Escribir la prueba de propiedad del PRNG": {
+      "status": "passed",
+      "lastRunTimestamp": 1789212997597
+    },
+    "3.4 Escribir la prueba de propiedad del código de semilla": {
+      "status": "passed",
+      "lastRunTimestamp": 1789214139843
+    }
+  },
+  "executionHistory": {
+    "1. Andamiaje del proyecto": [
+      {
+        "executionId": "b9c484fd-7db6-45ec-b863-5c20e446c27c",
+        "chatSessionId": "sess_729dfab7-e800-40c2-8f3e-10a95401e772",
+        "timestamp": 1788827001104
+      },
+      {
+        "executionId": "b9c484fd-7db6-45ec-b863-5c20e446c27c",
+        "chatSessionId": "sess_729dfab7-e800-40c2-8f3e-10a95401e772",
+        "timestamp": 1788829427997
+      }
+    ],
+    "1.1 Crear `package.json` con versiones fijas y guiones, y generar `package-lock.json`": [
+      {
+        "executionId": "b9c484fd-7db6-45ec-b863-5c20e446c27c",
+        "chatSessionId": "sess_729dfab7-e800-40c2-8f3e-10a95401e772",
+        "timestamp": 1788827855922
+      }
+    ],
+    "1.2 Crear `tsconfig.json` estricto y `vite.config.ts`": [
+      {
+        "executionId": "b9c484fd-7db6-45ec-b863-5c20e446c27c",
+        "chatSessionId": "sess_729dfab7-e800-40c2-8f3e-10a95401e772",
+        "timestamp": 1788828369266
+      }
+    ],
+    "1.3 Crear `index.html` y las dos hojas de estilo del tema": [
+      {
+        "executionId": "b9c484fd-7db6-45ec-b863-5c20e446c27c",
+        "chatSessionId": "sess_729dfab7-e800-40c2-8f3e-10a95401e772",
+        "timestamp": 1788829106140
+      }
+    ],
+    "1.4 Crear `amplify.yml` y `README.md`": [
+      {
+        "executionId": "b9c484fd-7db6-45ec-b863-5c20e446c27c",
+        "chatSessionId": "sess_729dfab7-e800-40c2-8f3e-10a95401e772",
+        "timestamp": 1788829427713
+      }
+    ],
+    "2. Vocabulario y catálogo de errores, las dos fuentes únicas de verdad": [
+      {
+        "executionId": "fbdbbcff-b64a-478f-843d-ac77643374dc",
+        "chatSessionId": "sess_8e94ebbb-7968-4bf9-b88d-afd1c6454fa5",
+        "timestamp": 1788830644516
+      },
+      {
+        "executionId": "fbdbbcff-b64a-478f-843d-ac77643374dc",
+        "chatSessionId": "sess_8e94ebbb-7968-4bf9-b88d-afd1c6454fa5",
+        "timestamp": 1788833304687
+      }
+    ],
+    "2.1 Implementar `src/lenguaje/vocabulario.ts` y su prueba": [
+      {
+        "executionId": "fbdbbcff-b64a-478f-843d-ac77643374dc",
+        "chatSessionId": "sess_8e94ebbb-7968-4bf9-b88d-afd1c6454fa5",
+        "timestamp": 1788830662447
+      },
+      {
+        "executionId": "fbdbbcff-b64a-478f-843d-ac77643374dc",
+        "chatSessionId": "sess_8e94ebbb-7968-4bf9-b88d-afd1c6454fa5",
+        "timestamp": 1788831080201
+      }
+    ],
+    "2.2 Implementar `src/lenguaje/errores.ts` con sus entradas y textos, y su prueba": [
+      {
+        "executionId": "fbdbbcff-b64a-478f-843d-ac77643374dc",
+        "chatSessionId": "sess_8e94ebbb-7968-4bf9-b88d-afd1c6454fa5",
+        "timestamp": 1788831112302
+      },
+      {
+        "executionId": "fbdbbcff-b64a-478f-843d-ac77643374dc",
+        "chatSessionId": "sess_8e94ebbb-7968-4bf9-b88d-afd1c6454fa5",
+        "timestamp": 1788832438994
+      }
+    ],
+    "2.3 Implementar la distancia de edición, la tabla de Logo en inglés y la precedencia de los cinco casos": [
+      {
+        "executionId": "fbdbbcff-b64a-478f-843d-ac77643374dc",
+        "chatSessionId": "sess_8e94ebbb-7968-4bf9-b88d-afd1c6454fa5",
+        "timestamp": 1788832512092
+      },
+      {
+        "executionId": "fbdbbcff-b64a-478f-843d-ac77643374dc",
+        "chatSessionId": "sess_8e94ebbb-7968-4bf9-b88d-afd1c6454fa5",
+        "timestamp": 1788833304144
+      }
+    ],
+    "3. Azar determinista con semilla explícita": [
+      {
+        "executionId": "df4fe4f7-4372-440f-8465-1f48f94e7cf1",
+        "chatSessionId": "sess_5df845e6-34be-42d5-acad-95e4d968246e",
+        "timestamp": 1789211465110
+      },
+      {
+        "executionId": "df4fe4f7-4372-440f-8465-1f48f94e7cf1",
+        "chatSessionId": "sess_5df845e6-34be-42d5-acad-95e4d968246e",
+        "timestamp": 1789214960768
+      }
+    ],
+    "3.1 Implementar `src/azar/prng.ts` y su prueba de ejemplos": [
+      {
+        "executionId": "df4fe4f7-4372-440f-8465-1f48f94e7cf1",
+        "chatSessionId": "sess_5df845e6-34be-42d5-acad-95e4d968246e",
+        "timestamp": 1789212131832
+      }
+    ],
+    "3.2 Escribir la prueba de propiedad del PRNG": [
+      {
+        "executionId": "df4fe4f7-4372-440f-8465-1f48f94e7cf1",
+        "chatSessionId": "sess_5df845e6-34be-42d5-acad-95e4d968246e",
+        "timestamp": 1789212150344
+      },
+      {
+        "executionId": "df4fe4f7-4372-440f-8465-1f48f94e7cf1",
+        "chatSessionId": "sess_5df845e6-34be-42d5-acad-95e4d968246e",
+        "timestamp": 1789213026585
+      }
+    ],
+    "3.3 Implementar `src/azar/codigo-semilla.ts` y su prueba de ejemplos": [
+      {
+        "executionId": "df4fe4f7-4372-440f-8465-1f48f94e7cf1",
+        "chatSessionId": "sess_5df845e6-34be-42d5-acad-95e4d968246e",
+        "timestamp": 1789213042370
+      },
+      {
+        "executionId": "df4fe4f7-4372-440f-8465-1f48f94e7cf1",
+        "chatSessionId": "sess_5df845e6-34be-42d5-acad-95e4d968246e",
+        "timestamp": 1789213649734
+      }
+    ],
+    "3.4 Escribir la prueba de propiedad del código de semilla": [
+      {
+        "executionId": "df4fe4f7-4372-440f-8465-1f48f94e7cf1",
+        "chatSessionId": "sess_5df845e6-34be-42d5-acad-95e4d968246e",
+        "timestamp": 1789213669289
+      },
+      {
+        "executionId": "df4fe4f7-4372-440f-8465-1f48f94e7cf1",
+        "chatSessionId": "sess_5df845e6-34be-42d5-acad-95e4d968246e",
+        "timestamp": 1789214206290
+      }
+    ],
+    "3.5 Escribir los cuatro generadores de entrada compartidos por las pruebas de propiedades": [
+      {
+        "executionId": "df4fe4f7-4372-440f-8465-1f48f94e7cf1",
+        "chatSessionId": "sess_5df845e6-34be-42d5-acad-95e4d968246e",
+        "timestamp": 1789214222407
+      },
+      {
+        "executionId": "df4fe4f7-4372-440f-8465-1f48f94e7cf1",
+        "chatSessionId": "sess_5df845e6-34be-42d5-acad-95e4d968246e",
+        "timestamp": 1789214960621
+      }
+    ]
+  }
+}
