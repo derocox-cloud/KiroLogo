@@ -261,7 +261,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - **Valida: Requisitos 7.6**
     - La parte B, sobre dos resoluciones del reto, se escribe en la tarea 16.2
 
-- [ ] 9. Punto de control — ejecución y guardas
+- [x] 9. Punto de control — ejecución y guardas
   - Ejecutar `npm test` y `npm run typecheck`; asegurarse de que todas las pruebas pasan y preguntar al usuario si surgen dudas
 
 - [ ] 10. Extracción de segmentos y encuadre
