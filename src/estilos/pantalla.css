@@ -1,11 +1,14 @@
-/* 
- * pantalla.css - Disposición de la pantalla y layout del juego
- * 
- * Este archivo define la estructura visual de la interfaz: posicionamiento,
- * tamaños, márgenes, y el indicador de foco accesible.
+/*
+ * pantalla.css — Disposición de la pantalla y estilo de la interfaz.
+ *
+ * La capa ui/ construye su DOM con clases kl-* (editor, panel de comandos,
+ * controles, globo y comparación). Este archivo estiliza esas clases y el
+ * layout de los lienzos que declara index.html. Los colores, grosores y trazos
+ * del LIENZO viven en tema.css y los lee el motor por getComputedStyle sobre el
+ * :root; aquí solo se usan variables de tema para la interfaz, con reserva.
  */
 
-/* ========== RESET Y ESTILOS BASE ========== */
+/* ========== RESET Y BASE ========== */
 * {
   margin: 0;
   padding: 0;
@@ -27,14 +30,69 @@ body {
 }
 
 #aplicacion {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  /*
+   * Tres columnas: lienzo de Kiro (izquierda), sección del programa (centro),
+   * lienzo del jugador (derecha). Los lienzos toman un ancho cómodo y el centro
+   * el espacio flexible restante.
+   */
+  grid-template-columns: minmax(280px, 1fr) minmax(360px, 1.2fr) minmax(280px, 1fr);
+  /* Fila 1: cabecera. Fila 2: comparación (barra). Fila 3: contenido flexible;
+     filas 4-5: panel y controles del centro. */
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+  column-gap: 1.5rem;
+  row-gap: 1rem;
   height: 100vh;
   max-height: 100vh;
+  padding: 1.5rem;
   overflow: hidden;
 }
 
-/* ========== REGIÓN DE ANUNCIOS (aria-live) ========== */
+/*
+ * Los módulos de ui/ se cuelgan como hijos directos de #aplicacion en orden
+ * fijo (globo, editor, panel, comparación, controles). No dependemos del orden:
+ * cada pieza se coloca por su clase.
+ */
+.kl-cabecera {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+/* Columna izquierda: lienzo de Kiro, ocupa desde la barra hasta abajo. */
+.kl-lienzo-referencia {
+  grid-column: 1;
+  grid-row: 2 / -1;
+}
+
+/* Columna derecha: lienzo del jugador (y la superposición, que se muestra en su
+   lugar cuando la comparación la activa). */
+.kl-lienzo-jugador,
+.kl-lienzo-superposicion {
+  grid-column: 3;
+  grid-row: 2 / -1;
+}
+
+/* Columna central: la sección del programa, apilada. */
+.kl-globo,
+.kl-editor,
+.kl-panel-comandos,
+.kl-controles {
+  grid-column: 2;
+}
+.kl-globo { grid-row: 2; align-self: start; }
+.kl-editor { grid-row: 3; min-height: 0; overflow: hidden; }
+.kl-panel-comandos { grid-row: 4; }
+.kl-controles { grid-row: 5; }
+
+/* La comparación (barra de rótulos + conmutador) va arriba, sobre la columna
+   del jugador. */
+.kl-comparacion {
+  grid-column: 3;
+  grid-row: 2;
+  align-self: start;
+}
+
+/* Región aria-live: presente pero invisible, sin foco. */
 .region-anuncios {
   position: absolute;
   width: 1px;
@@ -45,92 +103,33 @@ body {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-  
-  /* No recibe foco, solo anuncia */
   pointer-events: none;
   user-select: none;
 }
 
 /* ========== CABECERA ========== */
-.cabecera {
+.kl-cabecera {
   padding: 1rem 2rem;
   background-color: var(--color-fondo-secundario, #f8f9fa);
   border-bottom: 1px solid var(--color-borde-panel, #dee2e6);
   flex-shrink: 0;
 }
 
-.cabecera h1 {
+.kl-titulo {
   font-size: 1.75rem;
   font-weight: 600;
   color: var(--color-texto-primario, #212529);
   text-align: center;
 }
 
-/* ========== CONTENIDO PRINCIPAL ========== */
-.contenido-principal {
-  display: flex;
-  flex: 1;
-  overflow: hidden;
-  min-height: 0;
-}
-
-/* ========== SECCIÓN IZQUIERDA (Editor y controles) ========== */
-.seccion-izquierda {
-  flex: 0 0 40%;
-  max-width: 40%;
-  display: flex;
-  flex-direction: column;
-  padding: 1.5rem;
-  gap: 1.5rem;
-  border-right: 1px solid var(--color-borde-panel, #dee2e6);
-  background-color: var(--color-fondo-secundario, #f8f9fa);
-  overflow-y: auto;
-}
-
-/* ----- Editor ----- */
-.contenedor-editor {
+/* ========== EDITOR (kl-editor) ========== */
+.kl-editor {
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.editor-cabecera {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.titulo-editor {
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: var(--color-texto-primario, #212529);
-}
-
-.contadores {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-}
-
-.contador,
-.presupuesto {
-  font-size: 0.875rem;
-  display: flex;
-  gap: 0.25rem;
-}
-
-.contador-valor,
-.presupuesto-valor {
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-}
-
-.contador-texto,
-.presupuesto-texto {
-  color: var(--color-texto-secundario, #495057);
-}
-
-.editor-con-canaleta {
+.kl-editor-zona {
   display: flex;
   position: relative;
   border: 1px solid var(--color-borde-editor, #ced4da);
@@ -139,29 +138,43 @@ body {
   overflow: hidden;
 }
 
-.canaleta-numeros {
+.kl-editor-canaleta {
   flex: 0 0 auto;
   width: 3rem;
   padding: 0.75rem 0.5rem;
   background-color: var(--color-fondo-secundario, #f8f9fa);
   border-right: 1px solid var(--color-borde-editor, #ced4da);
-  font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", monospace;
+  font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Mono", monospace;
   font-size: 0.875rem;
   color: var(--color-numeros-linea, #6c757d);
   text-align: right;
   line-height: 1.5;
-  overflow-y: auto;
+  overflow: hidden;
   user-select: none;
 }
 
-.area-escritura {
+.kl-canaleta-linea {
+  display: block;
+}
+
+.kl-canaleta-error {
+  color: var(--color-texto-error, #dc3545);
+  font-weight: 700;
+}
+
+.kl-canaleta-actual {
+  background-color: var(--color-item-comando-fondo-hover, #e9ecef);
+  font-weight: 700;
+}
+
+.kl-editor-area {
   flex: 1;
   min-height: 300px;
   padding: 0.75rem;
   border: none;
   outline: none;
   resize: none;
-  font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Mono", "Droid Sans Mono", monospace;
+  font-family: "SF Mono", "Monaco", "Inconsolata", "Fira Mono", monospace;
   font-size: 0.875rem;
   line-height: 1.5;
   color: var(--color-texto-primario, #212529);
@@ -170,69 +183,100 @@ body {
   tab-size: 2;
 }
 
-.area-escritura:focus {
-  outline: none;
-}
-
-.area-escritura::placeholder {
-  color: var(--color-texto-deshabilitado, #868e96);
-}
-
-/* Indicador de foco para el editor */
-.area-escritura:focus-visible {
+.kl-editor-area:focus-visible {
   outline: var(--grosor-indicador-foco, 2px) var(--estilo-indicador-foco, solid) var(--color-indicador-foco, #0d6efd);
   outline-offset: -2px;
 }
 
-/* ----- Panel de comandos ----- */
-.panel-comandos {
+.kl-editor-contador {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  border: 1px solid var(--color-borde-panel, #dee2e6);
-  border-radius: 0.375rem;
-  padding: 1rem;
-  background-color: var(--color-fondo-panel, #f8f9fa);
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-texto-secundario, #495057);
 }
 
-.titulo-panel {
-  font-size: 1.125rem;
+.kl-contador-instrucciones {
   font-weight: 600;
   color: var(--color-texto-primario, #212529);
 }
 
-.lista-comandos {
+.kl-contador-presupuesto {
+  color: var(--color-texto-secundario, #495057);
+}
+
+/* El exceso de presupuesto se marca por texto (kl-contador-aviso) además del color. */
+.kl-contador-exceso {
+  color: var(--color-texto-error, #dc3545);
+  font-weight: 700;
+}
+
+.kl-contador-aviso {
+  color: var(--color-texto-error, #dc3545);
+  font-weight: 700;
+}
+
+.kl-editor-marcas {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.kl-editor-marca {
+  font-size: 0.8125rem;
+  color: var(--color-texto-error, #dc3545);
+}
+
+/* ========== PANEL DE COMANDOS (kl-panel-comandos) ========== */
+.kl-panel-comandos {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 200px;
+  border: 1px solid var(--color-borde-panel, #dee2e6);
+  border-radius: 0.375rem;
+  padding: 1rem;
+  background-color: var(--color-fondo-panel, #f8f9fa);
+  max-height: 240px;
   overflow-y: auto;
 }
 
-/* ----- Controles de ejecución ----- */
-.controles-ejecucion {
+.kl-comando {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-borde-editor, #ced4da);
+  border-radius: 0.375rem;
+  background-color: var(--color-fondo-editor, #ffffff);
+  color: var(--color-texto-primario, #212529);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+}
+
+.kl-comando:hover {
+  background-color: var(--color-item-comando-fondo-hover, #e9ecef);
+}
+
+.kl-comando:focus-visible {
+  outline: var(--grosor-indicador-foco, 2px) var(--estilo-indicador-foco, solid) var(--color-indicador-foco, #0d6efd);
+  outline-offset: 2px;
+}
+
+/* ========== CONTROLES (kl-controles) ========== */
+.kl-controles {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
   border: 1px solid var(--color-borde-panel, #dee2e6);
   border-radius: 0.375rem;
   padding: 1rem;
   background-color: var(--color-fondo-panel, #f8f9fa);
+  align-items: center;
 }
 
-.titulo-controles {
-  font-size: 1.125rem;
-  font-weight: 600;
-  color: var(--color-texto-primario, #212529);
-}
-
-.botones-controles {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-
-.boton-control {
+.kl-control {
   padding: 0.5rem 1rem;
   border: 1px solid transparent;
   border-radius: 0.375rem;
@@ -241,85 +285,199 @@ body {
   font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out;
+  transition: background-color 0.15s ease-in-out;
 }
 
-.boton-control:hover {
+.kl-control:hover {
   background-color: var(--color-boton-fondo-hover, #0b5ed7);
 }
 
-.boton-control:active {
+.kl-control:active {
   background-color: var(--color-boton-fondo-active, #0a58ca);
 }
 
-.boton-control:disabled {
+.kl-control:focus-visible {
+  outline: var(--grosor-indicador-foco, 2px) var(--estilo-indicador-foco, solid) var(--color-indicador-foco, #0d6efd);
+  outline-offset: 2px;
+}
+
+/* Estado deshabilitado: por atributo disabled y por clase, para el mismo aspecto. */
+.kl-control:disabled,
+.kl-control.kl-deshabilitada,
+.kl-velocidad:disabled,
+.kl-velocidad.kl-deshabilitada {
   background-color: var(--color-boton-fondo-deshabilitado, #6c757d);
   cursor: not-allowed;
   opacity: 0.65;
 }
 
-.boton-control:focus-visible {
+.kl-control-velocidades {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+}
+
+.kl-velocidad {
+  padding: 0.375rem 0.625rem;
+  border: 1px solid var(--color-borde-editor, #ced4da);
+  border-radius: 0.375rem;
+  background-color: var(--color-fondo-editor, #ffffff);
+  color: var(--color-texto-primario, #212529);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.kl-velocidad:hover {
+  background-color: var(--color-item-comando-fondo-hover, #e9ecef);
+}
+
+/* Velocidad seleccionada: color de fondo + peso, y aria-pressed en el DOM. */
+.kl-velocidad.kl-seleccionada,
+.kl-velocidad[aria-pressed="true"] {
+  background-color: var(--color-boton-vista-activa-fondo, #198754);
+  color: var(--color-boton-vista-activa-texto, #ffffff);
+  border-color: transparent;
+  font-weight: 600;
+}
+
+.kl-velocidad:focus-visible {
   outline: var(--grosor-indicador-foco, 2px) var(--estilo-indicador-foco, solid) var(--color-indicador-foco, #0d6efd);
   outline-offset: 2px;
 }
 
-.velocidad-control {
+/* ========== GLOBO DE KIRO (kl-globo) ========== */
+.kl-globo {
+  flex-shrink: 0;
+  position: relative;
+  padding: 1rem 1.5rem;
+  background-color: var(--color-globo-fondo, #f8f9fa);
+  border: 1px solid var(--color-globo-borde, #dee2e6);
+  border-radius: 0.75rem;
+  color: var(--color-globo-texto, #212529);
+  box-shadow: 0 2px 8px var(--color-globo-sombra, rgba(0, 0, 0, 0.1));
+}
+
+.kl-globo-emisor {
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: var(--color-texto-secundario, #495057);
+  margin-bottom: 0.25rem;
+}
+
+.kl-globo-cuerpo {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 0.5rem;
 }
 
-.etiqueta-velocidad {
-  font-size: 0.875rem;
+.kl-globo-mensaje {
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+.kl-globo-sin-mas {
+  font-size: 0.8125rem;
+  font-style: italic;
   color: var(--color-texto-secundario, #495057);
 }
 
-.selector-velocidad {
-  padding: 0.25rem 0.5rem;
+.kl-globo-pista {
+  align-self: flex-start;
+  padding: 0.375rem 0.75rem;
   border: 1px solid var(--color-borde-editor, #ced4da);
-  border-radius: 0.25rem;
+  border-radius: 0.375rem;
   background-color: var(--color-fondo-editor, #ffffff);
   color: var(--color-texto-primario, #212529);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   cursor: pointer;
 }
 
-.selector-velocidad:focus-visible {
+.kl-globo-pista:hover {
+  background-color: var(--color-item-comando-fondo-hover, #e9ecef);
+}
+
+.kl-globo-pista:focus-visible {
   outline: var(--grosor-indicador-foco, 2px) var(--estilo-indicador-foco, solid) var(--color-indicador-foco, #0d6efd);
   outline-offset: 2px;
 }
 
-/* ========== SECCIÓN DERECHA (Lienzos y comparación) ========== */
-.seccion-derecha {
-  flex: 1;
+/* ========== LIENZOS ========== */
+/*
+ * Cada lienzo es una columna: un título arriba y un cuadro cuadrado debajo.
+ * El cuadro (.kl-lienzo-cuadro) es el contenedor de posicionamiento donde se
+ * apilan las capas de <canvas> con posición absoluta. Se dimensiona por el
+ * ancho de su columna y mantiene la relación 1:1.
+ */
+.kl-lienzo {
   display: flex;
   flex-direction: column;
-  padding: 1.5rem;
-  gap: 1.5rem;
+  gap: 0.5rem;
+  min-height: 0;
+  min-width: 0;
+}
+
+.kl-lienzo-titulo {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--color-texto-primario, #212529);
+  text-align: center;
+}
+
+.kl-lienzo-cuadro {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  /* No supera la altura disponible; si la columna es muy alta, el ancho manda. */
+  max-height: 100%;
+  margin: 0 auto;
+  border: 1px solid var(--color-borde-editor, #ced4da);
+  border-radius: 0.375rem;
+  background-color: var(--color-fondo-lienzo, #ffffff);
   overflow: hidden;
 }
 
-/* ----- Vista comparativa ----- */
-.vista-comparativa {
+.kl-capa {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  image-rendering: crisp-edges;
+}
+
+/*
+ * Superposición: comparte la columna del jugador (columna 3). Se controla con
+ * el atributo [hidden] que la comparación alterna. Oculta por defecto.
+ */
+.kl-lienzo-superposicion[hidden] {
+  display: none;
+}
+
+/* ========== COMPARACIÓN (kl-comparacion) ========== */
+.kl-comparacion {
+  flex-shrink: 0;
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
   align-items: center;
-  padding-bottom: 0.75rem;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
   border-bottom: 1px solid var(--color-borde-panel, #dee2e6);
 }
 
-.titulo-vista {
-  font-size: 1.25rem;
+.kl-comparacion-rotulo {
+  font-size: 0.875rem;
   font-weight: 600;
   color: var(--color-texto-primario, #212529);
 }
 
-.selector-vista {
+.kl-comparacion-lado {
   display: flex;
-  gap: 0.5rem;
+  gap: 1rem;
 }
 
-.boton-vista {
+.kl-comparacion-conmutador {
+  margin-left: auto;
   padding: 0.375rem 0.75rem;
   border: 1px solid var(--color-borde-editor, #ced4da);
   border-radius: 0.375rem;
@@ -327,256 +485,67 @@ body {
   color: var(--color-texto-primario, #212529);
   font-size: 0.875rem;
   cursor: pointer;
-  transition: all 0.15s ease-in-out;
 }
 
-.boton-vista:hover {
+.kl-comparacion-conmutador:hover {
   background-color: var(--color-item-comando-fondo-hover, #e9ecef);
 }
 
-.boton-vista[aria-pressed="true"] {
+.kl-comparacion-conmutador[aria-pressed="true"] {
   background-color: var(--color-boton-vista-activa-fondo, #198754);
   color: var(--color-boton-vista-activa-texto, #ffffff);
   border-color: transparent;
 }
 
-.boton-vista:focus-visible {
+.kl-comparacion-conmutador:focus-visible {
   outline: var(--grosor-indicador-foco, 2px) var(--estilo-indicador-foco, solid) var(--color-indicador-foco, #0d6efd);
   outline-offset: 2px;
 }
 
-/* ----- Contenedor de lienzos ----- */
-.contenedor-lienzos {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  overflow: hidden;
-}
-
-.lienzos-contenedor {
-  flex: 1;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  position: relative;
-  min-height: 0;
-}
-
-/* Vista superposición - muestra un solo lienzo */
-.lienzos-contenedor.vista-superposicion {
-  grid-template-columns: 1fr;
-}
-
-.contenedor-lienzo-individual {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.titulo-lienzo {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--color-texto-primario, #212529);
-}
-
-.lienzo {
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  background-color: var(--color-fondo-lienzo, #ffffff);
-  border: 1px solid var(--color-borde-editor, #ced4da);
-  border-radius: 0.375rem;
-  touch-action: none;
-  image-rendering: crisp-edges;
-}
-
-/* Contenedor para lienzo de superposición (oculto por defecto) */
-#contenedor-superposicion.oculto {
-  display: none;
-}
-
-.lienzos-contenedor.vista-superposicion #contenedor-superposicion {
-  display: flex;
-}
-
-.lienzos-contenedor.vista-superposicion .contenedor-lienzo-individual:not(#contenedor-superposicion) {
-  display: none;
-}
-
-/* Lienzos de personajes (superpuestos) */
-.contenedor-lienzo-personajes {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-  z-index: 10;
-}
-
-.lienzo-personajes {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-/* Posicionamiento de las capas de personajes */
-#lienzo-personajes-referencia {
-  /* Cubre el primer lienzo (referencia) */
-  width: calc(50% - 0.5rem);
-}
-
-#lienzo-personajes-jugador {
-  /* Cubre el segundo lienzo (jugador) */
-  left: calc(50% + 0.5rem);
-  width: calc(50% - 0.5rem);
-}
-
-/* En vista superposición, ambos personajes van sobre el mismo lienzo */
-.lienzos-contenedor.vista-superposicion #lienzo-personajes-referencia,
-.lienzos-contenedor.vista-superposicion #lienzo-personajes-jugador {
-  width: 100%;
-  left: 0;
-}
-
-/* ----- Globo de Kiro ----- */
-.globo-kiro {
-  flex-shrink: 0;
-  position: relative;
-  max-width: 600px;
-  margin: 0 auto;
-}
-
-.globo-contenido {
-  padding: 1rem 1.5rem;
-  background-color: var(--color-globo-fondo, #f8f9fa);
-  border: 1px solid var(--color-globo-borde, #dee2e6);
-  border-radius: 0.75rem;
-  color: var(--color-globo-texto, #212529);
-  font-size: 1rem;
-  line-height: 1.5;
-  box-shadow: 0 2px 8px var(--color-globo-sombra, rgba(0, 0, 0, 0.1));
-}
-
-.globo-puntas {
-  position: absolute;
-  bottom: -10px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 10px solid transparent;
-  border-right: 10px solid transparent;
-  border-top: 10px solid var(--color-globo-borde, #dee2e6);
-}
-
-.globo-puntas::after {
-  content: '';
-  position: absolute;
-  bottom: 1px;
-  left: -9px;
-  width: 0;
-  height: 0;
-  border-left: 9px solid transparent;
-  border-right: 9px solid transparent;
-  border-top: 9px solid var(--color-globo-fondo, #f8f9fa);
-}
-
-/* ========== CLASES DE UTILIDAD ========== */
+/* ========== UTILIDAD ========== */
 .oculto {
   display: none !important;
 }
 
+/* ========== MOVIMIENTO REDUCIDO ========== */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.001ms !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 /* ========== RESPONSIVE ========== */
 @media (max-width: 1200px) {
-  .contenido-principal {
-    flex-direction: column;
-  }
-  
-  .seccion-izquierda {
-    flex: none;
-    max-width: 100%;
-    border-right: none;
-    border-bottom: 1px solid var(--color-borde-panel, #dee2e6);
-    max-height: 50vh;
-  }
-  
-  .seccion-derecha {
-    flex: 1;
-    max-height: 50vh;
-  }
-  
-  .lienzos-contenedor {
+  /* Una sola columna: todo se apila en el orden de fuente. */
+  #aplicacion {
     grid-template-columns: 1fr;
-    gap: 0.5rem;
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+    overflow-y: auto;
   }
-  
-  #lienzo-personajes-referencia,
-  #lienzo-personajes-jugador {
-    width: 100%;
-    left: 0;
+
+  .kl-cabecera,
+  .kl-globo,
+  .kl-editor,
+  .kl-panel-comandos,
+  .kl-controles,
+  .kl-comparacion,
+  .kl-lienzo-referencia,
+  .kl-lienzo-jugador,
+  .kl-lienzo-superposicion {
+    grid-column: 1;
+    grid-row: auto;
   }
 }
 
 @media (max-width: 768px) {
-  .cabecera {
+  .kl-cabecera {
     padding: 0.75rem 1rem;
   }
-  
-  .cabecera h1 {
-    font-size: 1.5rem;
-  }
-  
-  .seccion-izquierda,
-  .seccion-derecha {
-    padding: 1rem;
-  }
-  
-  .botones-controles {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  
-  .vista-comparativa {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  
-  .selector-vista {
-    width: 100%;
-    justify-content: stretch;
-  }
-  
-  .boton-vista {
-    flex: 1;
-    text-align: center;
-  }
-}
 
-/* ========== IMPRESIÓN ========== */
-@media print {
-  .seccion-izquierda,
-  .controles-ejecucion,
-  .selector-vista,
-  .globo-kiro {
-    display: none;
-  }
-  
-  .seccion-derecha {
-    width: 100%;
-    padding: 0;
-  }
-  
-  .lienzos-contenedor {
-    grid-template-columns: 1fr 1fr;
-    gap: 2cm;
-  }
-  
-  .lienzo {
-    border: none;
+  .kl-titulo {
+    font-size: 1.5rem;
   }
 }

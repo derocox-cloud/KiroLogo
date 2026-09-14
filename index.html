@@ -4,174 +4,64 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>KiroLogo</title>
-  <link rel="stylesheet" href="./src/estilos/pantalla.css">
   <link rel="stylesheet" href="./src/estilos/tema.css">
+  <link rel="stylesheet" href="./src/estilos/pantalla.css">
 </head>
 <body>
-  <div id="aplicacion" role="application" aria-label="KiroLogo, juego para aprender pensamiento algorítmico">
-    
-    <!-- Región aria-live para anuncios -->
-    <div id="anuncios" 
-         aria-live="polite" 
-         aria-atomic="true" 
-         class="region-anuncios">
-      <!-- Los anuncios se insertarán aquí -->
-    </div>
+  <!--
+    Contrato con main.ts (Opción A): la capa ui/ construye su propio DOM con
+    clases kl-* y lo agrega como HIJO DIRECTO de #aplicacion (el contenedor):
+    editor, panel de comandos, globo, comparación y controles. Este HTML aporta
+    los elementos estáticos: la región aria-live, la cabecera y los canvas con
+    los ids que main.ts busca por getElementById.
 
-    <!-- Cabecera con título -->
-    <header class="cabecera">
-      <h1>KiroLogo</h1>
+    Layout de tres columnas (ver pantalla.css): lienzo de Kiro a la izquierda,
+    la sección del programa (globo, editor, panel, controles) al centro, y el
+    lienzo del jugador a la derecha. Como main.ts localiza los canvas por id,
+    los tres bloques pueden vivir sueltos y colocarse por su clase.
+  -->
+  <div id="aplicacion" role="application" aria-label="KiroLogo, juego para aprender pensamiento algorítmico">
+
+    <!-- Región aria-live: único canal de anuncios para lectores de pantalla -->
+    <div id="anuncios" class="region-anuncios" aria-live="polite" aria-atomic="true"></div>
+
+    <header class="kl-cabecera">
+      <h1 class="kl-titulo">KiroLogo</h1>
     </header>
 
-    <main class="contenido-principal">
-      
-      <!-- Sección izquierda: Editor y controles -->
-      <section class="seccion-izquierda">
-        
-        <!-- Editor con números de línea -->
-        <div class="contenedor-editor">
-          <div class="editor-cabecera">
-            <h2 class="titulo-editor">Tu programa</h2>
-            <div class="contadores">
-              <span class="contador">
-                <span class="contador-valor" id="contador-instrucciones">0</span>
-                <span class="contador-texto"> instrucciones</span>
-              </span>
-              <span class="presupuesto">
-                <span class="presupuesto-texto">Meta: </span>
-                <span class="presupuesto-valor" id="presupuesto-estrella">0</span>
-                <span class="presupuesto-texto"> instrucciones</span>
-              </span>
-            </div>
-          </div>
-          
-          <div class="editor-con-canaleta">
-            <!-- Canaleta de números de línea -->
-            <div class="canaleta-numeros" aria-hidden="true" role="presentation"></div>
-            
-            <!-- Área de escritura principal -->
-            <textarea id="editor-texto" 
-                      class="area-escritura"
-                      placeholder="Escribe tu programa aquí..."
-                      aria-label="Editor del programa KiroLogo"
-                      rows="20"
-                      cols="80"
-                      spellcheck="false"></textarea>
-          </div>
-        </div>
+    <!-- Columna izquierda: lienzo de Kiro (referencia) -->
+    <div class="kl-lienzo kl-lienzo-referencia">
+      <h2 class="kl-lienzo-titulo">Figura de Kiro</h2>
+      <div class="kl-lienzo-cuadro">
+        <canvas id="lienzo-fondo-referencia" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
+        <canvas id="lienzo-referencia" class="kl-capa" width="800" height="800" role="img" aria-label="Figura de Kiro">
+          Tu navegador no soporta canvas.
+        </canvas>
+        <canvas id="lienzo-personajes-referencia" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
+      </div>
+    </div>
 
-        <!-- Panel de comandos -->
-        <div class="panel-comandos">
-          <h3 class="titulo-panel">Comandos disponibles</h3>
-          <div id="lista-comandos" class="lista-comandos" role="list" aria-label="Comandos disponibles">
-            <!-- Los comandos se insertarán aquí -->
-          </div>
-        </div>
+    <!-- Columna derecha: lienzo del jugador -->
+    <div class="kl-lienzo kl-lienzo-jugador">
+      <h2 class="kl-lienzo-titulo">Tu figura</h2>
+      <div class="kl-lienzo-cuadro">
+        <canvas id="lienzo-fondo-jugador" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
+        <canvas id="lienzo-jugador" class="kl-capa" width="800" height="800" role="img" aria-label="Tu figura">
+          Tu navegador no soporta canvas.
+        </canvas>
+        <canvas id="lienzo-personajes-jugador" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
+      </div>
+    </div>
 
-        <!-- Controles de ejecución -->
-        <div class="controles-ejecucion">
-          <h3 class="titulo-controles">Controles</h3>
-          <div class="botones-controles">
-            <button id="ejecutar" class="boton-control" type="button" aria-label="Ejecutar programa">
-              Ejecutar
-            </button>
-            <button id="detener" class="boton-control" type="button" aria-label="Detener ejecución" disabled>
-              Detener
-            </button>
-            <button id="paso-a-paso" class="boton-control" type="button" aria-label="Paso a paso">
-              Paso a paso
-            </button>
-            <button id="reiniciar" class="boton-control" type="button" aria-label="Reiniciar programa">
-              Reiniciar
-            </button>
-            <button id="ver-demostracion" class="boton-control" type="button" aria-label="Ver demostración de Kiro">
-              Ver demostración
-            </button>
-          </div>
-          <div class="velocidad-control">
-            <label for="velocidad" class="etiqueta-velocidad">Velocidad:</label>
-            <select id="velocidad" class="selector-velocidad" aria-label="Velocidad de animación">
-              <option value="0.25">Muy lenta</option>
-              <option value="0.5">Lenta</option>
-              <option value="1" selected>Normal</option>
-              <option value="2">Rápida</option>
-              <option value="4">Muy rápida</option>
-            </select>
-          </div>
-        </div>
+    <!-- Superposición: la comparación la muestra u oculta (se dibuja sobre el jugador) -->
+    <div class="kl-lienzo kl-lienzo-superposicion" hidden>
+      <div class="kl-lienzo-cuadro">
+        <canvas id="lienzo-superposicion" class="kl-capa" width="800" height="800" role="img" aria-label="Figuras superpuestas">
+          Tu navegador no soporta canvas.
+        </canvas>
+      </div>
+    </div>
 
-      </section>
-
-      <!-- Sección derecha: Lienzos y comparación -->
-      <section class="seccion-derecha">
-        
-        <!-- Contenedor de lienzos -->
-        <div class="contenedor-lienzos">
-          
-          <!-- Vista comparativa -->
-          <div class="vista-comparativa">
-            <h3 class="titulo-vista">Comparación</h3>
-            <div class="selector-vista">
-              <button id="vista-lado-a-lado" class="boton-vista" type="button" aria-label="Vista lado a lado" aria-pressed="true">
-                Lado a lado
-              </button>
-              <button id="vista-superposicion" class="boton-vista" type="button" aria-label="Vista superposición">
-                Superposición
-              </button>
-            </div>
-          </div>
-
-          <!-- Lienzos -->
-          <div class="lienzos-contenedor">
-            <!-- Lienzo de referencia (Kiro) -->
-            <div class="contenedor-lienzo-individual">
-              <h4 class="titulo-lienzo" id="titulo-lienzo-referencia">Kiro</h4>
-              <canvas id="lienzo-referencia" class="lienzo" width="800" height="800" aria-labelledby="titulo-lienzo-referencia">
-                Tu navegador no soporta canvas.
-              </canvas>
-            </div>
-
-            <!-- Lienzo del jugador -->
-            <div class="contenedor-lienzo-individual">
-              <h4 class="titulo-lienzo" id="titulo-lienzo-jugador">Tu figura</h4>
-              <canvas id="lienzo-jugador" class="lienzo" width="800" height="800" aria-labelledby="titulo-lienzo-jugador">
-                Tu navegador no soporta canvas.
-              </canvas>
-            </div>
-
-            <!-- Lienzo de superposición (solo visible en modo superposición) -->
-            <div class="contenedor-lienzo-individual oculto" id="contenedor-superposicion">
-              <h4 class="titulo-lienzo" id="titulo-lienzo-superposicion">Comparación</h4>
-              <canvas id="lienzo-superposicion" class="lienzo" width="800" height="800" aria-labelledby="titulo-lienzo-superposicion">
-                Tu navegador no soporta canvas.
-              </canvas>
-            </div>
-
-            <!-- Lienzo de personajes (capas transparentes sobre los otros lienzos) -->
-            <div class="contenedor-lienzo-personajes">
-              <!-- Capa de personajes para referencia -->
-              <canvas id="lienzo-personajes-referencia" class="lienzo-personajes" width="800" height="800" aria-hidden="true"></canvas>
-              
-              <!-- Capa de personajes para jugador -->
-              <canvas id="lienzo-personajes-jugador" class="lienzo-personajes" width="800" height="800" aria-hidden="true"></canvas>
-            </div>
-          </div>
-
-        </div>
-
-        <!-- Globo de Kiro -->
-        <div class="globo-kiro">
-          <div class="globo-contenido" id="contenido-globo">
-            ¡Hola! Soy Kiro. Te mostraré una figura y tú escribirás el programa que la reproduce.
-          </div>
-          <div class="globo-puntas" aria-hidden="true"></div>
-        </div>
-
-      </section>
-
-    </main>
-
-    <!-- Script principal -->
     <script type="module" src="./src/main.ts"></script>
   </div>
 </body>

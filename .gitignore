@@ -35,3 +35,6 @@ pnpm-debug.log*
 
 # Imagenes de referencia y concepto (los personajes se dibujan por codigo)
 assets/
+
+# Capturas de depuracion visual, no son fuente del proyecto
+bugs/
