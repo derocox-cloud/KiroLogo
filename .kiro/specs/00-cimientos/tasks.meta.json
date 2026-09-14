@@ -107,6 +107,26 @@
     "16.9 Escribir la prueba de regresión obligatoria del catálogo": {
       "status": "passed",
       "lastRunTimestamp": 1789400000000
+    },
+    "18.2 Escribir la prueba de propiedad del editor": {
+      "status": "passed",
+      "lastRunTimestamp": 1789410000000
+    },
+    "18.4 Escribir la prueba de propiedad del panel de comandos": {
+      "status": "passed",
+      "lastRunTimestamp": 1789410000000
+    },
+    "18.6 Escribir la prueba de propiedad del globo de Kiro": {
+      "status": "passed",
+      "lastRunTimestamp": 1789410000000
+    },
+    "18.9 Escribir la prueba de propiedad de la demostración y del anuncio por paso": {
+      "status": "passed",
+      "lastRunTimestamp": 1789410000000
+    },
+    "18.11 Escribir la prueba de propiedad del determinismo del diff": {
+      "status": "passed",
+      "lastRunTimestamp": 1789410000000
     }
   },
   "executionHistory": {

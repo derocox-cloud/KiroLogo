@@ -491,8 +491,8 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
 - [x] 17. Punto de control — capa de juego
   - Ejecutar `npm test` y `npm run typecheck`; comprobar que la prueba de regresión del catálogo pasa y preguntar al usuario si surgen dudas
 
-- [ ] 18. Interfaz
-  - [ ] 18.1 Implementar `src/ui/editor.ts` y su prueba
+- [x] 18. Interfaz
+  - [x] 18.1 Implementar `src/ui/editor.ts` y su prueba
     - Presentar el programa en un `textarea` nativo con una canaleta hermana que muestra un número por línea desde 1, con el desplazamiento vertical sincronizado y actualizada en 100 milisegundos o menos tras cada cambio del número de líneas
     - Admitir hasta 200 líneas y 10 000 caracteres inclusive, reconociendo `\n` y `\r\n` como un solo fin de línea, contando la última línea aunque no termine en fin de línea, y contando espacios, tabuladores y fines de línea dentro de los 10 000
     - Descartar únicamente la parte que excede el límite, conservar el contenido admitido, dejar el cursor al final, mantener el área habilitada y pedir al globo el mensaje que nombra cuál límite se alcanzó y su valor
@@ -506,11 +506,11 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `editor.test.ts` con `// @vitest-environment jsdom`: el contador provisional, las marcas en la canaleta, el `Tab` que no se captura, el presupuesto al lado, los límites exactos de 200 líneas y 10 000 caracteres, una línea más, un carácter más, y `\r\n`
     - _Requisitos: 21.1, 21.2, 21.3, 21.4, 21.5, 21.6, 21.7, 21.8, 21.9, 21.10, 21.11, 14.4_
 
-  - [ ] 18.2 Escribir la prueba de propiedad del editor
+  - [x] 18.2 Escribir la prueba de propiedad del editor
     - **Property 21: El editor cuenta líneas y respeta sus dos límites**
     - **Valida: Requisitos 21.1, 21.2, 21.3**
 
-  - [ ] 18.3 Implementar `src/ui/panel-comandos.ts` y su prueba
+  - [x] 18.3 Implementar `src/ui/panel-comandos.ts` y su prueba
     - Obtener los comandos consultando `comandosDelMundo` con el mundo del nivel en curso, una sola vez cada uno y en el orden en que el vocabulario los devuelve, sin lista propia, de modo que en el mundo 0 presente exactamente las seis entradas
     - Mostrar por cada entrada, como texto visible y en el nombre accesible en español de su elemento interactivo, el nombre largo, la abreviatura, la descripción y el ejemplo tal como el vocabulario los declara, carácter por carácter, sin depender de icono ni de color
     - Omitir toda entrada de un mundo posterior en todo texto visible y en todo nombre accesible, y no ofrecer ningún elemento interactivo para ellas
@@ -522,11 +522,11 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `panel-comandos.test.ts` con `// @vitest-environment jsdom`: las seis entradas del mundo 0 y ninguna posterior, la inserción en la posición del cursor y con selección, y la inserción que excedería el límite
     - _Requisitos: 26.1, 26.2, 26.3, 26.4, 26.5, 26.6, 26.7, 26.8_
 
-  - [ ] 18.4 Escribir la prueba de propiedad del panel de comandos
+  - [x] 18.4 Escribir la prueba de propiedad del panel de comandos
     - **Property 23: El filtro por mundo del panel y la fidelidad de sus textos**
     - **Valida: Requisitos 3.8, 26.1, 26.2, 26.3**
 
-  - [ ] 18.5 Implementar `src/ui/globo-kiro.ts` y su prueba
+  - [x] 18.5 Implementar `src/ui/globo-kiro.ts` y su prueba
     - Ser el **único** elemento que presenta texto dirigido al jugador —comentario de resultado, escalones de pista, mensajes del catálogo y celebración—, atribuyéndolo a Kiro, sin que ningún otro módulo tenga globo propio ni texto atribuido a la tortuga
     - Mostrar en 1 000 milisegundos o menos, al recibir la calificación, un texto en español de 300 caracteres o menos que nombra las tres estrellas y si cada una quedó otorgada o negada, sin depender de color ni de icono
     - Mostrar los mensajes del catálogo con su texto exacto, carácter por carácter, sin truncar, sin reescribir y sin agregar nombre de excepción, traza de pila ni código numérico, en el orden recibido y hasta 20, manteniéndolos visibles hasta la siguiente ejecución o hasta reiniciar
@@ -540,11 +540,11 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `globo-kiro.test.ts` con `// @vitest-environment jsdom`: las tres estrellas nombradas, los tres escalones en orden, la cuarta pista pedida, el cambio de reto que reinicia el contador, y la región `aria-live` `polite`
     - _Requisitos: 25.1, 25.2, 25.3, 25.4, 25.5, 25.6, 25.7, 25.8, 25.9, 19.8, 19.9, 8.5, 20.7_
 
-  - [ ] 18.6 Escribir la prueba de propiedad del globo de Kiro
+  - [x] 18.6 Escribir la prueba de propiedad del globo de Kiro
     - **Property 24: Fidelidad del texto de Kiro y contador de pistas**
     - **Valida: Requisitos 25.4, 25.6**
 
-  - [ ] 18.7 Implementar `src/ui/controles.ts` y su prueba
+  - [x] 18.7 Implementar `src/ui/controles.ts` y su prueba
     - Presentar exactamente seis acciones —ejecutar, detener, dar un paso, cambiar la velocidad, reiniciar y volver a ver la demostración—, cada una en un único elemento interactivo, con las cuatro velocidades del animador, una sola seleccionada y la normal al entrar al nivel
     - Pedir a `main.ts` la ejecución en lugar de conocer el intérprete, e invocar el paso a paso y el reinicio del animador y la repetición de la demostración
     - Mantener deshabilitadas ejecutar y volver a ver la demostración mientras una ejecución está en curso, y habilitadas detener, dar un paso, cambiar la velocidad y reiniciar, reflejando cada cambio en 100 milisegundos o menos, exponiendo el estado de forma programática además de visual, y sin hacer nada cuando se activa un control deshabilitado
@@ -555,7 +555,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `controles.test.ts` con `// @vitest-environment jsdom`: las seis acciones, los estados durante y después de una ejecución, el foco que se mueve al deshabilitarse, el control deshabilitado que no hace nada, y la detención pedida por el jugador
     - _Requisitos: 24.1, 24.4, 24.5, 24.6, 24.7, 24.8, 8.6_
 
-  - [ ] 18.8 Implementar `src/ui/demostracion.ts` y su prueba
+  - [x] 18.8 Implementar `src/ui/demostracion.ts` y su prueba
     - Dibujar los personajes en el estado inicial del nivel en 1 000 milisegundos o menos y mantenerlos quietos 500 milisegundos o más antes del primer movimiento
     - Entregar al animador la secuencia completa que **ya trae el reto**, con la velocidad normal como selección inicial y la capa de referencia como destino, sin invocar el intérprete, sin volver a resolver el reto y sin tocar la capa del jugador
     - Al aplicar la última operación, conservar los tramos en la capa de referencia, devolver la tortuga al estado inicial en 500 milisegundos o menos sin dibujar durante el regreso, dejar iguales el fondo y la capa del jugador, y dejar habilitados el control de repetición y la acción de ejecutar
@@ -568,11 +568,11 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `demostracion.test.ts` con `// @vitest-environment jsdom` y reloj falso
     - _Requisitos: 22.1, 22.2, 22.3, 22.4, 22.5, 22.6, 22.7, 22.8, 22.9, 22.10_
 
-  - [ ] 18.9 Escribir la prueba de propiedad de la demostración y del anuncio por paso
+  - [x] 18.9 Escribir la prueba de propiedad de la demostración y del anuncio por paso
     - **Property 15 (parte B, demostración): Lo que se dibujó es exactamente lo que se valida**
     - **Valida: Requisitos 22.3, 22.5, 28.2**
 
-  - [ ] 18.10 Implementar `src/ui/diff.ts` y su prueba
+  - [x] 18.10 Implementar `src/ui/diff.ts` y su prueba
     - Recibir las tres regiones de 800 × 800 junto con la traslación y el ángulo del veredicto, y dibujarlas aplicando esa misma traslación y ese mismo ángulo para que queden alineadas con las estelas que el jugador vio dibujar
     - Dibujar la coincidencia en línea continua sin huecos, el exceso con un grosor de al menos el doble del de la coincidencia, y la falta punteada con guiones y huecos alternados de entre 4 y 12 unidades lógicas, tomando color y grosor del tema y sin literales en el módulo
     - Distinguir los tres estados por patrón de guiones y por grosor además del color, de modo que dibujados con un mismo color cada par siga diferenciándose, y nombrar cada estado por lo que significa y nunca por el nombre de su color
@@ -581,11 +581,11 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `diff.test.ts` con el doble de dibujo: los tres estados distinguibles en escala de grises, el contraste 3:1 de cada uno frente al fondo, y el caso sin estela del jugador
     - _Requisitos: 23.3, 23.4, 23.5, 23.9_
 
-  - [ ] 18.11 Escribir la prueba de propiedad del determinismo del diff
+  - [x] 18.11 Escribir la prueba de propiedad del determinismo del diff
     - **Property 14 (parte C, diff): Legibilidad del rumbo, inscripción en el círculo y determinismo del dibujo**
     - **Valida: Requisitos 23.9**
 
-  - [ ] 18.12 Implementar `src/ui/comparacion.ts` y su prueba
+  - [x] 18.12 Implementar `src/ui/comparacion.ts` y su prueba
     - Presentar la estela de referencia y la de la última ejecución del jugador lado a lado, en dos lienzos que comparten el espacio lógico, la cuadrícula de 20 unidades y una escala uniforme con diferencia de 1 píxel o menos, sin recortar ni reencuadrar, y rotular cada uno con texto y nombre accesible en español que identifican de quién es la figura
     - Ofrecer un conmutador de dos estados, operable con teclado y con ratón, que alterna con la vista de superposición dibujando las dos estelas en un solo lienzo alineadas en las mismas coordenadas y distinguibles por estilo de línea además del color, completando el cambio en 200 milisegundos o menos, exponiendo el estado en curso y sin volver a ejecutar ningún programa
     - Invocar el diff sobre la vista de superposición sin que el jugador active ningún control cuando las estrellas niegan la precisión
