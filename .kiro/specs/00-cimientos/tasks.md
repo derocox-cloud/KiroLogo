@@ -338,17 +338,17 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - **Property 16 (parte C, validador): Extracción de segmentos, encuadre y veredicto geométrico**
     - **Valida: Requisitos 16.1, 16.4, 16.10, 16.17**
 
-- [ ] 12. Punto de control — validación geométrica
+- [x] 12. Punto de control — validación geométrica
   - Ejecutar `npm test` y `npm run typecheck`; comprobar que la prueba de rendimiento del validador cabe en su presupuesto y preguntar al usuario si surgen dudas
 
-- [ ] 13. Lienzo, personajes y animador
-  - [ ] 13.1 Declarar la costura `ContextoDibujo` y el doble de dibujo de las pruebas
+- [x] 13. Lienzo, personajes y animador
+  - [x] 13.1 Declarar la costura `ContextoDibujo` y el doble de dibujo de las pruebas
     - Declarar en `src/motor/lienzo.ts` el tipo `ContextoDibujo` derivado con `Pick<CanvasRenderingContext2D, …>` sobre los métodos y propiedades de la sección 7.2 del diseño, para que un contexto real lo satisfaga por construcción
     - Escribir en `src/motor/lienzo.test.ts` el doble de dibujo, **dentro del propio archivo de prueba** y no como módulo de `src/`: registra la secuencia de llamadas con sus argumentos y aplana cada trazo y cada relleno a polilíneas que rasteriza en un `Uint8Array`, para medir en Node el IoU de una silueta, su inscripción en un círculo y la igualdad de dos dibujos
     - Documentar en la prueba que la comparación «píxel por píxel» de los requisitos 13.9 y 23.9 se hace sobre la secuencia registrada de llamadas y su rasterizado, que es una condición más fuerte que la igualdad de píxeles, y que la verificación con un Canvas real del navegador sigue siendo manual
     - _Requisitos: 13.9, 23.9, 29.10_
 
-  - [ ] 13.2 Implementar `src/motor/lienzo.ts` con el espacio lógico, la cuadrícula y las cuatro capas
+  - [x] 13.2 Implementar `src/motor/lienzo.ts` con el espacio lógico, la cuadrícula y las cuatro capas
     - Definir el espacio lógico de 800 × 800 unidades con origen en el centro, `x` a la derecha, `y` hacia arriba, ejes acotados de −400 a 400 inclusive, y el rumbo en grados en `[0, 360)` con 0 hacia arriba
     - Crear las cuatro capas `fondo`, `referencia`, `jugador` y `personajes` como elementos apilados con el mismo tamaño y la misma transformación, en ese orden de apilamiento, y permitir borrar la capa del jugador sin alterar las otras tres y sin volver a ejecutar el programa de referencia
     - Implementar el escalado de la sección 7.3 del diseño: lado acotado a `[320, 4096]`, escala igual al lado entre 800, densidad de píxeles acotada a `[1, 3]`, búfer igual al lado por la densidad, cuadrado centrado con relación de aspecto 1:1 dentro de 1 píxel, y `setTransform` con `y` negativa para invertir el eje vertical **una sola vez y en un solo lugar**
@@ -359,15 +359,15 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir en `lienzo.test.ts` las 41 líneas por eje y las 9 gruesas, el orden de las cuatro capas, el borrado de la capa del jugador sin tocar las otras tres, el tramo fuera del cuadrado recortado, y el tema sin declarar un trazo
     - _Requisitos: 12.1, 12.2, 12.4, 12.5, 12.7, 12.8_
 
-  - [ ] 13.3 Escribir la prueba de propiedad del escalado del lienzo
+  - [x] 13.3 Escribir la prueba de propiedad del escalado del lienzo
     - **Property 22: Escalado uniforme del lienzo**
     - **Valida: Requisitos 12.3**
 
-  - [ ] 13.4 Escribir la prueba de propiedad del redibujado desde las operaciones
+  - [x] 13.4 Escribir la prueba de propiedad del redibujado desde las operaciones
     - **Property 14 (parte B, lienzo): Legibilidad del rumbo, inscripción en el círculo y determinismo del dibujo**
     - **Valida: Requisitos 12.6**
 
-  - [ ] 13.5 Implementar `src/motor/personajes.ts` con la geometría de la sección 7.4 y su prueba de ejemplos
+  - [x] 13.5 Implementar `src/motor/personajes.ts` con la geometría de la sección 7.4 y su prueba de ejemplos
     - Declarar `IdentidadTortuga`, `EstadoPersonajes` con `tortuga`, `kiroMontado`, `inclinacionKiro`, `identidad` y `celebracion` —cada uno de los tres reservados con su comentario de estado y de spec que lo dibuja—, `ResultadoDibujo` y `dibujarPersonajes(ctx, estado)`
     - Declarar toda la geometría en el marco local con origen en la posición de la tortuga, `+y` al frente y `+x` a estribor, y girar el conjunto rígidamente con la transformación única del diseño 7.4.2, reduciendo a `[0, 360)` todo rumbo que llegue fuera
     - Trazar las piezas con las coordenadas concretas del diseño 7.4.3: caparazón de gota con los cinco vértices y su espejo; cuello, cabeza en `(0, 12.9)` radio 3.3 y ojos en `(±1.55, 14.5)`; muesca del caparazón como galón de `(0, 6.2)` a `(±4.2, 2.8)`; marca de rumbo como flecha en el flanco de babor con asta de `(−6.6, −6.6)` a `(−6.6, 0.2)` y punta en `(−6.6, 1.6)`; las cuatro patas con sus ejes y radios, delanteras más gruesas; cola como triángulo `(0, −13.6)`, `(±1.8, −10.8)`; y Kiro con centro en `(0, −3.4)`, domo de radio 4.9, faldón de tres ondas, estela y ojos en `(±1.85, −1.5)`
@@ -379,13 +379,13 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `personajes.test.ts` con las nueve piezas trazadas, la punta del lápiz a 1 unidad o menos abajo y a 8 o más arriba, la tortuga oculta, la inclinación fuera de rango acotada, y los tres campos reservados con todos sus valores
     - _Requisitos: 13.1, 13.2, 13.4, 13.5, 13.7, 13.8, 13.10, 13.11, 1.9_
 
-  - [ ] 13.6 Escribir la prueba de propiedad de la legibilidad del rumbo y del círculo de 40 unidades
+  - [x] 13.6 Escribir la prueba de propiedad de la legibilidad del rumbo y del círculo de 40 unidades
     - **Property 14 (parte A, personajes): Legibilidad del rumbo, inscripción en el círculo y determinismo del dibujo**
     - **Valida: Requisitos 13.3, 13.6, 13.8, 13.9**
     - Medir con el doble de dibujo de la tarea 13.1 el IoU de la silueta contra ella misma girada cada múltiplo de 15 grados entre 15 y 345, exigiendo **menor que 0.90**; y medir el radio máximo de todo punto trazado o rellenado, incluida la mitad del grosor, exigiendo 20 unidades o menos para todo rumbo, con el lápiz abajo y arriba y en los dos extremos de la inclinación de Kiro
     - Si algún ángulo se acercara a 0.90, aplicar en este orden las dos palancas documentadas en el diseño 7.4.6: alargar el eje cabeza-cola y alargar el lápiz, que tiene 2.2 unidades de margen
 
-  - [ ] 13.7 Implementar `src/motor/animador.ts` con el reloj inyectable y su prueba de ejemplos
+  - [x] 13.7 Implementar `src/motor/animador.ts` con el reloj inyectable y su prueba de ejemplos
     - Declarar `Reloj` con `programar`, `cancelar` y `ahora`, `Velocidad`, `DURACIONES` (1 000, 400, 120 y 0 ms), `FinDeSecuencia` con `motivo`, `operacionesAplicadas` y `estadoFinal`, la interfaz `Animador` y `crearAnimador(lienzo, reloj, movimientoReducido)`
     - Aplicar las operaciones en orden ascendente de `paso`, una sola vez cada una, tomando posición, rumbo, lápiz y visibilidad de `estadoAntes` y `estadoDespues`, sin volver a analizar el texto, sin leer el editor y sin invocar ninguna transformación de la tortuga
     - Interpolar de forma monótona la posición dibujada en cada `mover` y hacer crecer la estela solo cuando lleva el lápiz abajo; girar sin moverse en `girar`; reubicar sin estela en `reubicar`; borrar la capa de destino en `limpiar`; y actualizar el estado dibujado sin aportar estela en `lapiz` y `visibilidad`
@@ -398,7 +398,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `animador.test.ts` con reloj falso: las cuatro velocidades, el paso a paso, el reinicio, la secuencia vacía, el paso sin operaciones pendientes, el cambio de velocidad en curso y `prefers-reduced-motion`
     - _Requisitos: 14.1, 14.2, 14.3, 14.5, 14.6, 14.7, 14.8, 14.9, 14.10, 28.5_
 
-  - [ ] 13.8 Escribir la prueba de propiedad de que lo dibujado es lo que se valida
+  - [x] 13.8 Escribir la prueba de propiedad de que lo dibujado es lo que se valida
     - **Property 15 (parte A, animador): Lo que se dibujó es exactamente lo que se valida**
     - **Valida: Requisitos 14.1, 14.7**
     - La parte B, sobre la demostración y el anuncio por paso, se escribe en la tarea 18.9

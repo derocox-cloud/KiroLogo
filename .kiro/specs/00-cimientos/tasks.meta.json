@@ -71,6 +71,22 @@
     "11.6 Escribir la prueba de propiedad del veredicto geométrico": {
       "status": "passed",
       "lastRunTimestamp": 1789306800000
+    },
+    "13.3 Escribir la prueba de propiedad del escalado del lienzo": {
+      "status": "passed",
+      "lastRunTimestamp": 1789308000000
+    },
+    "13.4 Escribir la prueba de propiedad del redibujado desde las operaciones": {
+      "status": "passed",
+      "lastRunTimestamp": 1789308000000
+    },
+    "13.6 Escribir la prueba de propiedad de la legibilidad del rumbo y del círculo de 40 unidades": {
+      "status": "passed",
+      "lastRunTimestamp": 1789308000000
+    },
+    "13.8 Escribir la prueba de propiedad de que lo dibujado es lo que se valida": {
+      "status": "passed",
+      "lastRunTimestamp": 1789308000000
     }
   },
   "executionHistory": {
