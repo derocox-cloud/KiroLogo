@@ -318,3 +318,28 @@ licencia.
 El mundo bonus se inspira en la **geometría** de los diagramas de arquitectura de AWS. No incluye
 iconos, logotipos ni activos de marca de AWS: las figuras se construyen solo con el vocabulario del
 juego.
+
+
+---
+
+## Decisión 11 · Dos ajustes al cerrar la spec de cimientos
+
+Al cablear `main.ts` y verificar el `build`, aparecieron dos cosas que no estaban previstas y que se
+resolvieron sin salirse del contrato de la spec. Quedan anotadas porque las dos son deuda visible que una
+spec futura puede querer revisar.
+
+**El minificador.** El `vite.config.ts` pedía `terser`, pero `terser` no está entre las dependencias
+fijadas del proyecto, y la regla de versiones fijas prohíbe agregar una nueva sin pensarlo. En vez de
+instalarla, se cambió a `minify: 'oxc'`, el minificador integrado de esta versión de Vite (basada en
+rolldown), que no necesita ninguna dependencia aparte. El `build` produce el mismo `dist` correcto —
+`index.html` con referencias que empiezan con `/`, sin `.test.ts` ni imágenes— y no se tocó
+`package.json` ni el archivo de bloqueo.
+
+**El mapa de capas del lienzo.** El modelo `Lienzo` declara cuatro capas —fondo, referencia, jugador y
+personajes—, pero el `index.html` de esta spec organiza la pantalla en **dos pilas visuales** (el lado de
+la demostración de Kiro y el lado del jugador). Para conectarlos, `main.ts` crea **dos** instancias de
+`Lienzo` y mapea a un contexto inerte las capas de fondo que todavía no tienen un `<canvas>` dedicado en
+el HTML. El juego queda jugable de punta a punta —la referencia, la estela del jugador, los personajes, el
+diff y la comparación se dibujan y todas las pruebas pasan, incluida la de contraste—, pero la cuadrícula
+por lado no se pinta en un canvas propio. Es el punto más flojo del cierre y el primer candidato a limpiar
+cuando una spec de interfaz retome la pantalla.
