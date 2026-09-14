@@ -24,6 +24,7 @@ import { extraerSegmentos, type Segmento } from './motor/segmentos.js';
 import { validar, type Veredicto } from './motor/validador.js';
 import {
   crearLienzo,
+  calcularEscalado,
   type ContextoDibujo,
   type CapasLienzo,
   type EstiloLienzo,
@@ -31,6 +32,7 @@ import {
   type TamanoLienzo,
   type TrazoTema,
   type Lienzo,
+  type Escalado,
 } from './motor/lienzo.js';
 import { crearAnimador, type Reloj, type Velocidad, type FinDeSecuencia } from './motor/animador.js';
 import {
@@ -359,14 +361,43 @@ function consultaMovimientoReal(documento: Document): ConsultaMovimiento {
 // Tamaño inicial del lienzo
 // ============================================================================
 
-/** Deriva el tamaño del lienzo del tamaño de un canvas, con reserva de 800. */
+/**
+ * Deriva el tamaño CSS del lienzo a partir del tamaño real en pantalla del
+ * canvas. Sin esto, el búfer no coincide con lo que dibuja el motor y, con
+ * densidad de píxeles > 1, el origen lógico (el centro) queda descolocado y la
+ * tortuga aparece en una esquina. Si aún no hay medida (por ejemplo en Node o
+ * antes del layout), cae al lado lógico de 800.
+ */
 function tamanoDe(canvas: HTMLCanvasElement | null): TamanoLienzo {
-  const lado = 800;
-  const dpr =
-    typeof canvas?.ownerDocument?.defaultView?.devicePixelRatio === 'number'
-      ? canvas!.ownerDocument!.defaultView!.devicePixelRatio
-      : 1;
+  const vista = canvas?.ownerDocument?.defaultView ?? null;
+  const dpr = typeof vista?.devicePixelRatio === 'number' ? vista.devicePixelRatio : 1;
+
+  let lado = 800;
+  if (canvas && typeof canvas.getBoundingClientRect === 'function') {
+    const r = canvas.getBoundingClientRect();
+    const menor = Math.min(r.width, r.height);
+    if (menor > 0) lado = menor;
+  }
   return { anchoCss: lado, altoCss: lado, devicePixelRatio: dpr };
+}
+
+/**
+ * Sincroniza el búfer de dibujo del canvas con el escalado: el atributo
+ * width/height pasa a ser el búfer (lado · dpr) y el tamaño en pantalla queda
+ * en píxeles CSS. Así la transformación del motor, que centra en búfer/2,
+ * coincide con el canvas real. Los canvas inertes o nulos se ignoran.
+ */
+function ajustarBuffer(canvas: HTMLCanvasElement | null, escalado: Escalado): void {
+  if (!canvas) return;
+  const bufer = Math.round(escalado.bufer);
+  if (canvas.width !== bufer) canvas.width = bufer;
+  if (canvas.height !== bufer) canvas.height = bufer;
+  // El elemento se estira a su tamaño CSS; el CSS ya lo hace con width/height 100%,
+  // pero fijamos el lado lógico para lados sin CSS explícito (p. ej. pruebas).
+  if (canvas.style) {
+    canvas.style.width = `${escalado.lado}px`;
+    canvas.style.height = `${escalado.lado}px`;
+  }
 }
 
 // ============================================================================
@@ -460,19 +491,45 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   const q = (id: string): HTMLCanvasElement | null =>
     documento.getElementById(id) as HTMLCanvasElement | null;
 
-  const ctxReferencia = contextoDe(q('lienzo-referencia'));
-  const ctxJugador = contextoDe(q('lienzo-jugador'));
-  const ctxSuperposicion = contextoDe(q('lienzo-superposicion'));
-  const ctxPersonajesReferencia = contextoDe(q('lienzo-personajes-referencia'));
-  const ctxPersonajesJugador = contextoDe(q('lienzo-personajes-jugador'));
+  // Elementos canvas por capa y lado (para dimensionar sus búferes).
+  const canvasReferencia = q('lienzo-referencia');
+  const canvasJugador = q('lienzo-jugador');
+  const canvasSuperposicion = q('lienzo-superposicion');
+  const canvasPersonajesReferencia = q('lienzo-personajes-referencia');
+  const canvasPersonajesJugador = q('lienzo-personajes-jugador');
+  const canvasFondoReferencia = q('lienzo-fondo-referencia');
+  const canvasFondoJugador = q('lienzo-fondo-jugador');
+
+  const canvasLado = {
+    referencia: [canvasFondoReferencia, canvasReferencia, canvasPersonajesReferencia],
+    jugador: [canvasFondoJugador, canvasJugador, canvasPersonajesJugador],
+    superposicion: [canvasSuperposicion],
+  } as const;
+
+  const ctxReferencia = contextoDe(canvasReferencia);
+  const ctxJugador = contextoDe(canvasJugador);
+  const ctxSuperposicion = contextoDe(canvasSuperposicion);
+  const ctxPersonajesReferencia = contextoDe(canvasPersonajesReferencia);
+  const ctxPersonajesJugador = contextoDe(canvasPersonajesJugador);
 
   // Un fondo inerte por lado: la cuadrícula se dibuja sobre la propia capa de
   // estela, que se limpia y se vuelve a dibujar; para que la cuadrícula persista
   // usamos capas de fondo dedicadas cuando existan, o inertes en su defecto.
-  const fondoReferencia = contextoDe(q('lienzo-fondo-referencia'));
-  const fondoJugador = contextoDe(q('lienzo-fondo-jugador'));
+  const fondoReferencia = contextoDe(canvasFondoReferencia);
+  const fondoJugador = contextoDe(canvasFondoJugador);
 
-  const tamano = tamanoDe(q('lienzo-jugador'));
+  const tamano = tamanoDe(canvasJugador);
+
+  // Sincroniza el búfer de cada canvas con el escalado ANTES del primer dibujo:
+  // sin esto, con densidad de píxeles > 1, el centro lógico queda descolocado y
+  // la tortuga aparece en una esquina. Cada lado se mide por separado.
+  function ajustarBuferesDeLado(lado: keyof typeof canvasLado, canvasMedida: HTMLCanvasElement | null): void {
+    const escalado = calcularEscalado(tamanoDe(canvasMedida));
+    for (const c of canvasLado[lado]) ajustarBuffer(c, escalado);
+  }
+  ajustarBuferesDeLado('referencia', canvasReferencia);
+  ajustarBuferesDeLado('jugador', canvasJugador);
+  ajustarBuferesDeLado('superposicion', canvasSuperposicion);
 
   // Lienzo del lado de la referencia (Kiro): estela en `referencia`, personajes
   // en `personajes`; la capa `jugador` no se usa aquí.
@@ -482,7 +539,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     jugador: contextoInerte(),
     personajes: ctxPersonajesReferencia,
   };
-  const lienzoReferencia: Lienzo = crearLienzo(capasReferencia, lectores.lienzo, tamano);
+  const lienzoReferencia: Lienzo = crearLienzo(capasReferencia, lectores.lienzo, tamanoDe(canvasReferencia));
 
   // Lienzo del lado del jugador: estela en `jugador`, personajes en `personajes`.
   const capasJugador: CapasLienzo = {
@@ -491,7 +548,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     jugador: ctxJugador,
     personajes: ctxPersonajesJugador,
   };
-  const lienzoJugador: Lienzo = crearLienzo(capasJugador, lectores.lienzo, tamano);
+  const lienzoJugador: Lienzo = crearLienzo(capasJugador, lectores.lienzo, tamanoDe(canvasJugador));
 
   // Animador del jugador: gobierna la capa `jugador` del lienzo del jugador.
   const animador = crearAnimador(lienzoJugador, reloj, () => movimiento.reducido());
