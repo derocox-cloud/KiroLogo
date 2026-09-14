@@ -87,6 +87,26 @@
     "13.8 Escribir la prueba de propiedad de que lo dibujado es lo que se valida": {
       "status": "passed",
       "lastRunTimestamp": 1789308000000
+    },
+    "16.2 Escribir la prueba de propiedad de determinismo de la resolución del reto": {
+      "status": "passed",
+      "lastRunTimestamp": 1789400000000
+    },
+    "16.5 Escribir la prueba de propiedad de las tres estrellas": {
+      "status": "passed",
+      "lastRunTimestamp": 1789400000000
+    },
+    "16.6 Escribir la prueba de propiedad de equivalencia geométrica en el nivel `0.1`": {
+      "status": "passed",
+      "lastRunTimestamp": 1789400000000
+    },
+    "16.8 Escribir la prueba de propiedad de la persistencia": {
+      "status": "passed",
+      "lastRunTimestamp": 1789400000000
+    },
+    "16.9 Escribir la prueba de regresión obligatoria del catálogo": {
+      "status": "passed",
+      "lastRunTimestamp": 1789400000000
     }
   },
   "executionHistory": {

@@ -426,8 +426,8 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Ampliar `catalogo.test.ts` con el nivel `0.1` completo, identificadores únicos de 8 caracteres o menos, las tres pistas de 200 caracteres o menos y sin el programa completo, la normalización correcta según el mundo —libre en los mundos 0 a 2 y fija desde el 3—, y la ausencia de claves de abstracción repetidas
     - _Requisitos: 18.1, 18.3, 18.4, 27.1, 27.2_
 
-- [ ] 16. Capa de juego: reto, abstracción, estrellas y progreso
-  - [ ] 16.1 Implementar `src/juego/reto.ts` y su prueba de ejemplos
+- [x] 16. Capa de juego: reto, abstracción, estrellas y progreso
+  - [x] 16.1 Implementar `src/juego/reto.ts` y su prueba de ejemplos
     - Declarar `Reto` con `nivel`, `semillaEfectiva`, `codigoSemilla`, `referencia`, `operaciones`, `segmentos`, `presupuestoEstrella`, `limiteDuro` y `limiteDuroActivo`, `ResultadoReto` y `resolverReto(idNivel, semilla)`
     - Resolver según el diagrama de la sección 11.3 del diseño, **ejecutando el programa de referencia una sola vez** por resolución, con el estado inicial que expone la tortuga y los comandos del mundo que declara el nivel
     - Tomar como semilla efectiva la que declara el nivel cuando el origen es `autorado`, y calcular el código de semilla siempre sobre la efectiva
@@ -437,19 +437,19 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `reto.test.ts` con el `presupuestoEstrella` 1, el `limiteDuro` 4 inactivo, el código de semilla de 7 caracteres, la comprobación de que la referencia se ejecuta una sola vez, y los tres fallos de programación
     - _Requisitos: 18.6, 18.8, 18.9, 18.11, 18.12, 18.13, 27.7_
 
-  - [ ] 16.2 Escribir la prueba de propiedad de determinismo de la resolución del reto
+  - [x] 16.2 Escribir la prueba de propiedad de determinismo de la resolución del reto
     - **Property 9 (parte B, reto): Determinismo del pipeline completo**
     - **Valida: Requisitos 18.7, 29.4**
     - Dos resoluciones con el mismo par, hechas de forma independiente y separadas por al menos otra resolución
 
-  - [ ] 16.3 Implementar `src/juego/abstraccion.ts` y su prueba
+  - [x] 16.3 Implementar `src/juego/abstraccion.ts` y su prueba
     - Declarar `ResultadoAbstraccion` con `confirmadas` y `sinConfirmar` en el orden en que el nivel declara las exigencias, y `analizar(programa, exigencias)`
     - Recorrer el AST completo del jugador, incluidos los nueve tipos reservados, sin leer el texto del programa, sin invocar el impresor y sin comparar contra el programa de referencia
     - Confirmar cada clave con la condición de la tabla de la sección 11.4 del diseño y con ninguna otra; en particular `usaParametros` exige declarar **y** usar un parámetro de esa misma definición, y `maximoProcedimientos` es una cota superior
     - Escribir `abstraccion.test.ts` con las seis claves una por una sobre árboles armados con nodos reservados, el conjunto de exigencias vacío, y dos AST iguales nodo por nodo analizados de dos textos distintos devolviendo el mismo resultado
     - _Requisitos: 19.6, 19.7_
 
-  - [ ] 16.4 Implementar `src/juego/estrellas.ts` y su prueba de ejemplos
+  - [x] 16.4 Implementar `src/juego/estrellas.ts` y su prueba de ejemplos
     - Declarar `MotivoNegada` con las seis claves de la sección 11.5 del diseño, `EstadoEstrella`, `Calificacion` con las tres estrellas, `conteoJugador` y `presupuestoEstrella`, y `calificar(astJugador, veredicto, reto)`
     - Otorgar precisión si y solo si el veredicto concede la coincidencia geométrica, tomándolo tal como el validador lo devuelve, sin volver a rasterizar, sin recalcular el IoU ni el exceso y sin umbral propio, e incluyendo los dos valores en el motivo cuando la niega
     - Otorgar economía si y solo si el conteo del jugador es menor o igual que el `presupuestoEstrella`, sin margen, otorgándola cuando son iguales y negándola en cuanto lo supera por 1, y evaluándola con independencia del veredicto de precisión
@@ -459,16 +459,16 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `estrellas.test.ts` con los seis motivos y sus datos, el nivel sin exigencias, el conteo 3 contra el presupuesto 1, y las dos causas de intento sin veredicto
     - _Requisitos: 19.1, 19.2, 19.3, 19.4, 19.5, 19.10, 19.11, 9.6, 27.10_
 
-  - [ ] 16.5 Escribir la prueba de propiedad de las tres estrellas
+  - [x] 16.5 Escribir la prueba de propiedad de las tres estrellas
     - **Property 17: Las tres estrellas son bicondicionales independientes**
     - **Valida: Requisitos 19.1, 19.2, 19.3, 19.5, 19.11, 27.11**
 
-  - [ ] 16.6 Escribir la prueba de propiedad de equivalencia geométrica en el nivel `0.1`
+  - [x] 16.6 Escribir la prueba de propiedad de equivalencia geométrica en el nivel `0.1`
     - **Property 26: Equivalencia geométrica de programas escritos de otra forma**
     - **Valida: Requisitos 27.4, 16.7, 16.8**
     - Se escribe en `src/juego/estrellas.test.ts` y no en `validador.test.ts`, porque exige el veredicto **y** las tres estrellas, y `motor/` no puede importar de `juego/`
 
-  - [ ] 16.7 Implementar `src/juego/progreso.ts` y su prueba
+  - [x] 16.7 Implementar `src/juego/progreso.ts` y su prueba
     - Declarar `CLAVE` con el número de versión en el nombre, `VERSION_FORMATO`, `EstrellasGuardadas`, `RetoEnCurso`, la interfaz `Progreso` y `cargarProgreso(almacen)` admitiendo `null` para funcionar entero en memoria
     - Escribir en una única clave un único texto JSON con la forma de la sección 11.6 del diseño, que declara el mismo número de versión, con a lo sumo un registro por identificador de nivel, sin escribir ni borrar ninguna otra clave
     - Guardar únicamente la versión, los identificadores de nivel, las semillas, los tres booleanos y el último reto en curso; ningún nombre, correo, identificador de dispositivo o de sesión, ni fragmento del texto del jugador, y sin enviar nada por la red
@@ -478,17 +478,17 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `progreso.test.ts` con un doble de `Storage` en memoria: la clave y la versión, el JSON escrito, la única clave tocada, el JSON ilegible, la versión no reconocida conservada, el registro inválido descartado, y la cuota agotada avisando una vez
     - _Requisitos: 20.1, 20.2, 20.3, 20.4, 20.5, 20.6, 20.7, 20.8, 20.9_
 
-  - [ ] 16.8 Escribir la prueba de propiedad de la persistencia
+  - [x] 16.8 Escribir la prueba de propiedad de la persistencia
     - **Property 20: La persistencia va y vuelve, nunca retrocede y no guarda de más**
     - **Valida: Requisitos 20.3, 20.6, 20.9**
 
-  - [ ] 16.9 Escribir la prueba de regresión obligatoria del catálogo
+  - [x] 16.9 Escribir la prueba de regresión obligatoria del catálogo
     - **Property 25: Todo nivel del catálogo aprueba su propio nivel con las tres estrellas**
     - **Valida: Requisitos 29.3, 29.11, 18.8, 18.9, 18.13**
     - Se escribe en `src/juego/reto.test.ts` recorriendo el catálogo completo desde ya, para que la spec 01 herede la prueba y sus generadores solo agreguen el barrido de 200 semillas
     - Al fallar, informar el identificador del nivel, la semilla usada, cuál de las tres estrellas quedó negada y el motivo que devuelven las estrellas, y **seguir verificando los demás niveles** antes de terminar con código de salida distinto de cero
 
-- [ ] 17. Punto de control — capa de juego
+- [x] 17. Punto de control — capa de juego
   - Ejecutar `npm test` y `npm run typecheck`; comprobar que la prueba de regresión del catálogo pasa y preguntar al usuario si surgen dudas
 
 - [ ] 18. Interfaz
