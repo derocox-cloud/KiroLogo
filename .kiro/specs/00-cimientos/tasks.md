@@ -403,11 +403,11 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - **Valida: Requisitos 14.1, 14.7**
     - La parte B, sobre la demostración y el anuncio por paso, se escribe en la tarea 18.9
 
-- [ ] 14. Punto de control — motor completo
+- [x] 14. Punto de control — motor completo
   - Ejecutar `npm test` y `npm run typecheck`; asegurarse de que todas las pruebas pasan y preguntar al usuario si surgen dudas
 
-- [ ] 15. Niveles como datos
-  - [ ] 15.1 Implementar `src/niveles/tipos.ts` con la forma de un `Nivel`
+- [x] 15. Niveles como datos
+  - [x] 15.1 Implementar `src/niveles/tipos.ts` con la forma de un `Nivel`
     - Declarar `ConceptoNivel` con los seis conceptos, `ComponenteNormalizacion`, `NormalizacionNivel` con `escala: 'exacta'` como único valor admitido, `ExigenciaAbstraccion` como unión discriminada por `clave` con las seis claves y el entero obligatorio de `maximoProcedimientos`, `OrigenNivel` como unión discriminada `autorado`/`generado`, y `Nivel` con `id`, `mundo`, `titulo`, `concepto`, `origen`, `normalizacion`, `abstraccion`, `pistas` como tupla de tres y `margenLimiteDuro` opcional
     - No declarar ningún campo que almacene un conteo, un `presupuestoEstrella` ni un `limiteDuro` ya calculados
     - Declarar la variante `generado` con `idGenerador` y `parametros` sin implementar ningún generador en esta spec
@@ -415,13 +415,13 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir las aserciones de compilación con `@ts-expect-error` en `src/niveles/catalogo.test.ts` para los tres casos que no deben compilar: un nivel autorado que declara `idGenerador`, un nivel generado que declara un AST, y un consumidor que deja sin tratar una de las dos variantes; más una clave de abstracción ajena a las seis
     - _Requisitos: 18.1, 18.2, 18.3, 18.4, 18.5, 18.10_
 
-  - [ ] 15.2 Declarar el nivel `0.1` en `src/niveles/mundo-0-primeros-pasos.ts`
+  - [x] 15.2 Declarar el nivel `0.1` en `src/niveles/mundo-0-primeros-pasos.ts`
     - Armar `REFERENCIA_0_1` **nodo por nodo** como un `Programa` de exactamente una `invocacionComando` de `AVANZA` con un `numeroLiteral` de valor 100, sin analizar texto con el lexer ni con el parser
     - Declarar el nivel con `id: '0.1'`, `mundo: 0`, `concepto: 'secuencia'`, título en español de 60 caracteres o menos, `origen` autorado con esa referencia y una semilla fija del dominio, normalización con traslación `libre`, rotación `libre` y escala `exacta`, `abstraccion: []`, sin `margenLimiteDuro`, y las tres pistas en el orden conceptual, matemática y esqueleto, cada una en español de 200 caracteres o menos y ninguna con el programa de referencia completo
     - Exportar `MUNDO_0` como el arreglo de niveles del mundo 0
     - _Requisitos: 27.1, 27.2_
 
-  - [ ] 15.3 Implementar `src/niveles/catalogo.ts` y su prueba
+  - [x] 15.3 Implementar `src/niveles/catalogo.ts` y su prueba
     - Reunir y ordenar los mundos declarados —en esta spec solo el 0— y exponer la búsqueda de un nivel por su identificador
     - Ampliar `catalogo.test.ts` con el nivel `0.1` completo, identificadores únicos de 8 caracteres o menos, las tres pistas de 200 caracteres o menos y sin el programa completo, la normalización correcta según el mundo —libre en los mundos 0 a 2 y fija desde el 3—, y la ausencia de claves de abstracción repetidas
     - _Requisitos: 18.1, 18.3, 18.4, 27.1, 27.2_
