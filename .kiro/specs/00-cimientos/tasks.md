@@ -594,8 +594,8 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir `comparacion.test.ts` con `// @vitest-environment jsdom`: los rótulos, el conmutador, el anuncio con los dos números redondeados, y el caso sin estela del jugador con el conmutador operable
     - _Requisitos: 23.1, 23.2, 23.6, 23.7, 23.8, 23.10_
 
-- [ ] 19. `main.ts` y el cableado del flujo completo
-  - [ ] 19.1 Implementar el arranque de `src/main.ts`
+- [x] 19. `main.ts` y el cableado del flujo completo
+  - [x] 19.1 Implementar el arranque de `src/main.ts`
     - Declarar `EstadoAplicacion` con `reto`, `astJugador`, `operacionesJugador`, `veredicto` y `calificacion`
     - Ejecutar los seis pasos de arranque de la sección 12.4 del diseño: cargar el progreso con degradación a memoria, resolver el reto del nivel `0.1` con su semilla fija, crear el lienzo con sus cuatro capas y el animador con el reloj real y la preferencia de movimiento, crear los siete módulos de `ui/`, cablear los callbacks, lanzar la demostración una vez sin que el jugador active ningún control, y suscribirse al cambio de `prefers-reduced-motion` para reflejarlo en 1 segundo o menos sin recargar y sin perder el texto del editor
     - Comunicar entre módulos por callbacks explícitos, nunca por eventos globales ni por estado compartido mutable
@@ -603,7 +603,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Escribir el fallo de programación en la consola y no mostrarlo nunca en el globo
     - _Requisitos: 27.3, 27.9, 28.5_
 
-  - [ ] 19.2 Cablear el flujo completo de un intento y verificar el nivel `0.1` de punta a punta
+  - [x] 19.2 Cablear el flujo completo de un intento y verificar el nivel `0.1` de punta a punta
     - Implementar la secuencia de la sección 12.5 del diseño: analizar el texto del editor con el mundo del nivel; ante errores, mostrar los mensajes en el globo sin invocar el intérprete ni el animador y sin otorgar ni negar ninguna estrella; si el análisis es correcto, reiniciar el animador, ejecutar con el intérprete, extraer segmentos, **invocar el validador una sola vez** por intento, calificar, guardar el progreso antes de admitir otra ejecución, comentar en el globo y mostrar el diff cuando la precisión se niega
     - Repartir el veredicto a las estrellas y al diff sin recalcularlo, y no reescribir ningún mensaje del catálogo
     - Publicar en la región `aria-live` un único texto al dejar de consumir operaciones, nombrando el motivo, el número de operaciones aplicadas y el estado final con posición, rumbo y estado del lápiz, y sin publicar anuncios de estado por las operaciones intermedias de una reproducción continua
@@ -612,11 +612,11 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Comprobar que `npm run build` termina con código 0 y deja un `index.html` en la raíz de `dist` con referencias que comienzan con `/`
     - _Requisitos: 27.3, 27.4, 27.5, 27.6, 27.8, 27.10, 27.11, 24.2, 24.3, 24.9, 28.9, 2.2, 2.11_
 
-- [ ] 20. Punto de control — juego jugable de punta a punta
+- [x] 20. Punto de control — juego jugable de punta a punta
   - Ejecutar `npm test`, `npm run typecheck` y `npm run build`; asegurarse de que todas las pruebas pasan y preguntar al usuario si surgen dudas
 
-- [ ] 21. Pruebas transversales y verificación final
-  - [ ] 21.1 Escribir la prueba de recorrido de `src/`
+- [x] 21. Pruebas transversales y verificación final
+  - [x] 21.1 Escribir la prueba de recorrido de `src/`
     - En `src/main.test.ts`, recorrer todos los archivos `.ts` de `src/` y sus subdirectorios y afirmar que ninguno contiene `Math.random`, una llamada a `eval`, una construcción `new Function` ni ninguna otra invocación del constructor `Function`
     - Afirmar que ni `src/` ni sus subdirectorios contienen archivos cuya extensión, comparada sin distinguir mayúsculas de minúsculas, sea `.png`, `.jpg`, `.jpeg`, `.gif`, `.svg`, `.webp` o `.ico`
     - Excluir del recorrido el propio archivo de prueba que declara esas cadenas y no abarcar el directorio `assets/` de la raíz
@@ -624,19 +624,19 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Dejar anotado en la prueba que esta ausencia es lo que habilita servir el juego con una política de seguridad de contenido estricta sin la directiva `unsafe-eval`
     - _Requisitos: 1.9, 1.11, 2.10, 17.3, 29.6_
 
-  - [ ] 21.2 Escribir la prueba de dirección de las dependencias
+  - [x] 21.2 Escribir la prueba de dirección de las dependencias
     - En `src/main.test.ts`, leer los `import` de cada archivo de `src/` —rutas relativas y con alias, estáticas y dinámicas— y afirmar las aristas prohibidas de la sección 2.3 del diseño: `lenguaje/` no importa de ningún otro directorio; `azar/` tampoco, salvo `lenguaje/errores.ts`; `niveles/` solo importa de `lenguaje/`, de `azar/` y de sí mismo; y `motor/` no importa de `ui/` ni de `juego/`
     - Declarar como las **dos** excepciones documentadas y admitidas `azar/` → `lenguaje/errores.ts` y `lenguaje/interprete.ts` → `motor/tortuga.ts`, con el comentario que explica por qué cada una existe
     - Fallar nombrando el archivo que importa, el archivo importado y la regla violada
     - _Requisitos: 1.8, 18.10, 29.2_
 
-  - [ ] 21.3 Escribir la prueba de estructura del proyecto
+  - [x] 21.3 Escribir la prueba de estructura del proyecto
     - En `src/main.test.ts`, afirmar que cada entrada del glosario de los requisitos que apunta a `src/` tiene su módulo presente, que no hay directorios vacíos, que todos los nombres de archivo y de carpeta están en `kebab-case` minúsculas, y que cada archivo de prueba está junto al módulo que prueba con el sufijo `.test.ts`
     - Admitir de forma explícita `src/azar/generadores-prueba.test.ts` de la tarea 3.5 como el único archivo de ayudas compartidas, dejando anotada la razón
     - Afirmar que existe un archivo de prueba propio por cada módulo nombrado en el requisito 29.1, con las pruebas de las tres guardas junto al módulo del intérprete, sin agrupar dos módulos en un mismo archivo y sin ningún directorio de pruebas separado de `src/`
     - _Requisitos: 1.8, 29.1, 29.2_
 
-  - [ ] 21.4 Escribir la prueba de accesibilidad comprobable por código
+  - [x] 21.4 Escribir la prueba de accesibilidad comprobable por código
     - En `src/main.test.ts`, con `// @vitest-environment jsdom`, calcular las relaciones de contraste de WCAG 2.1 sobre los valores de `src/estilos/tema.css` y afirmar 4.5:1 o más para todo texto y 3:1 o más para los controles, el indicador de foco, las dos estelas, los tres estados del diff y el conjunto de la tortuga con Kiro
     - Afirmar que existe **una única** región `aria-live` con cortesía `polite` que no recibe foco, que ningún elemento la usa con `assertive`, y que el documento declara el idioma español
     - Afirmar un nombre accesible en español no vacío en cada elemento interactivo, y la distinción en escala de grises de los estados de cada grupo de retroalimentación
@@ -644,7 +644,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Declarar en el informe de la prueba que ese conjunto es el piso comprobable por código, y que la validación completa de accesibilidad requiere pruebas manuales con tecnologías asistivas y revisión por una persona experta
     - _Requisitos: 28.1, 28.3, 28.4, 28.7, 28.8, 28.10_
 
-  - [ ] 21.5 Verificar los tres comandos y el contenido de `dist`, y corregir lo que falle
+  - [x] 21.5 Verificar los tres comandos y el contenido de `dist`, y corregir lo que falle
     - `npm test`: termina en 120 segundos o menos con código de salida 0, sin ninguna prueba fallida, omitida ni pendiente, y con al menos una aserción por cada módulo del requisito 29.1
     - `npm run typecheck`: código de salida 0, sin errores, comprobando también los `.test.ts` y sin escribir ningún archivo
     - `npm run build`: código de salida 0, `index.html` en la raíz de `dist` con referencias que comienzan con `/`, sin ningún archivo con sufijo `.test.ts` en el empaquetado, sin ningún archivo con las siete extensiones de imagen, y sin ningún archivo proveniente de `assets/`
@@ -653,7 +653,7 @@ adyacentes a la tarea del módulo que verifican y sobre el mismo archivo de prue
     - Comprobar que la cobertura de casos del requisito 29.12 está completa: cada entrada del vocabulario del mundo 0 con nombre largo y abreviatura, un caso con acentos, uno con mayúsculas y minúsculas mezcladas, uno con argumento decimal escrito con coma, y un caso de error por cada situación que el lexer o el parser pueden reportar
     - _Requisitos: 1.13, 1.14, 2.2, 2.3, 2.8, 2.9, 2.10, 2.13, 29.1, 29.6, 29.8, 29.9, 29.12_
 
-- [ ] 22. Punto de control final
+- [x] 22. Punto de control final
   - Ejecutar `npm test`, `npm run typecheck` y `npm run build`; asegurarse de que todas las pruebas pasan y preguntar al usuario si surgen dudas
 
 ## Notes

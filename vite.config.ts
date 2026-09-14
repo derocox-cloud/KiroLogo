@@ -33,13 +33,10 @@ export default defineConfig({
   },
   build: {
     target: 'es2023',
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      }
-    },
+    // Minificación con oxc, el minificador integrado en esta versión de Vite
+    // (basada en rolldown): no requiere `terser` ni `esbuild` como dependencias
+    // opcionales aparte, que no están instaladas en este proyecto.
+    minify: 'oxc',
     rollupOptions: {
       output: {
         manualChunks: undefined
