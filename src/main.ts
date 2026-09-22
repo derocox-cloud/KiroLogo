@@ -675,6 +675,39 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     lienzoReferencia.redibujar();
   });
 
+  // ---- Recalcular el escalado al cambiar de tamaño o de zoom ----
+  // El zoom del navegador cambia el tamaño CSS del canvas y la densidad de
+  // píxeles. Si no se remide, el búfer queda con el valor del arranque y el
+  // centro se descoloca (la tortuga se va a una esquina a ciertos niveles de
+  // zoom). Se remide cada lado, se reajusta su búfer y se redimensiona el
+  // lienzo, que reaplica la transformación y redibuja desde los segmentos
+  // guardados; luego se repintan los personajes en el estado inicial.
+  const vistaGlobal = documento.defaultView;
+  let idReajuste: number | null = null;
+  function reajustarPorTamano(): void {
+    ajustarBuferesDeLado('referencia', canvasReferencia);
+    ajustarBuferesDeLado('jugador', canvasJugador);
+    ajustarBuferesDeLado('superposicion', canvasSuperposicion);
+    lienzoReferencia.redimensionar(tamanoDe(canvasReferencia));
+    lienzoJugador.redimensionar(tamanoDe(canvasJugador));
+    dibujarPersonajesEnInicial();
+  }
+  function alRedimensionar(): void {
+    // Coalesce con requestAnimationFrame para no reajustar en cada evento.
+    if (!vistaGlobal) {
+      reajustarPorTamano();
+      return;
+    }
+    if (idReajuste !== null) vistaGlobal.cancelAnimationFrame(idReajuste);
+    idReajuste = vistaGlobal.requestAnimationFrame(() => {
+      idReajuste = null;
+      reajustarPorTamano();
+    });
+  }
+  if (vistaGlobal && typeof vistaGlobal.addEventListener === 'function') {
+    vistaGlobal.addEventListener('resize', alRedimensionar);
+  }
+
   // ========================================================================
   // Funciones del flujo (diseño 12.5)
   // ========================================================================
@@ -851,7 +884,13 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     textoGlobo: () => globo.texto(),
     editor,
     globo,
-    destruir: () => cancelarSuscripcion(),
+    destruir: () => {
+      cancelarSuscripcion();
+      if (vistaGlobal && typeof vistaGlobal.removeEventListener === 'function') {
+        vistaGlobal.removeEventListener('resize', alRedimensionar);
+      }
+      if (vistaGlobal && idReajuste !== null) vistaGlobal.cancelAnimationFrame(idReajuste);
+    },
   };
 }
 
