@@ -8,7 +8,7 @@ import { VOCABULARIO, buscarComando, normalizarPalabra, EntradaVocabulario, Mund
 // ============================================================================
 
 /**
- * Identificadores de los 38 errores del catálogo.
+ * Identificadores de los 40 errores del catálogo.
  * Cada id corresponde a un mensaje en español con parámetros específicos.
  */
 export type IdError =
@@ -31,6 +31,7 @@ export type IdError =
   | 'rangoSinMultiplo'
   // fallos de programación
   | 'nodoDesconocidoEnConteo' | 'nivelDesconocido' | 'referenciaNoEjecutable'
+  | 'generadorSinCandidato' | 'generadorDesconocido'
   | 'solicitudDeErrorInvalida';
 
 /**
@@ -108,6 +109,8 @@ export interface ParametrosPorError {
   readonly nodoDesconocidoEnConteo: Record<string, never>;
   readonly nivelDesconocido: Record<string, never>;
   readonly referenciaNoEjecutable: Record<string, never>;
+  readonly generadorSinCandidato: Record<string, never>;
+  readonly generadorDesconocido: Record<string, never>;
   readonly solicitudDeErrorInvalida: Record<string, never>;
 }
 
@@ -198,6 +201,8 @@ export function crearError<K extends IdError>(
       case 'nodoDesconocidoEnConteo':
       case 'nivelDesconocido':
       case 'referenciaNoEjecutable':
+      case 'generadorSinCandidato':
+      case 'generadorDesconocido':
         return 'programacion';
       default:
         return 'jugador';
@@ -342,6 +347,10 @@ function construirMensaje<K extends IdError>(
       return '[programación] Se intentó resolver un nivel con identificador desconocido.';
     case 'referenciaNoEjecutable':
       return '[programación] El programa de referencia del nivel no es ejecutable.';
+    case 'generadorSinCandidato':
+      return '[programación] El generador no encontró una figura válida tras el máximo de intentos.';
+    case 'generadorDesconocido':
+      return '[programación] No hay un generador registrado con ese identificador.';
     case 'solicitudDeErrorInvalida':
       return '[programación] Se solicitó crear un error con parámetros inválidos.';
     

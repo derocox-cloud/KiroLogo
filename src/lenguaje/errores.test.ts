@@ -60,14 +60,16 @@ describe('errores.ts', () => {
         'listaVacia',
         'pasoInvalido',
         'rangoSinMultiplo',
-        // fallos de programación (4)
+        // fallos de programación (6)
         'nodoDesconocidoEnConteo',
         'nivelDesconocido',
         'referenciaNoEjecutable',
+        'generadorSinCandidato',
+        'generadorDesconocido',
         'solicitudDeErrorInvalida',
       ];
       
-      expect(todosIds).toHaveLength(38);
+      expect(todosIds).toHaveLength(40);
     });
     
     it('SeveridadError es "jugador" o "programacion"', () => {
@@ -403,6 +405,24 @@ describe('errores.ts', () => {
         expect(error.id).toBe('referenciaNoEjecutable');
         expect(error.severidad).toBe('programacion');
         expect(error.mensaje).toBe('[programación] El programa de referencia del nivel no es ejecutable.');
+      });
+      
+      it('generadorSinCandidato', () => {
+        const error = crearError('generadorSinCandidato', {});
+        expect(error.id).toBe('generadorSinCandidato');
+        expect(error.severidad).toBe('programacion');
+        expect(error.mensaje).toBe('[programación] El generador no encontró una figura válida tras el máximo de intentos.');
+        // No es un error visible al jugador.
+        expect(esErrorParaJugador(error)).toBe(false);
+      });
+      
+      it('generadorDesconocido', () => {
+        const error = crearError('generadorDesconocido', {});
+        expect(error.id).toBe('generadorDesconocido');
+        expect(error.severidad).toBe('programacion');
+        expect(error.mensaje).toBe('[programación] No hay un generador registrado con ese identificador.');
+        // No es un error visible al jugador.
+        expect(esErrorParaJugador(error)).toBe(false);
       });
       
       it('solicitudDeErrorInvalida', () => {
