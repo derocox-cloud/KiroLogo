@@ -57,7 +57,7 @@ Reglas que rigen todo el plan, heredadas del proyecto:
   - En `registro.test.ts`: id conocido devuelve función; id desconocido devuelve null
   - _Requisitos: 2.8_
 
-- [ ] 6. Los cinco niveles del mundo 0 como datos
+- [x] 6. Los cinco niveles del mundo 0 como datos
   - Reescribir `src/niveles/mundo-0-primeros-pasos.ts` para declarar `0.1`–`0.5`: `0.1`/`0.2`/`0.4` autorados con su AST nodo por nodo y semilla fija; `0.3`/`0.5` generados con `idGenerador` y `parametros` (rangos verificados) y sin referencia ni semilla almacenadas; todos con `concepto: 'secuencia'`, normalización libre/libre/exacta, `abstraccion: []`, y sus tres pistas (las de los generados como plantillas con marcadores `{tramos}`/`{giro}`/`{cuadros}`)
   - Exportar `MUNDO_0` con los cinco niveles en orden; `catalogo.ts` no cambia
   - En `catalogo.test.ts` (o `mundo-0`): los cinco ids presentes y en orden; autorados válidos; sin presupuesto escrito a mano; las referencias autoradas ganan tres estrellas contra su propio nivel (intérprete + validador reales)
