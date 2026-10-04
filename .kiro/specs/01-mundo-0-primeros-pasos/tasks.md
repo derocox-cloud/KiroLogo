@@ -24,17 +24,17 @@ Reglas que rigen todo el plan, heredadas del proyecto:
 
 ## Tasks
 
-- [ ] 1. Mensajes de programación nuevos en el catálogo
+- [x] 1. Mensajes de programación nuevos en el catálogo
   - Añadir a `src/lenguaje/errores.ts` los `IdError` `generadorSinCandidato` y `generadorDesconocido`, ambos de categoría programación, con su texto en español descriptivo, y su caso en `crearError`
   - Ampliar `errores.test.ts` para cubrir los dos ids nuevos y confirmar que no son visibles al jugador (`esErrorParaJugador` falso)
   - _Requisitos: 2.3, 2.8, 5.5, 13.5_
 
-- [ ] 2. Contrato del generador y utilidades compartidas
-  - [ ] 2.1 Declarar el `Contrato_Generador` y sus tipos
+- [x] 2. Contrato del generador y utilidades compartidas
+  - [x] 2.1 Declarar el `Contrato_Generador` y sus tipos
     - En `src/niveles/tipos.ts` (o `src/niveles/generadores/tipos.ts` importado por `tipos.ts`), declarar `EntradaGenerador { semilla, parametros, intentosMaximos }`, la unión `ResultadoGeneracion` (`exito: true` con `referencia`, `semillaEfectiva`, `descartes` / `exito: false` con `error`, `intentos`) y el tipo `Generador`
     - Sin prueba propia (tipos); se verifica desde las pruebas de los generadores y con aserciones de compilación
     - _Requisitos: 2.1, 2.2, 2.3_
-  - [ ] 2.2 Escribir `src/niveles/generadores/comun.ts` con el lazo, la simulación pura y el encuadre
+  - [x] 2.2 Escribir `src/niveles/generadores/comun.ts` con el lazo, la simulación pura y el encuadre
     - `generarConReintento(entrada, candidatoDe)`: crea el PRNG con la semilla del intento, pide un candidato, lo acepta o lo descarta, reintenta con `(semilla + 1)` con envoltura al dominio hasta `intentosMaximos`, y devuelve éxito con `semillaEfectiva` y `descartes` o fallo con `generadorSinCandidato`
     - `cajaDeReferencia(programa)`: simulación pura de la tortuga (posición y rumbo desde `(0,0)` a 90°) que acumula la caja envolvente de los tramos con lápiz abajo, sin importar `motor/`
     - `esAceptable(programa)`: caja dentro de `[-400, 400]` en ambos ejes y ancho y alto ≥ 200, con las constantes `LIMITE_LIENZO = 400` y `DIMENSION_MINIMA = 200`
@@ -42,17 +42,17 @@ Reglas que rigen todo el plan, heredadas del proyecto:
     - En `comun.test.ts`: determinismo del lazo; reintento con semilla+1 (candidato degenerado forzado); `cajaDeReferencia` correcta en casos conocidos; y una prueba que importa `LIMITE_LIENZO`/`DIMENSION_MINIMA` de `motor/encuadre.ts` y las compara con las de `comun.ts` para anclarlas
     - _Requisitos: 2.4, 2.5, 2.6, 2.7, 4.4 (encuadre), 3.6, 4.6_
 
-- [ ] 3. Generador de camino (nivel 0.3)
+- [x] 3. Generador de camino (nivel 0.3)
   - Escribir `src/niveles/generadores/camino.ts`: `generarCamino` delega en `generarConReintento` con `candidatoCamino`, que toma `tramos ∈ [tramosMin, tramosMax]` y `largo` múltiplo de 20 en `[largoMin, largoMax]` del PRNG, emite un `AVANZA` por tramo y un giro de 90° (`GIRADERECHA`/`GIRAIZQUIERDA` del PRNG) entre tramos, sin giro final
   - En `camino.test.ts`: sobre **al menos 200 semillas iniciales distintas**, todas devuelven éxito; ejecutar cada referencia con el **intérprete real** y validarla contra sí misma con traslación y rotación libres usando el **validador real**, comprobando las tres estrellas, el encuadre y la no degeneración; comprobar que la referencia solo contiene nodos del mundo 0 y que es la forma mínima (conteo = tramos + (tramos−1)); determinismo con misma semilla/parámetros
   - _Requisitos: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 2.5, 2.7_
 
-- [ ] 4. Generador de zigzag (nivel 0.5)
+- [x] 4. Generador de zigzag (nivel 0.5)
   - Escribir `src/niveles/generadores/zigzag.ts`: `generarZigzag` con `candidatoZigzag`, que toma `tramos ∈ [4, 8]` y `largo` múltiplo de 20 en `[60, 120]`, emite un `AVANZA` por tramo y giros de 90° (ángulo verificado; 45° es degenerado, ver G2) cuyo sentido **alterna** empezando por uno elegido del PRNG, sin giro final
   - En `zigzag.test.ts`: 200 semillas con el mismo cierre de lazo (intérprete + validador reales, tres estrellas, encuadre, no degeneración); verificar la alternancia de sentido; forma mínima; determinismo
   - _Requisitos: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 2.5, 2.7_
 
-- [ ] 5. Registro de generadores
+- [x] 5. Registro de generadores
   - Escribir `src/niveles/generadores/registro.ts`: `buscarGenerador(idGenerador): Generador | null`, asociando `'camino' → generarCamino` y `'zigzag' → generarZigzag`
   - En `registro.test.ts`: id conocido devuelve función; id desconocido devuelve null
   - _Requisitos: 2.8_
