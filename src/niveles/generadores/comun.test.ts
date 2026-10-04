@@ -162,6 +162,26 @@ describe('comun · esAceptable', () => {
     expect(esAceptable(cuadrado(900))).toBe(false);
   });
 
+  it('rechaza un zigzag de 45° que, dibujado, es un trazo fino en diagonal', () => {
+    // Giros de 45° alternados: la figura sube en diagonal y su caja alineada a
+    // los ejes es estrecha en un eje. Es un garabato, no un reto: se rechaza.
+    const zig = programa(
+      avanza(120, 1),
+      giro('GIRADERECHA', 45, 2),
+      avanza(120, 3),
+      giro('GIRAIZQUIERDA', 45, 4),
+      avanza(120, 5),
+      giro('GIRADERECHA', 45, 6),
+      avanza(120, 7),
+      giro('GIRAIZQUIERDA', 45, 8),
+      avanza(120, 9),
+    );
+    const caja = cajaDeReferencia(zig)!;
+    expect(caja).not.toBeNull();
+    expect(caja.derecha - caja.izquierda).toBeLessThan(DIMENSION_MINIMA);
+    expect(esAceptable(zig)).toBe(false);
+  });
+
   // La aceptación de comun coincide con la decisión de motor/encuadre.ts sobre
   // los segmentos realmente ejecutados: encuadrado y no degenerado.
   it('coincide con calcularEncuadre sobre segmentos ejecutados, en varios lados', () => {

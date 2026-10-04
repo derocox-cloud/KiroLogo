@@ -162,11 +162,18 @@ function normalizar(grados: number): number {
 // ============================================================================
 
 /**
- * ¿El candidato cabe en el lienzo y no es degenerado? Cabe si su caja envolvente
- * queda dentro de [−400, 400] en ambos ejes (exactamente ±400 no cuenta como
- * fuera). No es degenerado si su ancho y su alto son ambos ≥ 200 (exactamente
- * 200 sí cuenta, como en `motor/encuadre.ts`). Un candidato sin tramos se
+ * ¿El candidato cabe en el lienzo y no es degenerado? El criterio es el de
+ * `motor/encuadre.ts`, sobre la caja **alineada a los ejes** de la figura tal
+ * como se dibuja: cabe si su caja queda dentro de [−400, 400] en ambos ejes
+ * (exactamente ±400 no cuenta como fuera); no es degenerado si su ancho y su
+ * alto son ambos ≥ 200 (exactamente 200 sí cuenta). Un candidato sin tramos se
  * rechaza.
+ *
+ * Se mide la caja tal como se dibuja —no una envolvente rotada— porque es así
+ * como el jugador ve la figura y como `motor/encuadre.ts` la juzga: una figura
+ * que, dibujada, es un trazo fino en diagonal es un garabato, no un reto, por
+ * más que una caja girada la hiciera parecer ancha. Son los generadores los que
+ * deben producir figuras que llenen el plano, no el filtro el que las disculpe.
  */
 export function esAceptable(programa: Programa): boolean {
   const caja = cajaDeReferencia(programa);

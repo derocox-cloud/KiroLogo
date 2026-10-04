@@ -131,7 +131,7 @@ criterios de aceptación:
 | # | Decisión | Resolución | Requisito |
 |---|---|---|---|
 | G1 | **Firma de un Generador** (se reusa siete veces) | Un Generador es una función pura `(entrada: EntradaGenerador) => ResultadoGeneracion`, donde `EntradaGenerador` lleva `semilla`, `parametros` (los del nivel) y un `intentosMaximos`. Devuelve una **unión discriminada**: `{ exito: true, referencia: Programa, semillaEfectiva, descartes }` o `{ exito: false, error: ErrorKiroLogo, intentos }`. El **lazo de reintento con la semilla siguiente vive dentro del Generador**, acotado por `intentosMaximos`; un descarte individual es un valor interno, no una excepción. El registro asocia `idGenerador` → función. El Generador **solo** importa de `lenguaje/` y `azar/`. | 2, 3, 4 |
-| G2 | **Rangos de los generadores** | Los rangos de `niveles-y-progresion` son estimaciones; medidos contra la regla de `Encuadre` (caja ≥ 200 de lado) producen ~99 % de descartes y un lazo inviable. Se **ajustan** a rangos verificados con figuras reales: **camino** largo 80–160 múltiplo de 20, 3–5 tramos, giros de 90°; **zigzag** largo 60–120 múltiplo de 20, 4–8 tramos, giros de 45° alternados. Con estos rangos el lazo acepta en pocos intentos y la figura se ve como un dibujo con intención. El steering se actualiza para reflejar los rangos verificados. | 3, 4 |
+| G2 | **Rangos y ángulos de los generadores** | Los rangos y ángulos de `niveles-y-progresion` son estimaciones; medidos contra la regla de `Encuadre` (caja ≥ 200 de lado) resultan inviables. Se **ajustan** con figuras reales: **camino** largo 80–160 múltiplo de 20, 3–5 tramos, giros de 90°; **zigzag** largo 60–120 múltiplo de 20, 4–8 tramos, giros de **90°** alternados. El ángulo del zigzag es el ajuste de fondo: con la tortuga partiendo hacia arriba, un zigzag de **45°** alternados se dibuja como un trazo fino en diagonal —degenerado por construcción, 0 % de candidatos aceptables—; con 90° alternados es una escalera que llena el plano. El sentido sigue alternando, que es la lección. El steering se actualiza para reflejar lo verificado. | 3, 4 |
 | G3 | **Estrella de economía en el `0.4`** (cuadrado a mano) | El `0.4` **ofrece** las tres estrellas como cualquier nivel; su fuerza bruta a mano (`AVANZA 100 GD 90` ×4) **es** la forma más compacta con el vocabulario del mundo 0, así que su `presupuestoEstrella` (8) se alcanza con la solución esperada. No se niega ni se oculta la economía: se gana resolviéndolo bien. El único matiz es que Kiro anticipa, por su pista de esqueleto, que en el mundo 1 habrá una forma más corta. | 5, 8 |
 | G4 | **Presentación del código de semilla** | El Panel_Semilla muestra el código en un lugar **secundario y fijo** de la pantalla (junto a los controles, no sobre el lienzo ni el reto), como texto seleccionable de solo lectura con su nombre accesible. No compite con el reto: nunca se superpone al lienzo de la referencia ni al del jugador, y en los niveles autorados se muestra igual pero marcado como no rejugable con otra semilla. | 9 |
 | G5 | **Forma del estado persistido** (crecerá siete mundos más) | El formato sube a **versión 2**, con **migración desde la versión 1** de la spec 00. Por nivel se guarda `{ estrellas: {precision, economia, abstraccion}, mejorConteo, ultimaSemilla }`. Las estrellas nunca retroceden y `mejorConteo` solo baja. El progreso guarda además el `ultimoReto` (idNivel + semilla) para reanudar. La migración v1→v2 conserva las estrellas ya ganadas y deja `mejorConteo` nulo hasta el siguiente intento. Un formato de versión desconocida futura degrada a progreso vacío sin borrar el crudo hasta el primer guardado exitoso. | 10 |
@@ -234,13 +234,18 @@ la secuencia sin poder memorizar la respuesta.
 
 ### Requisito 4: Generador de zigzag (nivel 0.5)
 
-**Historia de usuario:** Como jugador del nivel `0.5`, quiero un zigzag de tramos con giros de 45 grados
-alternados, distinto cada vez y siempre resoluble, para practicar giros que no son rectos manteniendo el
-patrón de alternancia.
+**Historia de usuario:** Como jugador del nivel `0.5`, quiero un zigzag de tramos con giros alternados,
+distinto cada vez y siempre resoluble, para practicar que el sentido del giro cambia en cada vértice en
+lugar de repetirse.
+
+> **Nota de ángulo (G2).** El steering proponía giros de 45°; verificado con figuras reales, 45°
+> alternados producen una figura degenerada (un trazo fino en diagonal, porque la tortuga parte mirando
+> hacia arriba). El nivel 0.5 usa **giros de 90° alternados** —una escalera—, que mantienen la lección
+> de la alternancia y llenan el plano. Ver la decisión G2.
 
 #### Criterios de aceptación
 
-1. EL Generador_Zigzag DEBERÁ producir un programa que alterna tramos rectos y giros de 45 grados cuyo
+1. EL Generador_Zigzag DEBERÁ producir un programa que alterna tramos rectos y giros de 90 grados cuyo
    sentido se **alterna** entre `GIRADERECHA` y `GIRAIZQUIERDA` de un vértice al siguiente, empezando
    por un sentido elegido del PRNG, sin un giro final tras el último tramo.
 2. EL Generador_Zigzag DEBERÁ emplear un número de tramos entre 4 y 8 inclusive, y una longitud por

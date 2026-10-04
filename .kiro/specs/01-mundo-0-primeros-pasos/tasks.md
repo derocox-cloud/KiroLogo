@@ -48,7 +48,7 @@ Reglas que rigen todo el plan, heredadas del proyecto:
   - _Requisitos: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 2.5, 2.7_
 
 - [ ] 4. Generador de zigzag (nivel 0.5)
-  - Escribir `src/niveles/generadores/zigzag.ts`: `generarZigzag` con `candidatoZigzag`, que toma `tramos ∈ [4, 8]` y `largo` múltiplo de 20 en `[60, 120]`, emite un `AVANZA` por tramo y giros de 45° cuyo sentido **alterna** empezando por uno elegido del PRNG, sin giro final
+  - Escribir `src/niveles/generadores/zigzag.ts`: `generarZigzag` con `candidatoZigzag`, que toma `tramos ∈ [4, 8]` y `largo` múltiplo de 20 en `[60, 120]`, emite un `AVANZA` por tramo y giros de 90° (ángulo verificado; 45° es degenerado, ver G2) cuyo sentido **alterna** empezando por uno elegido del PRNG, sin giro final
   - En `zigzag.test.ts`: 200 semillas con el mismo cierre de lazo (intérprete + validador reales, tres estrellas, encuadre, no degeneración); verificar la alternancia de sentido; forma mínima; determinismo
   - _Requisitos: 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 2.5, 2.7_
 
@@ -115,6 +115,6 @@ Reglas que rigen todo el plan, heredadas del proyecto:
 - [ ] 16. Transversales: dependencias, build y steering
   - Extender la prueba de dirección de dependencias para cubrir los módulos nuevos: `niveles/generadores/*` no importan de `motor/`, `juego/` ni `ui/`; `juego/desbloqueo.ts` e `insignias.ts` no importan de `ui/`
   - Verificar `npm test`, `npm run typecheck` y `npm run build` en verde, y que el juego queda jugable con los cinco niveles navegables
-  - Actualizar `.kiro/steering/niveles-y-progresion.md` con los rangos verificados (camino largo 80–160, zigzag largo 60–120), señalando que salen de medir figuras reales contra la regla de caja ≥ 200
+  - Actualizar `.kiro/steering/niveles-y-progresion.md` con los rangos y ángulos verificados (camino largo 80–160 giros 90°, zigzag largo 60–120 giros **90°** en vez de 45°), señalando que salen de medir figuras reales contra la regla de caja ≥ 200
   - _Requisitos: 13.1, 13.2, 13.3, 13.4, 13.6, 13.7, 3.2, 4.2_
 ```

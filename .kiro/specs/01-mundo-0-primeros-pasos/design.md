@@ -94,7 +94,7 @@ Las decisiones G1–G5 de requisitos se bajan a detalle en el diseño:
 | # | Concreción en el diseño |
 |---|---|
 | G1 | El `Contrato_Generador` es `(entrada: EntradaGenerador) => ResultadoGeneracion`, unión discriminada por `exito`. El lazo de reintento vive en `comun.ts` y cada arquetipo solo aporta su función de candidato. Sección 4. |
-| G2 | Rangos verificados: camino `largo ∈ {80,100,120,140,160}`, `tramos ∈ [3,5]`; zigzag `largo ∈ {60,80,100,120}`, `tramos ∈ [4,8]`. Se actualiza `niveles-y-progresion`. Secciones 4.5 y 4.6. |
+| G2 | Rangos y ángulos verificados: camino `largo ∈ {80,100,120,140,160}`, `tramos ∈ [3,5]`, giros 90°; zigzag `largo ∈ {60,80,100,120}`, `tramos ∈ [4,8]`, giros **90°** (no 45°: ese ángulo es degenerado, ver §4.6). Se actualiza `niveles-y-progresion`. Secciones 4.5 y 4.6. |
 | G3 | El `0.4` ofrece las tres estrellas; su referencia mínima (`AV 100 GD 90` ×4, conteo 8) gana economía. Sin caso especial en `estrellas.ts`. Sección 3.4. |
 | G4 | El `Panel_Semilla` es una franja fija junto a los controles, texto de solo lectura, nunca sobre los lienzos. Sección 6.3. |
 | G5 | Formato v2 con migración; `mejorConteo` por nivel; `mejorConteoDe(idNivel)` nuevo. Sección 5. |
@@ -189,7 +189,7 @@ Los `parametros` transportan los rangos del nivel al generador, para que el rang
 nivel y no incrustado en el código del generador. Convención de claves para esta spec:
 
 - Camino: `{ tramosMin, tramosMax, largoMin, largoMax }`.
-- Zigzag: `{ tramosMin, tramosMax, largoMin, largoMax, giro }` (con `giro: 45`).
+- Zigzag: `{ tramosMin, tramosMax, largoMin, largoMax }` (giros de 90° alternados; ver §4.6).
 
 #### 3.2 Tabla de niveles
 
@@ -359,7 +359,7 @@ function candidatoZigzag(prng: Prng, p: Record<string, number>): Programa {
   for (let i = 0; i < tramos; i++) {
     instrucciones.push(avanza(prng.multiplo(p.largoMin, p.largoMax, 20))); // 60..120
     if (i < tramos - 1) {
-      instrucciones.push(giro(sentido, 45));
+      instrucciones.push(giro(sentido, 90)); // ver la nota sobre el ángulo
       sentido = sentido === 'GIRADERECHA' ? 'GIRAIZQUIERDA' : 'GIRADERECHA';
     }
   }
@@ -367,9 +367,23 @@ function candidatoZigzag(prng: Prng, p: Record<string, number>): Programa {
 }
 ```
 
-**Rangos verificados (G2).** Steering (largo 40–80) → ~99 % de descartes. Ajustado a largo 60–120,
-tramos 4–8: ~31 % aceptables de primera, lazo en ~3 intentos de media (peor ~21). La alternancia de
-sentido garantiza el patrón de zigzag reconocible.
+**Ángulo verificado (G2) — corrección sobre el steering.** El steering decía «giros de 45°
+alternados». Medido contra figuras reales, resulta **inviable**: la tortuga parte mirando hacia
+arriba, y un zigzag de 45° alternados se dibuja como un **trazo fino en diagonal**. Su caja envolvente
+alineada a los ejes es casi una línea (p. ej. 113 × 353 para la primera semilla), de modo que es
+degenerado por construcción —0 % de candidatos aceptables sobre miles de semillas, el lazo nunca
+encuentra uno—. Es exactamente el caso que `validacion-geometrica` llama «injusto por construcción».
+
+Se intentó salvar el 45° midiendo una caja envolvente **rotada** (ya que el mundo 0 valida con
+rotación libre), pero esa vía es incorrecta: minimizar el área de la caja encuentra la envolvente
+diagonal de cualquier figura cuyos vértices caen cerca de una recta, y disculparía garabatos. El
+criterio honesto de no degeneración es la caja **tal como se dibuja**, que es la de `motor/encuadre.ts`.
+
+Resolución: el zigzag del nivel 0.5 usa **giros de 90° alternados** (una escalera). Alterna igual —
+derecha, izquierda, derecha…, que es la lección: no se puede repetir el mismo giro—, pero llena el
+plano en los dos ejes. Con largo 60–120 y 4–8 tramos: ~60 % aceptables de primera, lazo en ~1.7
+intentos de media (peor ~12 sobre 4000 bases). `niveles-y-progresion` se actualiza para registrar que
+el ángulo del 0.5 es 90°, no 45°, con esta justificación.
 
 #### 4.7 De candidato a reto: `reto.ts` extendido
 
@@ -522,7 +536,7 @@ Las pistas viven en el `Nivel` (`pistas: [conceptual, matemática, esqueleto]`),
 Para los niveles **generados**, las pistas del dato son **plantillas** con marcadores, y `main.ts` las
 rellena con los parámetros del reto en curso antes de pasárselas al globo:
 
-- Marcadores: `{tramos}`, `{giro}` (p. ej. «90 grados» o «45 grados alternando»), `{cuadros}`.
+- Marcadores: `{tramos}`, `{giro}` (p. ej. «90 grados a un lado u otro» en el camino, «90 grados alternando» en el zigzag), `{cuadros}`.
 - El número de tramos se **lee del programa de referencia del reto** (contando los `AVANZA`), no del
   rango del nivel, para que la pista diga cinco cuando el reto tiene cinco y no un número del rango
   (requisito 11.4). Una función `parametrosVisiblesDelReto(reto)` extrae `{ tramos, giro }` recorriendo
@@ -633,9 +647,11 @@ lazo entre «el generador dice que es aceptable» y «el validador la aprueba co
 
 ### 10. Actualización de steering
 
-Al cerrar la implementación, se actualiza `niveles-y-progresion` con los rangos verificados (G2):
-camino largo 80–160 (era 40–120), zigzag largo 60–120 (era 40–80). El cambio se justifica en la
-bitácora del steering como resultado de medir figuras reales contra la regla de caja ≥ 200. El resto
-del steering no cambia.
+Al cerrar la implementación, se actualiza `niveles-y-progresion` con los rangos y ángulos verificados
+(G2): camino largo 80–160 (era 40–120) con giros de 90°; zigzag largo 60–120 (era 40–80) y giros de
+**90°** (era 45°). El cambio del ángulo del zigzag es el más importante: 45° alternados producen una
+figura degenerada (un trazo fino en diagonal), inviable para el generador; 90° alternados dan una
+escalera que llena el plano. El cambio se justifica como resultado de medir figuras reales contra la
+regla de caja ≥ 200 de `validacion-geometrica`. El resto del steering no cambia.
 
 *Satisface: Requisitos 3.2, 4.2.*
