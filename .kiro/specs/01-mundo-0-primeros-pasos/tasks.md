@@ -63,7 +63,7 @@ Reglas que rigen todo el plan, heredadas del proyecto:
   - En `catalogo.test.ts` (o `mundo-0`): los cinco ids presentes y en orden; autorados válidos; sin presupuesto escrito a mano; las referencias autoradas ganan tres estrellas contra su propio nivel (intérprete + validador reales)
   - _Requisitos: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 3.3, 5.4_
 
-- [ ] 7. Resolución de retos generados en `reto.ts`
+- [x] 7. Resolución de retos generados en `reto.ts`
   - Extender `resolverReto` para distinguir origen autorado (como hoy) y generado: buscar el generador por `idGenerador`, invocarlo con la semilla recibida y los `parametros`, usar su `referencia` y su `semillaEfectiva`; error del catálogo si el id es desconocido o el generador agota intentos
   - El resto del flujo (ejecución única, segmentos, conteo del presupuesto, `codigoSemilla` sobre la semilla efectiva) queda igual
   - En `reto.test.ts`: nivel generado resuelve con semilla efectiva y presupuesto calculado; misma semilla → mismo reto; autorado sin cambios; `idGenerador` desconocido → error; generador sin candidato → error
