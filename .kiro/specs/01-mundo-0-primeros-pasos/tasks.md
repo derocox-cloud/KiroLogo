@@ -76,7 +76,7 @@ Reglas que rigen todo el plan, heredadas del proyecto:
   - En `progreso.test.ts`: guarda y recupera estrellas/mejorConteo/semilla; estrellas nunca retroceden; mejorConteo solo baja y solo con precisión; migración v1→v2 conserva estrellas; versión desconocida → vacío; cuota agotada → memoria + aviso único
   - _Requisitos: 6.1, 6.2, 6.3, 6.4, 6.5, 6.6, 6.7, 10.5_
 
-- [ ] 9. Desbloqueo de niveles y mundos
+- [x] 9. Desbloqueo de niveles y mundos
   - Escribir `src/juego/desbloqueo.ts`: `estadoDeNivel`, `nivelDesbloqueado`, `mundoDesbloqueado`, derivados solo del progreso y del catálogo; primer nivel del mundo 0 siempre abierto; un nivel se abre cuando el anterior está aprobado; un mundo cuando todos los del anterior lo están
   - En `desbloqueo.test.ts`: 0.1 abierto sin progreso; cadena de desbloqueo 0.1→…→0.5; estado `tresEstrellas`; reproducible desde las estrellas guardadas
   - _Requisitos: 7.1, 7.2, 7.3, 7.5, 7.6_
