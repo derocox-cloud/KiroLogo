@@ -795,9 +795,10 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     animador.cargar(operaciones, 'jugador');
     animador.reproducir();
 
-    // Guarda el progreso ANTES de admitir otra ejecución.
+    // Guarda el progreso ANTES de admitir otra ejecución. El conteo del jugador
+    // alimenta el mejor conteo del nivel (solo baja, y solo con precisión).
     try {
-      progreso.guardar(reto.nivel.id, reto.semillaEfectiva, calificacion);
+      progreso.guardar(reto.nivel.id, reto.semillaEfectiva, calificacion, calificacion.conteoJugador);
     } catch (e) {
       console.error('No se pudo guardar el progreso.', e);
     }

@@ -69,7 +69,7 @@ Reglas que rigen todo el plan, heredadas del proyecto:
   - En `reto.test.ts`: nivel generado resuelve con semilla efectiva y presupuesto calculado; misma semilla → mismo reto; autorado sin cambios; `idGenerador` desconocido → error; generador sin candidato → error
   - _Requisitos: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6_
 
-- [ ] 8. Progreso versión 2 y migración
+- [x] 8. Progreso versión 2 y migración
   - Actualizar `src/juego/progreso.ts` a la clave `kirologo.progreso.v2` y `VERSION_FORMATO = 2`; registro por nivel `{ estrellas, mejorConteo, ultimaSemilla }`; añadir `guiaVista` al contenido
   - Añadir a la interfaz `Progreso`: `mejorConteoDe(idNivel)`, `guiaCompletada()`, `marcarGuiaCompletada()`; `guardar` gana el parámetro `conteoJugador` y actualiza `mejorConteo` solo con precisión otorgada y solo si baja
   - Implementar la migración v1→v2: leer el crudo v1, convertir cada registro conservando las estrellas, `mejorConteo: null`, `ultimaSemilla` de la v1; `guiaVista` verdadero si algún nivel ya tiene precisión; escribir bajo la clave v2 al primer guardado; no borrar la clave v1
