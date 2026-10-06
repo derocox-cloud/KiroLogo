@@ -81,7 +81,7 @@ Reglas que rigen todo el plan, heredadas del proyecto:
   - En `desbloqueo.test.ts`: 0.1 abierto sin progreso; cadena de desbloqueo 0.1→…→0.5; estado `tresEstrellas`; reproducible desde las estrellas guardadas
   - _Requisitos: 7.1, 7.2, 7.3, 7.5, 7.6_
 
-- [ ] 10. Insignia Secuencia
+- [x] 10. Insignia Secuencia
   - Escribir `src/juego/insignias.ts`: `insigniaSecuenciaOtorgada(progreso)` verdadero solo con las tres estrellas en los cinco niveles del mundo 0; `insigniasDelMundo(0, progreso)`; derivado del progreso, sin persistencia propia
   - En `insignias.test.ts`: 15 estrellas → otorgada; falta una → no; reproducible
   - _Requisitos: 8.1, 8.2, 8.4, 8.5_
