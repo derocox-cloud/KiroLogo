@@ -86,7 +86,7 @@ Reglas que rigen todo el plan, heredadas del proyecto:
   - En `insignias.test.ts`: 15 estrellas → otorgada; falta una → no; reproducible
   - _Requisitos: 8.1, 8.2, 8.4, 8.5_
 
-- [ ] 11. Pistas rellenables con los parámetros reales del reto
+- [x] 11. Pistas rellenables con los parámetros reales del reto
   - Escribir la utilidad (en `main.ts` o un módulo de apoyo) `parametrosVisiblesDelReto(reto)` que cuenta los `AVANZA` del AST de la referencia y deduce el giro, y `rellenarPistas(nivel, reto)` que sustituye `{tramos}`/`{giro}`/`{cuadros}` en las plantillas y construye la pista de esqueleto con el `Impresor` sobre una forma **parcial** (primer tramo + primer giro), nunca el programa completo
   - Prueba: sobre una muestra de semillas de `0.3` y `0.5`, el número de tramos de la pista coincide con los `AVANZA` de la referencia; la pista de esqueleto no contiene el programa completo
   - _Requisitos: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_

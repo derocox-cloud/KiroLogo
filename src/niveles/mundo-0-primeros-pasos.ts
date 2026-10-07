@@ -128,7 +128,7 @@ export const NIVEL_0_3: Nivel = {
   pistas: [
     'El camino tiene {tramos} tramos rectos. Dibuja uno, gira, dibuja el siguiente.',
     'Cada vuelta es de {giro}. Cuenta los cuadros de cada tramo: cada cuadro mide 20.',
-    'Empieza por el primer tramo y su vuelta; sigue el camino tramo a tramo.',
+    'Empieza así y sigue el camino tramo a tramo:\n{esqueleto}',
   ],
 };
 
@@ -195,7 +195,7 @@ export const NIVEL_0_5: Nivel = {
   pistas: [
     'El zigzag tiene {tramos} tramos. El sentido del giro cambia en cada esquina: una a la derecha, la siguiente a la izquierda.',
     'Cada vuelta es de {giro}. Cuenta los cuadros de cada tramo: cada cuadro mide 20.',
-    'Empieza por el primer tramo y su vuelta; en la esquina siguiente gira hacia el otro lado.',
+    'Empieza así y en la esquina siguiente gira hacia el otro lado:\n{esqueleto}',
   ],
 };
 
