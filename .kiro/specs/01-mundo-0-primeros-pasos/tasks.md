@@ -91,17 +91,17 @@ Reglas que rigen todo el plan, heredadas del proyecto:
   - Prueba: sobre una muestra de semillas de `0.3` y `0.5`, el número de tramos de la pista coincide con los `AVANZA` de la referencia; la pista de esqueleto no contiene el programa completo
   - _Requisitos: 11.1, 11.2, 11.3, 11.4, 11.5, 11.6_
 
-- [ ] 12. Panel de semilla
+- [x] 12. Panel de semilla
   - Escribir `src/ui/panel-semilla.ts`: franja fija junto a los controles, `<output>` de solo lectura con el `codigoSemilla` y nombre accesible; acción «Otro reto» (solo generados) y «Reproducir código» (campo + botón) por callbacks `pedirOtroReto`/`reproducirCodigo`; en autorados muestra el código marcado como no rejugable, sin «Otro reto»; estados por texto y forma además de color; nunca se superpone a los lienzos
   - En `panel-semilla.test.ts`: «Otro reto» ausente en autorado; código inválido dispara el error del catálogo por el callback sin cambiar el reto; nombres accesibles en español
   - _Requisitos: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
 
-- [ ] 13. Selector de nivel
+- [x] 13. Selector de nivel
   - Escribir `src/ui/selector-nivel.ts`: presenta los cinco niveles en orden con su `EstadoNivel` por texto y forma además de color; callback `alElegirNivel(idNivel)` solo para desbloqueados; refleja la insignia _Secuencia_ por texto; nombre accesible por nivel con id y estado; integrado en el orden de foco sin atraparlo
   - En `selector-nivel.test.ts`: estados representados sin depender solo del color; elegir un bloqueado no navega; elegir un desbloqueado invoca el callback; refleja la insignia
   - _Requisitos: 12.1, 12.2, 12.4, 12.5, 7.4_
 
-- [ ] 14. Guía de primeros pasos (nivel 0.1)
+- [x] 14. Guía de primeros pasos (nivel 0.1)
   - Escribir `src/ui/guia.ts`: secuencia corta de mensajes publicados por el `GloboKiro` (y por tanto en `aria-live`), que explican la tortuga, la figura de Kiro y el primer comando con un ejemplo accionable (`AVANZA` con un número); avanza por acción del jugador, no por temporizador; no bloquea editor ni controles; al primer acierto cede a la celebración y marca la guía completada
   - En `guia.test.ts`: la secuencia avanza por acción; publica en la región `aria-live`; al primer acierto marca completada; no se reinicia sola
   - _Requisitos: 10.1, 10.2, 10.3, 10.4, 10.6, 10.7_
