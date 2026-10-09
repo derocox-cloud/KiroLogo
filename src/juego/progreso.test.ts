@@ -117,6 +117,18 @@ describe('progreso · escritura', () => {
 // ============================================================================
 
 describe('progreso · guía de primeros pasos', () => {
+  it('marcarUltimoReto registra el reto en curso sin tocar estrellas', () => {
+    const almacen = crearAlmacen();
+    const progreso = cargarProgreso(almacen);
+    progreso.guardar('0.1', 1, calif(true, true, true), 1);
+    progreso.marcarUltimoReto('0.3', 777);
+    expect(progreso.ultimoReto()).toEqual({ idNivel: '0.3', semilla: 777 });
+    // No tocó las estrellas del 0.1.
+    expect(progreso.estrellasDe('0.1')).toEqual({ precision: true, economia: true, abstraccion: true });
+    // Persistió: una recarga lo recuerda.
+    expect(cargarProgreso(almacen).ultimoReto()).toEqual({ idNivel: '0.3', semilla: 777 });
+  });
+
   it('arranca sin completar y se marca una sola vez, persistiendo', () => {
     const almacen = crearAlmacen();
     const progreso = cargarProgreso(almacen);

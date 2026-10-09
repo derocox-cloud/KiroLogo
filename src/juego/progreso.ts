@@ -45,6 +45,12 @@ export interface Progreso {
   guiaCompletada(): boolean;
   /** Marca la guía como completada y lo persiste. */
   marcarGuiaCompletada(): void;
+  /**
+   * Registra el reto en curso (idNivel + semilla) sin tocar estrellas ni conteos.
+   * Lo usa la navegación: al entrar a un nivel, ese pasa a ser el último reto, de
+   * modo que una recarga lo reanude.
+   */
+  marcarUltimoReto(idNivel: string, semilla: number): void;
   guardar(idNivel: string, semilla: number, calificacion: Calificacion, conteoJugador: number): void;
 }
 
@@ -139,6 +145,11 @@ export function cargarProgreso(almacen: Storage | null): Progreso {
     marcarGuiaCompletada(): void {
       if (contenido.guiaVista) return;
       contenido.guiaVista = true;
+      persistir();
+    },
+
+    marcarUltimoReto(idNivel: string, semilla: number): void {
+      contenido.ultimoReto = { idNivel, semilla };
       persistir();
     },
 

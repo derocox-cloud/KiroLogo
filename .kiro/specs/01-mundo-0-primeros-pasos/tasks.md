@@ -106,13 +106,13 @@ Reglas que rigen todo el plan, heredadas del proyecto:
   - En `guia.test.ts`: la secuencia avanza por acción; publica en la región `aria-live`; al primer acierto marca completada; no se reinicia sola
   - _Requisitos: 10.1, 10.2, 10.3, 10.4, 10.6, 10.7_
 
-- [ ] 15. Orquestación de la navegación en `main.ts`
+- [x] 15. Orquestación de la navegación en `main.ts`
   - Extender `main.ts` para manejar los cinco niveles: arrancar en el `ultimoReto` desbloqueado o el primer nivel jugable; `cambiarANivel(idNivel, semilla?)` que verifica desbloqueo (si no, avisa por el globo y no entra), resuelve el reto, redibuja la referencia, reinicia el intento y actualiza panel de semilla, pistas rellenadas y selector; tras aprobar, guardar con `conteoJugador`, recalcular desbloqueo e insignias y ofrecer avanzar sin forzar; instanciar y arrancar la guía solo en `0.1` con `guiaCompletada()` falso; comunicar la insignia _Secuencia_ por el globo al completarse
   - Cablear los nuevos módulos de `ui/` por callbacks explícitos, sin que se hablen entre sí
   - En `main.test.ts` (jsdom): navegación entre niveles respeta el desbloqueo; un intento aprobado desbloquea el siguiente; la guía solo aparece en `0.1` la primera vez; completar las 15 estrellas anuncia la insignia
   - _Requisitos: 5, 7.4, 8.3, 10.5, 12.2, 12.3, 13.7_
 
-- [ ] 16. Transversales: dependencias, build y steering
+- [x] 16. Transversales: dependencias, build y steering
   - Extender la prueba de dirección de dependencias para cubrir los módulos nuevos: `niveles/generadores/*` no importan de `motor/`, `juego/` ni `ui/`; `juego/desbloqueo.ts` e `insignias.ts` no importan de `ui/`
   - Verificar `npm test`, `npm run typecheck` y `npm run build` en verde, y que el juego queda jugable con los cinco niveles navegables
   - Actualizar `.kiro/steering/niveles-y-progresion.md` con los rangos y ángulos verificados (camino largo 80–160 giros 90°, zigzag largo 60–120 giros **90°** en vez de 45°), señalando que salen de medir figuras reales contra la regla de caja ≥ 200
