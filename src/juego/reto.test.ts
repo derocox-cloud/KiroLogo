@@ -8,6 +8,7 @@ import { calificar } from './estrellas.js';
 import { analizar as analizarAbstraccion } from './abstraccion.js';
 import { validar } from '../motor/validador.js';
 import { extraerSegmentos } from '../motor/segmentos.js';
+import { contarInstrucciones } from '../lenguaje/conteo.js';
 import { CATALOGO } from '../niveles/catalogo.js';
 
 // ============================================================================
@@ -80,6 +81,67 @@ describe('reto · fallos de programación', () => {
 });
 
 // ============================================================================
+// Resolución de niveles generados (spec 01, requisito 5)
+// ============================================================================
+
+describe('reto · niveles generados (0.3, 0.5)', () => {
+  it('resuelve el 0.3 (camino) con presupuesto calculado y semilla efectiva', () => {
+    const r = resolverReto('0.3', 7);
+    expect(r.exito).toBe(true);
+    if (!r.exito) return;
+    // El presupuesto es el conteo de la referencia generada (no un número fijo).
+    const conteo = contarInstrucciones(r.reto.referencia);
+    expect(conteo.exito).toBe(true);
+    if (conteo.exito) expect(r.reto.presupuestoEstrella).toBe(conteo.instrucciones);
+    // La semilla efectiva está en el dominio y el código se calcula sobre ella.
+    expect(Number.isInteger(r.reto.semillaEfectiva)).toBe(true);
+    expect(r.reto.codigoSemilla).toHaveLength(7);
+    // Operaciones y segmentos vienen de una sola ejecución de esa referencia.
+    expect(r.reto.operaciones.length).toBeGreaterThan(0);
+    expect(r.reto.segmentos).toEqual(extraerSegmentos(r.reto.operaciones));
+    // El reto aprueba las tres estrellas contra sí mismo.
+    const veredicto = validar(r.reto.segmentos, r.reto.segmentos, r.reto.nivel.normalizacion);
+    const cal = calificar(r.reto.referencia, veredicto, r.reto);
+    expect(cal.precision.otorgada).toBe(true);
+    expect(cal.economia.otorgada).toBe(true);
+    expect(cal.abstraccion.otorgada).toBe(true);
+  });
+
+  it('resuelve el 0.5 (zigzag) con las tres estrellas contra sí mismo', () => {
+    const r = resolverReto('0.5', 3);
+    expect(r.exito).toBe(true);
+    if (!r.exito) return;
+    const veredicto = validar(r.reto.segmentos, r.reto.segmentos, r.reto.nivel.normalizacion);
+    const cal = calificar(r.reto.referencia, veredicto, r.reto);
+    expect(cal.precision.otorgada).toBe(true);
+    expect(cal.economia.otorgada).toBe(true);
+    expect(cal.abstraccion.otorgada).toBe(true);
+  });
+
+  it('la misma semilla reproduce el mismo reto generado', () => {
+    const a = resolverReto('0.3', 12345);
+    const b = resolverReto('0.3', 12345);
+    expect(a.exito && b.exito).toBe(true);
+    if (a.exito && b.exito) {
+      expect(a.reto.semillaEfectiva).toBe(b.reto.semillaEfectiva);
+      expect(a.reto.codigoSemilla).toBe(b.reto.codigoSemilla);
+      expect(JSON.stringify(a.reto.referencia)).toBe(JSON.stringify(b.reto.referencia));
+      expect(JSON.stringify(a.reto.operaciones)).toBe(JSON.stringify(b.reto.operaciones));
+    }
+  });
+
+  it('semillas distintas pueden traer retos distintos (rejugabilidad)', () => {
+    // Sobre varias semillas, al menos un par de retos del 0.3 difiere.
+    const refs = [0, 1, 2, 5, 9, 13, 21].map((s) => {
+      const r = resolverReto('0.3', s);
+      return r.exito ? JSON.stringify(r.reto.referencia) : null;
+    });
+    expect(refs.every((x) => x !== null)).toBe(true);
+    expect(new Set(refs).size).toBeGreaterThan(1);
+  });
+});
+
+// ============================================================================
 // Property 9B: determinismo de la resolución del reto (16.2)
 // Valida: Requisitos 18.7, 29.4
 // ============================================================================
@@ -115,7 +177,12 @@ describe('Property 25: regresión del catálogo', () => {
     const fallos: string[] = [];
 
     for (const nivel of CATALOGO) {
-      const resultado = resolverReto(nivel.id, nivel.origen.tipo === 'autorado' ? nivel.origen.semilla : 0);
+      // Autorado: usa su semilla fija. Generado: una semilla cualquiera; el
+      // generador produce un reto resoluble por construcción (su aprobación con
+      // tres estrellas sobre 200 semillas la cubren además las pruebas de cada
+      // generador). Así esta regresión abarca los cinco niveles del mundo 0.
+      const semilla = nivel.origen.tipo === 'autorado' ? nivel.origen.semilla : 1;
+      const resultado = resolverReto(nivel.id, semilla);
       if (!resultado.exito) {
         fallos.push(`${nivel.id}: no se pudo resolver (${resultado.error.id})`);
         continue;

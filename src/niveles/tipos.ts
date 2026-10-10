@@ -6,6 +6,7 @@
 
 import type { Programa } from '../lenguaje/ast.js';
 import type { Mundo } from '../lenguaje/vocabulario.js';
+import type { ErrorKiroLogo } from '../lenguaje/errores.js';
 
 // ============================================================================
 // Concepto que enseña el nivel
@@ -84,3 +85,48 @@ export interface Nivel {
   readonly pistas: readonly [string, string, string]; // conceptual, matemática, esqueleto
   readonly margenLimiteDuro?: number; // 0 a 10, por omisión 3
 }
+
+// ============================================================================
+// El contrato de un Generador (spec 01)
+// ============================================================================
+
+/**
+ * Lo que recibe un Generador. La `semilla` es la inicial del intento; si el
+ * primer candidato se descarta, el Generador reintenta con la siguiente, hasta
+ * `intentosMaximos`. Los `parametros` son los del nivel (rangos de tramos y
+ * longitudes), para que el rango viva en el dato del nivel y no en el código del
+ * generador.
+ */
+export interface EntradaGenerador {
+  readonly semilla: number; // inicial, dominio [0, 4 294 967 295]
+  readonly parametros: Readonly<Record<string, number>>;
+  readonly intentosMaximos: number; // p. ej. 200
+}
+
+/**
+ * Lo que devuelve un Generador: unión discriminada por `exito`. El caso de éxito
+ * expone el programa de referencia como AST, la semilla efectiva con la que lo
+ * produjo (puede diferir de la pedida si hubo descartes) y cuántos candidatos
+ * descartó antes. El caso de fallo lleva un error del catálogo y los intentos
+ * realizados. Un descarte individual **no** es un fallo: es interno al lazo.
+ */
+export type ResultadoGeneracion =
+  | {
+      readonly exito: true;
+      readonly referencia: Programa;
+      readonly semillaEfectiva: number;
+      readonly descartes: number;
+    }
+  | {
+      readonly exito: false;
+      readonly error: ErrorKiroLogo;
+      readonly intentos: number;
+    };
+
+/**
+ * La firma común de todo Generador del proyecto. Función **pura**: no lee azar
+ * global ni estado a nivel de módulo; toda su aleatoriedad sale de un PRNG
+ * sembrado con la semilla del intento. Misma entrada → mismo resultado. Un
+ * Generador solo puede importar de `lenguaje/` y `azar/`.
+ */
+export type Generador = (entrada: EntradaGenerador) => ResultadoGeneracion;

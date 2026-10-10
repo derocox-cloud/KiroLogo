@@ -12,6 +12,7 @@ import { extraerSegmentos, type Segmento } from '../motor/segmentos.js';
 import { codificar } from '../azar/codigo-semilla.js';
 import { buscarNivel } from '../niveles/catalogo.js';
 import type { Nivel } from '../niveles/tipos.js';
+import { buscarGenerador } from '../niveles/generadores/registro.js';
 
 // ============================================================================
 // Tipos públicos
@@ -39,6 +40,13 @@ const MARGEN_LIMITE_DURO_POR_OMISION = 3;
 /** El límite duro se activa desde el mundo 3. */
 const PRIMER_MUNDO_CON_LIMITE_DURO = 3;
 
+/**
+ * Intentos máximos del lazo de reintento de un generador. Con los rangos
+ * verificados de los generadores del mundo 0, el lazo acepta en pocos intentos;
+ * 200 deja un margen amplísimo y nunca se alcanza en la práctica.
+ */
+const INTENTOS_MAXIMOS_GENERADOR = 200;
+
 // ============================================================================
 // Resolución
 // ============================================================================
@@ -52,24 +60,41 @@ const PRIMER_MUNDO_CON_LIMITE_DURO = 3;
  * @returns El reto resuelto, o un fallo de programación
  */
 export function resolverReto(idNivel: string, semilla: number): ResultadoReto {
-  // En esta spec solo hay niveles autorados, que ignoran la semilla recibida y
-  // usan la fija del nivel. La variante generada (spec 01) la usará como efectiva.
-  void semilla;
-
   const busqueda = buscarNivel(idNivel);
   if (!busqueda.hallado) {
     return { exito: false, error: crearError('nivelDesconocido', {}) };
   }
   const nivel = busqueda.nivel;
 
-  // Esta spec solo resuelve niveles autorados; los generados no tienen generador.
-  if (nivel.origen.tipo !== 'autorado') {
-    return { exito: false, error: crearError('referenciaNoEjecutable', {}) };
-  }
+  // El programa de referencia y la semilla efectiva salen de una de dos vías:
+  //  - autorado: la referencia fija del nivel; la semilla recibida se ignora y la
+  //    efectiva es la del nivel.
+  //  - generado: el generador del `idGenerador` produce la referencia a partir de
+  //    la semilla recibida; la efectiva es la que produjo el candidato aceptable
+  //    (puede diferir de la pedida si hubo descartes).
+  let referencia: Programa;
+  let semillaEfectiva: number;
 
-  const referencia = nivel.origen.referencia;
-  // Semilla efectiva: en un nivel autorado, la que declara el nivel.
-  const semillaEfectiva = nivel.origen.semilla;
+  if (nivel.origen.tipo === 'autorado') {
+    referencia = nivel.origen.referencia;
+    semillaEfectiva = nivel.origen.semilla;
+  } else {
+    const generador = buscarGenerador(nivel.origen.idGenerador);
+    if (generador === null) {
+      return { exito: false, error: crearError('generadorDesconocido', {}) };
+    }
+    const generado = generador({
+      semilla,
+      parametros: nivel.origen.parametros,
+      intentosMaximos: INTENTOS_MAXIMOS_GENERADOR,
+    });
+    if (!generado.exito) {
+      // El generador agotó sus intentos: propaga su error del catálogo.
+      return { exito: false, error: generado.error };
+    }
+    referencia = generado.referencia;
+    semillaEfectiva = generado.semillaEfectiva;
+  }
 
   // Ejecutar la referencia una sola vez, con los comandos del mundo del nivel.
   const permitidos = comandosDelMundo(nivel.mundo);

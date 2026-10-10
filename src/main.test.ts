@@ -201,6 +201,159 @@ describe('main · flujo de intento del nivel 0.1', () => {
   });
 });
 
+// ============================================================================
+// Navegación entre niveles (spec 01, tarea 15)
+// ============================================================================
+
+/** Doble de Storage en memoria, para compartir progreso entre apps. */
+function crearAlmacenMemoria(): Storage {
+  const datos = new Map<string, string>();
+  return {
+    get length() {
+      return datos.size;
+    },
+    clear: () => datos.clear(),
+    getItem: (k: string) => (datos.has(k) ? datos.get(k)! : null),
+    key: (i: number) => [...datos.keys()][i] ?? null,
+    removeItem: (k: string) => datos.delete(k),
+    setItem: (k: string, v: string) => void datos.set(k, v),
+  };
+}
+
+/** Crea la app con opciones (almacén compartido, idNivel opcional). */
+function crearAppCon(opts: { almacen: Storage | null; idNivel?: string }): Aplicacion {
+  return crearAplicacion({
+    documento: document,
+    almacen: opts.almacen,
+    reloj: relojInmediato(),
+    relojEspera: relojEsperaInerte(),
+    relojRebote: relojReboteInmediato,
+    movimiento: movimientoReducido,
+    ...(opts.idNivel !== undefined ? { idNivel: opts.idNivel } : {}),
+  });
+}
+
+describe('main · navegación entre niveles', () => {
+  beforeEach(() => {
+    montarDom();
+  });
+
+  it('arranca en el 0.1 y el selector muestra los cinco niveles', () => {
+    const app = crearApp();
+    expect(app.nivelEnCurso()).toBe('0.1');
+    const botones = document.querySelectorAll('.kl-selector-boton');
+    expect(botones.length).toBe(5);
+  });
+
+  it('no deja entrar a un nivel bloqueado y lo avisa por el globo', () => {
+    const app = crearApp();
+    app.irANivel('0.3'); // bloqueado sin progreso
+    expect(app.nivelEnCurso()).toBe('0.1');
+    expect(app.textoGlobo()).toMatch(/bloquead/i);
+  });
+
+  it('aprobar el 0.1 desbloquea y permite entrar al 0.2', () => {
+    const app = crearApp();
+    escribir(app, 'AVANZA 100');
+    app.ejecutar();
+    expect(app.estado().calificacion!.precision.otorgada).toBe(true);
+    // El 0.2 queda desbloqueado; ahora sí se puede entrar.
+    app.irANivel('0.2');
+    expect(app.nivelEnCurso()).toBe('0.2');
+  });
+
+  it('reanuda el último reto desbloqueado al recrear la app con el mismo almacén', () => {
+    const almacen = crearAlmacenMemoria();
+    // Primera sesión: aprueba el 0.1 y entra al 0.2 (que queda como último reto).
+    const app1 = crearAppCon({ almacen, idNivel: '0.1' });
+    escribir(app1, 'AVANZA 100');
+    app1.ejecutar();
+    app1.irANivel('0.2');
+    app1.destruir();
+    document.body.innerHTML = '';
+    montarDom();
+    // Segunda sesión sin idNivel forzado: reanuda el 0.2.
+    const app2 = crearAppCon({ almacen });
+    expect(app2.nivelEnCurso()).toBe('0.2');
+  });
+
+  it('el panel de semilla ofrece otro reto en un nivel generado y no en uno autorado', () => {
+    const app = crearApp(); // 0.1 autorado
+    expect(app.panelSemilla.otroRetoDisponible()).toBe(false);
+    // Aprueba 0.1 y 0.2 para abrir el 0.3 (generado).
+    escribir(app, 'AVANZA 100');
+    app.ejecutar();
+    app.irANivel('0.2');
+    escribir(app, 'AVANZA 100 GIRADERECHA 90 AVANZA 100');
+    app.ejecutar();
+    app.irANivel('0.3');
+    expect(app.nivelEnCurso()).toBe('0.3');
+    expect(app.panelSemilla.otroRetoDisponible()).toBe(true);
+  });
+
+  it('un código de semilla inválido avisa por el globo sin cambiar el reto', () => {
+    const app = crearApp();
+    const nivelAntes = app.nivelEnCurso();
+    app.panelSemilla.campoCodigo.value = 'xx'; // longitud inválida
+    app.panelSemilla.botonReproducir.click();
+    // El panel está deshabilitado en 0.1 (autorado), así que el reto no cambia.
+    expect(app.nivelEnCurso()).toBe(nivelAntes);
+  });
+
+  it('la guía de primeros pasos solo aparece en el 0.1 y la primera vez', () => {
+    const almacen = crearAlmacenMemoria();
+    const app1 = crearAppCon({ almacen, idNivel: '0.1' });
+    // Con la guía activa, el globo muestra el primer paso (menciona la tortuga).
+    expect(app1.textoGlobo()).toMatch(/tortuga/i);
+    // Al acertar, la guía se completa y se marca en el progreso.
+    escribir(app1, 'AVANZA 100');
+    app1.ejecutar();
+    app1.destruir();
+    document.body.innerHTML = '';
+    montarDom();
+    // Nueva sesión en el 0.1: la guía ya no se muestra (saludo normal del reto).
+    const app2 = crearAppCon({ almacen, idNivel: '0.1' });
+    expect(app2.textoGlobo()).not.toMatch(/soy Kiro/i);
+  });
+
+  it('completar los cinco niveles con tres estrellas anuncia la insignia Secuencia', () => {
+    const app = crearApp();
+    // Resuelve cada nivel con un programa que copia su propia referencia.
+    const programas: Record<string, string> = {
+      '0.1': 'AVANZA 100',
+      '0.2': 'AVANZA 100 GIRADERECHA 90 AVANZA 100',
+      '0.4': 'AVANZA 100 GIRADERECHA 90 AVANZA 100 GIRADERECHA 90 AVANZA 100 GIRADERECHA 90 AVANZA 100 GIRADERECHA 90',
+    };
+    // 0.1, 0.2 autorados; 0.3 generado; 0.4 autorado; 0.5 generado.
+    const orden = ['0.1', '0.2', '0.3', '0.4', '0.5'];
+    for (const id of orden) {
+      app.irANivel(id);
+      expect(app.nivelEnCurso()).toBe(id);
+      const prog = programas[id] ?? textoDeReferencia(app);
+      escribir(app, prog);
+      app.ejecutar();
+      expect(app.estado().calificacion!.precision.otorgada, `precisión en ${id}`).toBe(true);
+    }
+    // La insignia Secuencia quedó anunciada por el globo o el selector la refleja.
+    expect(app.selectorNivel.insigniaVisible()).toBe(true);
+  });
+});
+
+/** Imprime la referencia del reto en curso como texto, para «copiarla». */
+function textoDeReferencia(app: Aplicacion): string {
+  // Para los niveles generados, el programa de referencia copiado al pie de la
+  // letra reproduce la figura exacta: lo obtenemos del reto en curso.
+  const reto = app.estado().reto;
+  const partes: string[] = [];
+  for (const n of reto.referencia.instrucciones) {
+    if (n.tipo === 'invocacionComando') {
+      const arg = n.argumentos[0];
+      partes.push(arg && arg.tipo === 'numeroLiteral' ? `${n.nombre} ${arg.valor}` : n.nombre);
+    }
+  }
+  return partes.join(' ');
+}
+
 
 // ============================================================================
 // Pruebas transversales del proyecto (grupo 21).
@@ -419,6 +572,20 @@ describe('21.2 · aristas de dependencia entre carpetas', () => {
         if (destino === null) continue;
         if (prohibidas.has(destino)) {
           infracciones.push(`${rel(ruta)} → ${esp} (regla: motor/ no importa de ui/ ni juego/)`);
+        }
+      }
+    }
+    expect(infracciones, infracciones.join('\n')).toEqual([]);
+  });
+
+  it('juego/ no importa de ui/ (la interfaz consume el juego, no al revés)', () => {
+    const infracciones: string[] = [];
+    for (const ruta of MODULOS) {
+      if (carpetaOrigen(ruta) !== 'juego') continue;
+      for (const esp of importsDe(ruta)) {
+        const destino = carpetaDestino(ruta, esp);
+        if (destino === 'ui') {
+          infracciones.push(`${rel(ruta)} → ${esp} (regla: juego/ no importa de ui/)`);
         }
       }
     }

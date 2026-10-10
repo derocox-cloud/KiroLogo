@@ -69,12 +69,20 @@ Concepto: una instrucción tras otra cambia un estado. La tortuga tiene posició
 |---|---|---|---|
 | 0.1 | autorado | Una línea recta | `AV 100` |
 | 0.2 | autorado | Una ele | `AV 100 GD 90 AV 100` |
-| 0.3 | generado | Un camino de tramos rectos | 3 a 5 tramos, largo 40–120, giros de 90° a un lado u otro |
+| 0.3 | generado | Un camino de tramos rectos | 3 a 5 tramos, largo 80–160, giros de 90° a un lado u otro |
 | 0.4 | autorado | Un cuadrado a mano | `AV 100 GD 90` ×4 |
-| 0.5 | generado | Un zigzag | 4 a 8 tramos, largo 40–80, giros de 45° alternados |
+| 0.5 | generado | Un zigzag | 4 a 8 tramos, largo 60–120, giros de 90° alternados |
 
 El 0.4 se resuelve a mano a propósito: es tedioso, y esa fricción es la que hace que `REPITE` se
 sienta como un descubrimiento en el mundo 1.
+
+> **Rangos y ángulos verificados (spec 01).** Los valores de arriba se midieron contra figuras reales
+> y la regla de caja envolvente ≥ 200 de `validacion-geometrica`, y se ajustaron respecto de las
+> estimaciones iniciales: el camino pasó de largo 40–120 a **80–160**, y el zigzag de largo 40–80 a
+> **60–120**. El cambio de fondo es el ángulo del zigzag: con la tortuga partiendo hacia arriba, un
+> zigzag de **45°** alternados se dibuja como un trazo fino en diagonal —degenerado por construcción, su
+> caja envolvente alineada a los ejes es casi una línea—, así que el 0.5 usa **giros de 90° alternados**
+> (una escalera que llena el plano). El sentido sigue alternando, que es la lección.
 
 ## Mundo 1 · Figuras geométricas — insignia *Iteración*
 

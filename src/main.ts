@@ -45,6 +45,11 @@ import {
 import { resolverReto, type Reto } from './juego/reto.js';
 import { calificar, type Calificacion } from './juego/estrellas.js';
 import { cargarProgreso, type Progreso } from './juego/progreso.js';
+import { rellenarPistas } from './juego/pistas.js';
+import { nivelDesbloqueado } from './juego/desbloqueo.js';
+import { insigniaSecuenciaOtorgada } from './juego/insignias.js';
+import { decodificar } from './azar/codigo-semilla.js';
+import { CATALOGO } from './niveles/catalogo.js';
 
 import { crearEditor, type Editor, type LimiteAlcanzado, type RelojRebote } from './ui/editor.js';
 import { crearPanelComandos } from './ui/panel-comandos.js';
@@ -53,6 +58,9 @@ import { crearControles, type Controles } from './ui/controles.js';
 import { crearDemostracion, type Demostracion, type RelojEspera } from './ui/demostracion.js';
 import { crearDiff, type EstiloDiff, type LectorTemaDiff } from './ui/diff.js';
 import { crearComparacion, type Comparacion } from './ui/comparacion.js';
+import { crearPanelSemilla, type PanelSemilla } from './ui/panel-semilla.js';
+import { crearSelectorNivel, type SelectorNivel } from './ui/selector-nivel.js';
+import { crearGuia, type Guia } from './ui/guia.js';
 
 // ============================================================================
 // Estado de la aplicación
@@ -118,12 +126,20 @@ export interface Aplicacion {
   verDemostracion(): void;
   /** Cambia la velocidad de la animación. */
   cambiarVelocidad(v: Velocidad): void;
+  /** Navega a un nivel (si está desbloqueado); con semilla opcional. */
+  irANivel(idNivel: string, semilla?: number): void;
+  /** Identificador del nivel en curso. */
+  nivelEnCurso(): string;
   /** Texto en curso del globo de Kiro. */
   textoGlobo(): string;
   /** Editor, para inspección en pruebas. */
   readonly editor: Editor;
   /** Globo, para inspección en pruebas. */
   readonly globo: GloboKiro;
+  /** Selector de nivel, para inspección en pruebas. */
+  readonly selectorNivel: SelectorNivel;
+  /** Panel de semilla, para inspección en pruebas. */
+  readonly panelSemilla: PanelSemilla;
   /** Cancela las suscripciones (movimiento reducido). */
   destruir(): void;
 }
@@ -444,6 +460,37 @@ function componerAnuncioFin(fin: FinDeSecuencia): string {
 }
 
 // ============================================================================
+// Elección del reto inicial
+// ============================================================================
+
+/**
+ * Decide con qué (idNivel, semilla) arranca la aplicación. Prioridad:
+ *   1. `idNivelForzado` (lo pasan las pruebas): manda, con semilla 0.
+ *   2. El último reto guardado, si su nivel está desbloqueado.
+ *   3. El primer nivel desbloqueado sin aprobar.
+ *   4. El 0.1, con semilla 0.
+ */
+function elegirRetoInicial(
+  idNivelForzado: string | undefined,
+  progreso: Progreso,
+): { idNivel: string; semilla: number } {
+  if (idNivelForzado !== undefined) return { idNivel: idNivelForzado, semilla: 0 };
+
+  const ultimo = progreso.ultimoReto();
+  if (ultimo !== null && nivelDesbloqueado(ultimo.idNivel, progreso)) {
+    return { idNivel: ultimo.idNivel, semilla: ultimo.semilla };
+  }
+
+  for (const nivel of CATALOGO) {
+    if (nivelDesbloqueado(nivel.id, progreso) && progreso.estrellasDe(nivel.id)?.precision !== true) {
+      return { idNivel: nivel.id, semilla: 0 };
+    }
+  }
+
+  return { idNivel: '0.1', semilla: 0 };
+}
+
+// ============================================================================
 // Creación de la aplicación
 // ============================================================================
 
@@ -456,7 +503,6 @@ function componerAnuncioFin(fin: FinDeSecuencia): string {
 export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   const documento = deps.documento;
   const contenedor = deps.contenedor ?? (documento.getElementById('aplicacion') as HTMLElement | null) ?? documento.body;
-  const idNivel = deps.idNivel ?? '0.1';
 
   const reloj = deps.reloj ?? relojAnimacionReal();
   const relojEspera = deps.relojEspera ?? relojEsperaReal();
@@ -478,14 +524,18 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     progreso = cargarProgreso(null);
   }
 
-  // ---- Paso 2: resolver el reto; el fallo va a la consola, nunca al globo ----
-  const resultado = resolverReto(idNivel, 0);
+  // ---- Paso 2: elegir y resolver el reto inicial ----
+  // Si `deps.idNivel` viene dado (pruebas), manda. Si no, se reanuda el último
+  // reto guardado cuando está desbloqueado; en su defecto, el primer nivel
+  // desbloqueado sin aprobar; y como último recurso, el 0.1.
+  const inicio = elegirRetoInicial(deps.idNivel, progreso);
+  const resultado = resolverReto(inicio.idNivel, inicio.semilla);
   if (!resultado.exito) {
     // Fallo de programación: se registra y se detiene el arranque con seguridad.
     console.error('No se pudo resolver el reto inicial:', resultado.error.mensaje);
     throw new Error(`Reto inicial no resoluble: ${resultado.error.id}`);
   }
-  const reto = resultado.reto;
+  let reto = resultado.reto;
 
   // ---- Paso 3: lienzos, animador y los siete módulos de ui/ ----
   const q = (id: string): HTMLCanvasElement | null =>
@@ -602,24 +652,29 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     anunciar,
   });
 
-  // Demostración de la referencia.
-  const demostracion: Demostracion = crearDemostracion({
-    lienzo: {
-      capaPersonajes: () => lienzoReferencia.capaPersonajes(),
-      limpiarPersonajes: () => lienzoReferencia.limpiarPersonajes(),
-      limpiarEstela: (capa) => lienzoReferencia.limpiarEstela(capa),
-    },
-    animador: crearAnimador(lienzoReferencia, reloj, () => movimiento.reducido()),
-    operaciones: reto.operaciones,
-    estadoInicial: ESTADO_INICIAL,
-    leerTemaPersonajes: lectores.personajes,
-    relojEspera,
-    anunciar,
-    avisarSinDemostracion: () => {
-      // Un nivel sin operaciones no tiene demostración; se avisa por el globo.
-      globo.celebrar('Este reto no tiene demostración que mostrar.');
-    },
-  });
+  // Demostración de la referencia. Se (re)crea en `montarReto`, porque captura
+  // las operaciones del reto en curso; aquí solo se declara la referencia.
+  let demostracion: Demostracion | null = null;
+
+  /** Crea una demostración para el reto en curso sobre el lienzo de la referencia. */
+  function crearDemostracionDelReto(): Demostracion {
+    return crearDemostracion({
+      lienzo: {
+        capaPersonajes: () => lienzoReferencia.capaPersonajes(),
+        limpiarPersonajes: () => lienzoReferencia.limpiarPersonajes(),
+        limpiarEstela: (capa) => lienzoReferencia.limpiarEstela(capa),
+      },
+      animador: crearAnimador(lienzoReferencia, reloj, () => movimiento.reducido()),
+      operaciones: reto.operaciones,
+      estadoInicial: ESTADO_INICIAL,
+      leerTemaPersonajes: lectores.personajes,
+      relojEspera,
+      anunciar,
+      avisarSinDemostracion: () => {
+        globo.celebrar('Este reto no tiene demostración que mostrar.');
+      },
+    });
+  }
 
   // Controles.
   const controles: Controles = crearControles({
@@ -634,6 +689,26 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     },
   });
 
+  // Panel de semilla: pide otro reto o reproduce un código, por callbacks.
+  const panelSemilla: PanelSemilla = crearPanelSemilla({
+    contenedor,
+    callbacks: {
+      pedirOtroReto: () => pedirOtroReto(),
+      reproducirCodigo: (codigo: string) => reproducirCodigo(codigo),
+    },
+  });
+
+  // Selector de nivel: navega entre los niveles del mundo del reto en curso.
+  const selectorNivel: SelectorNivel = crearSelectorNivel({
+    contenedor,
+    mundo: reto.nivel.mundo,
+    progreso,
+    callbacks: { alElegirNivel: (id: string) => cambiarANivel(id) },
+  });
+
+  // Guía de primeros pasos: solo se instancia para el 0.1 no completado.
+  let guia: Guia | null = null;
+
   // ---- Estado de la aplicación ----
   let estadoApp: EstadoAplicacion = {
     reto,
@@ -644,28 +719,18 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   };
   let ejecutando = false;
 
-  // El lienzo de la referencia dibuja los objetivos del reto de una vez.
-  lienzoReferencia.ponerEstela('referencia', reto.segmentos);
-
-  // Presenta el reto en el globo y el editor.
-  globo.presentarReto({
-    idNivel: reto.nivel.id,
-    semillaEfectiva: reto.semillaEfectiva,
-    pistas: reto.nivel.pistas,
-  });
-  editor.presentarReto(reto.presupuestoEstrella);
-  if (globo.texto().trim().length === 0) {
-    globo.celebrar(`${reto.nivel.titulo}: escribe un programa que reproduzca la figura de Kiro.`);
+  // ---- Montar el reto inicial y lanzar su demostración una vez (paso 5) ----
+  // Si es el 0.1 y la guía no se completó, se instancia y arranca la guía, que
+  // publica sus mensajes por el globo en lugar del saludo normal.
+  const mostrarGuia = reto.nivel.id === '0.1' && !progreso.guiaCompletada();
+  if (mostrarGuia) {
+    guia = crearGuia({
+      globo,
+      alCompletar: () => progreso.marcarGuiaCompletada(),
+    });
   }
-
-  // Personajes en el estado inicial sobre el lado del jugador.
-  dibujarPersonajesEnInicial();
-
-  // Aviso del progreso no guardable, si aplica (una sola vez, por el globo).
-  // (El progreso ya informó por consola; aquí no se molesta al jugador.)
-
-  // ---- Paso 5: lanzar la demostración una vez ----
-  demostracion.reproducir();
+  montarReto({ lanzarDemostracion: true, saludar: !mostrarGuia });
+  if (guia) guia.iniciar();
 
   // ---- Paso 6: suscribirse al cambio de movimiento reducido ----
   const cancelarSuscripcion = movimiento.alCambiar(() => {
@@ -711,6 +776,115 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   // ========================================================================
   // Funciones del flujo (diseño 12.5)
   // ========================================================================
+
+  /**
+   * Monta el reto en curso: dibuja su figura de referencia, reinicia la capa del
+   * jugador, (re)crea la demostración, presenta las pistas ya rellenadas y el
+   * presupuesto en el editor, y actualiza el panel de semilla. Opcionalmente
+   * saluda por el globo y lanza la demostración.
+   */
+  function montarReto(opciones: { lanzarDemostracion: boolean; saludar: boolean }): void {
+    // Cede cualquier demostración anterior y crea la del reto en curso.
+    if (demostracion && demostracion.enCurso()) demostracion.cederAEjecucion();
+    demostracion = crearDemostracionDelReto();
+
+    // Figura de referencia y capa del jugador en limpio.
+    lienzoReferencia.ponerEstela('referencia', reto.segmentos);
+    animador.reiniciar(ESTADO_INICIAL);
+    dibujarPersonajesEnInicial();
+
+    // Pistas rellenadas con los parámetros reales del reto (generados) o fijas
+    // (autorados), y presupuesto en el editor.
+    const pistas = rellenarPistas(reto.nivel, reto);
+    globo.presentarReto({
+      idNivel: reto.nivel.id,
+      semillaEfectiva: reto.semillaEfectiva,
+      pistas,
+    });
+    editor.presentarReto(reto.presupuestoEstrella);
+
+    // Panel de semilla: el código y si el nivel admite otro reto.
+    panelSemilla.presentarReto({
+      codigoSemilla: reto.codigoSemilla,
+      generado: reto.nivel.origen.tipo === 'generado',
+    });
+
+    if (opciones.saludar && globo.texto().trim().length === 0) {
+      globo.celebrar(`${reto.nivel.titulo}: escribe un programa que reproduzca la figura de Kiro.`);
+    }
+
+    if (opciones.lanzarDemostracion && demostracion) demostracion.reproducir();
+  }
+
+  /**
+   * Cambia al nivel pedido. Si no está desbloqueado, avisa por el globo y no
+   * entra. Si una semilla se pasa, se usa (reproducir un código); si no, el
+   * generador trae un reto nuevo (y el autorado usa su semilla fija). Reinicia
+   * el intento y refresca el selector.
+   */
+  function cambiarANivel(idNivel: string, semilla?: number): void {
+    if (!nivelDesbloqueado(idNivel, progreso)) {
+      globo.celebrar('Ese nivel todavía está bloqueado. Aprueba el anterior para abrirlo.');
+      return;
+    }
+    const sem = semilla ?? semillaNuevaParaNivel(idNivel);
+    const r = resolverReto(idNivel, sem);
+    if (!r.exito) {
+      // Fallo de programación: no debería ocurrir con el catálogo real.
+      console.error('No se pudo resolver el nivel', idNivel, r.error.mensaje);
+      return;
+    }
+    reto = r.reto;
+    estadoApp = { reto, astJugador: null, operacionesJugador: [], veredicto: null, calificacion: null };
+    ejecutando = false;
+    controles.marcarFinDeSecuencia();
+    // Entrar a un nivel lo hace el «último reto», para que una recarga lo reanude.
+    try {
+      progreso.marcarUltimoReto(reto.nivel.id, reto.semillaEfectiva);
+    } catch (e) {
+      console.error('No se pudo registrar el último reto.', e);
+    }
+    montarReto({ lanzarDemostracion: true, saludar: true });
+    selectorNivel.refrescar();
+  }
+
+  /** Pide otro reto del mismo nivel (solo tiene efecto en niveles generados). */
+  function pedirOtroReto(): void {
+    if (reto.nivel.origen.tipo !== 'generado') return;
+    cambiarANivel(reto.nivel.id, semillaNuevaParaNivel(reto.nivel.id));
+  }
+
+  /**
+   * Reproduce el reto de un código introducido. Decodifica con `codigo-semilla`;
+   * si el código es inválido, muestra el error del catálogo por el globo sin
+   * cambiar el reto en curso (requisito 9.4).
+   */
+  function reproducirCodigo(codigo: string): void {
+    const resultado = decodificar(codigo);
+    if (!resultado.exito) {
+      globo.mostrarMensajes([resultado.error]);
+      return;
+    }
+    cambiarANivel(reto.nivel.id, resultado.semilla);
+  }
+
+  /** El id del nivel que sigue a `idNivel` en el orden del catálogo, o null. */
+  function idSiguienteNivel(idNivel: string): string | null {
+    const i = CATALOGO.findIndex((n) => n.id === idNivel);
+    if (i < 0 || i + 1 >= CATALOGO.length) return null;
+    return CATALOGO[i + 1]!.id;
+  }
+
+  /**
+   * Deriva una semilla nueva para pedir otro reto de un nivel. Sale del reloj de
+   * animación (entropía de arranque documentada), acotada al dominio de semillas.
+   */
+  function semillaNuevaParaNivel(_idNivel: string): number {
+    void _idNivel;
+    const t = Math.floor(reloj.ahora() * 1000);
+    const dominio = 4_294_967_295 + 1;
+    return ((t % dominio) + dominio) % dominio;
+  }
 
   /** Dibuja los personajes en el estado inicial sobre el lado del jugador. */
   function dibujarPersonajesEnInicial(): void {
@@ -761,7 +935,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     // Programa correcto: cede la demostración y reinicia la capa del jugador.
     ejecutando = true;
     controles.marcarEjecucionEnCurso();
-    if (demostracion.enCurso()) demostracion.cederAEjecucion();
+    if (demostracion && demostracion.enCurso()) demostracion.cederAEjecucion();
 
     animador.reiniciar(ESTADO_INICIAL); // borra solo la capa del jugador
 
@@ -795,11 +969,24 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     animador.cargar(operaciones, 'jugador');
     animador.reproducir();
 
-    // Guarda el progreso ANTES de admitir otra ejecución.
+    // ¿Estaba la insignia Secuencia otorgada ANTES de este guardado? Para saber
+    // si este intento es el que la completa.
+    const insigniaAntes = insigniaSecuenciaOtorgada(progreso);
+    const siguienteAntes = idSiguienteNivel(reto.nivel.id);
+    const siguienteDesbloqueadoAntes =
+      siguienteAntes !== null && nivelDesbloqueado(siguienteAntes, progreso);
+
+    // Guarda el progreso ANTES de admitir otra ejecución. El conteo del jugador
+    // alimenta el mejor conteo del nivel (solo baja, y solo con precisión).
     try {
-      progreso.guardar(reto.nivel.id, reto.semillaEfectiva, calificacion);
+      progreso.guardar(reto.nivel.id, reto.semillaEfectiva, calificacion, calificacion.conteoJugador);
     } catch (e) {
       console.error('No se pudo guardar el progreso.', e);
+    }
+
+    // Si la guía estaba activa y este intento acertó, cede a la celebración.
+    if (guia && guia.activa && calificacion.precision.otorgada) {
+      guia.alPrimerAcierto();
     }
 
     // Comenta la calificación y, si niega la precisión, muestra el diff.
@@ -818,6 +1005,25 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       veredicto,
       calificacion,
     };
+
+    // Refresca el selector (estados e insignia) con el progreso ya guardado.
+    selectorNivel.refrescar();
+
+    // Si este intento completó la insignia Secuencia, lo comunica por el globo.
+    if (!insigniaAntes && insigniaSecuenciaOtorgada(progreso)) {
+      globo.celebrar('¡Insignia Secuencia! Completaste el mundo 0 con las tres estrellas en los cinco niveles.');
+    }
+
+    // Si al aprobar se desbloqueó el nivel siguiente, ofrece avanzar (sin forzar).
+    const siguiente = idSiguienteNivel(reto.nivel.id);
+    if (
+      calificacion.precision.otorgada &&
+      siguiente !== null &&
+      !siguienteDesbloqueadoAntes &&
+      nivelDesbloqueado(siguiente, progreso)
+    ) {
+      anunciar(`Desbloqueaste el nivel ${siguiente}. Elígelo en la lista cuando quieras continuar.`);
+    }
 
     // Un único anuncio aria-live al terminar, con motivo, nº de ops y estado.
     const fin: FinDeSecuencia = {
@@ -850,12 +1056,12 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   }
 
   function verDemostracion(): void {
-    demostracion.repetir();
+    if (demostracion) demostracion.repetir();
   }
 
   function cambiarVelocidad(v: Velocidad): void {
     animador.ponerVelocidad(v);
-    demostracion.ponerVelocidad(v);
+    if (demostracion) demostracion.ponerVelocidad(v);
     controles.seleccionarVelocidad(v);
   }
 
@@ -881,9 +1087,13 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     reiniciar,
     verDemostracion,
     cambiarVelocidad,
+    irANivel: (idNivel: string, semilla?: number) => cambiarANivel(idNivel, semilla),
+    nivelEnCurso: () => reto.nivel.id,
     textoGlobo: () => globo.texto(),
     editor,
     globo,
+    selectorNivel,
+    panelSemilla,
     destruir: () => {
       cancelarSuscripcion();
       if (vistaGlobal && typeof vistaGlobal.removeEventListener === 'function') {
