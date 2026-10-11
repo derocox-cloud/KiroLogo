@@ -77,7 +77,7 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     ejecutable: true,
   },
 
-  // Mundo 1: REPITE (bloqueado)
+  // Mundo 1: REPITE (bloqueado en mundo 0)
   {
     nombre: 'REPITE',
     abreviatura: 'RP',

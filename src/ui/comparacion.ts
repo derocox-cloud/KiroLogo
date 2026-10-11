@@ -6,6 +6,7 @@
 
 import type { Veredicto } from '../motor/validador.js';
 import type { Segmento } from '../motor/segmentos.js';
+import { mensajeDeDivergencia, type ResultadoParalelo } from '../motor/divergencia.js';
 import type { Diff, RegionesDiff } from './diff.js';
 
 // ============================================================================
@@ -40,6 +41,12 @@ export interface DatosComparacion {
   readonly segmentosJugador: readonly Segmento[];
   /** Veredicto del validador; null si el jugador no ha ejecutado nada. */
   readonly veredicto: Veredicto | null;
+  /**
+   * Resultado de la reproducción en paralelo. Solo se usa cuando la precisión se
+   * niega: señala el primer paso donde los dos recorridos se separaron. Null
+   * cuando no hay comparación en el tiempo que mostrar.
+   */
+  readonly divergencia?: ResultadoParalelo | null;
 }
 
 // ============================================================================
@@ -73,6 +80,8 @@ export interface Comparacion {
   readonly raiz: HTMLElement;
   /** Botón conmutador de dos estados. */
   readonly conmutador: HTMLButtonElement;
+  /** Texto visible del mensaje de divergencia bajo el lienzo (vacío si no hay). */
+  textoDivergencia(): string;
   /** Vista en curso. */
   vista(): Vista;
   /** Cambia de vista (lado a lado ↔ superposición). */
@@ -121,6 +130,12 @@ export function crearComparacion(deps: DependenciasComparacion): Comparacion {
   zonaSuper.setAttribute('aria-label', 'Figuras superpuestas');
   zonaSuper.hidden = true;
 
+  // Mensaje de la reproducción en paralelo, bajo el lienzo: señala el paso donde
+  // los dos recorridos se separaron. Vacío mientras no haya divergencia.
+  const mensajeDivergencia = doc.createElement('p');
+  mensajeDivergencia.className = 'kl-comparacion-divergencia';
+  mensajeDivergencia.hidden = true;
+
   const conmutador = doc.createElement('button');
   conmutador.type = 'button';
   conmutador.className = 'kl-comparacion-conmutador';
@@ -131,6 +146,7 @@ export function crearComparacion(deps: DependenciasComparacion): Comparacion {
   raiz.appendChild(conmutador);
   raiz.appendChild(zonaLado);
   raiz.appendChild(zonaSuper);
+  raiz.appendChild(mensajeDivergencia);
   deps.contenedor.appendChild(raiz);
 
   let vista: Vista = 'ladoALado';
@@ -162,6 +178,23 @@ export function crearComparacion(deps: DependenciasComparacion): Comparacion {
     deps.anunciar(textoAnuncio(v));
   }
 
+  /**
+   * Muestra, bajo el lienzo, el mensaje de la reproducción en paralelo: dónde se
+   * separaron los dos recorridos. Lo oculta si no hay divergencia que señalar.
+   * El texto sale del catálogo central de errores vía `mensajeDeDivergencia`.
+   */
+  function mostrarDivergencia(): void {
+    const resultado = ultimos.divergencia ?? null;
+    const mensaje = resultado === null ? null : mensajeDeDivergencia(resultado);
+    if (mensaje === null) {
+      mensajeDivergencia.hidden = true;
+      mensajeDivergencia.textContent = '';
+      return;
+    }
+    mensajeDivergencia.textContent = mensaje.mensaje;
+    mensajeDivergencia.hidden = false;
+  }
+
   conmutador.addEventListener('click', () => alternarVista());
 
   function alternarVista(): void {
@@ -175,6 +208,10 @@ export function crearComparacion(deps: DependenciasComparacion): Comparacion {
     raiz,
     conmutador,
 
+    textoDivergencia(): string {
+      return mensajeDivergencia.hidden ? '' : (mensajeDivergencia.textContent ?? '');
+    },
+
     vista(): Vista {
       return vista;
     },
@@ -184,6 +221,12 @@ export function crearComparacion(deps: DependenciasComparacion): Comparacion {
     mostrar(datos: DatosComparacion): void {
       ultimos = datos;
       const v = datos.veredicto;
+
+      // La divergencia se muestra solo cuando la precisión se niega; en los demás
+      // casos se oculta (coincide, sin estela, o no se pasó resultado paralelo).
+      if (v === null || v.coincide) {
+        mostrarDivergencia();
+      }
 
       if (v === null || v.motivo === 'sinEstelaDelJugador') {
         // Sin estela del jugador: lienzo del jugador con cuadrícula y sin estela.
@@ -204,10 +247,12 @@ export function crearComparacion(deps: DependenciasComparacion): Comparacion {
       }
 
       if (!v.coincide) {
-        // Estrella de precisión negada: pasa a superposición y dibuja el diff.
+        // Estrella de precisión negada: pasa a superposición, dibuja el diff y
+        // muestra, bajo el lienzo, dónde se separaron los dos recorridos.
         vista = 'superposicion';
         pintarVista();
         dibujarDiffSiNiega();
+        mostrarDivergencia();
       }
     },
   };

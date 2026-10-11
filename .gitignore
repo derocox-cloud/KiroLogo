@@ -38,3 +38,7 @@ assets/
 
 # Capturas de depuracion visual, no son fuente del proyecto
 bugs/
+
+# Resultados locales de tests
+.vitest/
+

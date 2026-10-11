@@ -108,6 +108,18 @@
   /* Marcas de rumbo y orientación */
   --color-marca-rumbo: #ff6b6b;
   --grosor-marca-rumbo: 1px;
+
+  /* Tortuga del jugador en la reproducción en paralelo.
+   * Color diferenciado (naranja) frente a la tortuga de Kiro. La distinción no
+   * depende solo del color: la de Kiro va con Kiro montado y la reproducción
+   * anuncia por aria-live a quién pertenece cada tortuga. */
+  --color-tortuga-jugador-paralelo-contorno: #d9480f;
+  --color-tortuga-jugador-paralelo-relleno: #ffe8d9;
+  --color-tortuga-jugador-paralelo-cabeza: #a63a0a;
+  --color-tortuga-jugador-paralelo-marca-rumbo: #f76707;
+  /* Valores de reserva (contraste ≥ 3:1 sobre el fondo del lienzo) */
+  --color-tortuga-jugador-paralelo-contorno-reserva: #c2410c;
+  --color-tortuga-jugador-paralelo-relleno-reserva: #fff0e6;
   
   /* Valores de reserva - garantizan contraste 3:1 frente a fondo y estela */
   --color-tortuga-contorno-reserva: #000000;

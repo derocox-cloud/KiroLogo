@@ -203,6 +203,30 @@ describe('lexer', () => {
       expect(tokens[1]!.tipo).toBe('corchete_cierra');
     });
 
+    it('[ produce token corchete_abre con linea correcta', () => {
+      const { tokens, errores } = analizarLexico('[');
+      expect(errores).toHaveLength(0);
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0]!.tipo).toBe('corchete_abre');
+      expect(tokens[0]!.linea).toBe(1);
+    });
+
+    it('] produce token corchete_cierra con linea correcta', () => {
+      const { tokens, errores } = analizarLexico(']');
+      expect(errores).toHaveLength(0);
+      expect(tokens).toHaveLength(1);
+      expect(tokens[0]!.tipo).toBe('corchete_cierra');
+      expect(tokens[0]!.linea).toBe(1);
+    });
+
+    it('token en segunda línea tiene linea === 2', () => {
+      const { tokens, errores } = analizarLexico('AV 100\n[');
+      expect(errores).toHaveLength(0);
+      expect(tokens).toHaveLength(3);
+      expect(tokens[2]!.tipo).toBe('corchete_abre');
+      expect(tokens[2]!.linea).toBe(2);
+    });
+
     it('reconoce una palabra con comilla, con el valor sin la comilla', () => {
       const { tokens, errores } = analizarLexico('"naranja');
       expect(errores).toHaveLength(0);

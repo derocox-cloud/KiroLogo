@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // Insignias de KiroLogo.
 //
 // En esta spec existe una sola insignia: *Secuencia*, la del mundo 0. Se otorga
@@ -82,4 +83,80 @@ export function insigniasDelMundo(mundo: number, progreso: Progreso): readonly I
     }
   }
   return otorgadas;
+=======
+// Insignias de KiroLogo: reglas de otorgamiento.
+// Una insignia de concepto se gana al dominar un mundo entero, es decir, con
+// las tres estrellas en todos sus niveles. El estado de juego se consulta a
+// través de la interfaz de progreso, que es la única fuente de las estrellas
+// guardadas por nivel.
+
+import type { Mundo } from '../lenguaje/vocabulario.js';
+import type { EstrellasGuardadas } from './progreso.js';
+import { CATALOGO } from '../niveles/catalogo.js';
+
+// ============================================================================
+// Tipos públicos
+// ============================================================================
+
+export interface Insignia {
+  readonly id: string;
+  readonly nombre: string;
+  readonly mundo: Mundo;
+}
+
+/**
+ * Estado de juego que una insignia necesita consultar. Es un subconjunto de la
+ * interfaz `Progreso`: solo las estrellas por nivel. Pedir lo mínimo mantiene la
+ * evaluación probable con un objeto simulado y desacoplada de la persistencia.
+ */
+export interface EstadoInsignias {
+  estrellasDe(idNivel: string): EstrellasGuardadas | null;
+}
+
+// ============================================================================
+// Catálogo de insignias de concepto
+// ============================================================================
+
+/**
+ * Las insignias de concepto, una por mundo. En esta spec existe la del mundo 1.
+ * Agregar una insignia es agregar una entrada aquí: la condición de otorgamiento
+ * (tres estrellas en todos los niveles del mundo) es la misma para todas.
+ */
+export const INSIGNIAS: readonly Insignia[] = [
+  { id: 'iteracion', nombre: 'Iteración', mundo: 1 },
+];
+
+// ============================================================================
+// Evaluación
+// ============================================================================
+
+/** ¿Un nivel tiene las tres estrellas en el estado dado? */
+function tieneTresEstrellas(estado: EstadoInsignias, idNivel: string): boolean {
+  const estrellas = estado.estrellasDe(idNivel);
+  if (estrellas === null) return false;
+  return estrellas.precision && estrellas.economia && estrellas.abstraccion;
+}
+
+/**
+ * Evalúa si una insignia está otorgada en el estado de juego dado.
+ *
+ * La condición es: las tres estrellas en todos los niveles del mundo de la
+ * insignia. Los niveles se derivan del catálogo (no se repiten aquí) para que la
+ * insignia siga siendo correcta cuando el mundo gane o pierda niveles.
+ *
+ * @param id Identificador de la insignia, como `iteracion`
+ * @param estado Estado de juego que resuelve las estrellas por nivel
+ * @returns `true` si la insignia se gana con ese estado, `false` en otro caso
+ *          (incluido un `id` desconocido)
+ */
+export function evaluarInsignia(id: string, estado: EstadoInsignias): boolean {
+  const insignia = INSIGNIAS.find((candidata) => candidata.id === id);
+  if (insignia === undefined) return false;
+
+  const nivelesDelMundo = CATALOGO.filter((nivel) => nivel.mundo === insignia.mundo);
+  // Un mundo sin niveles no otorga insignia: no hay nada que dominar.
+  if (nivelesDelMundo.length === 0) return false;
+
+  return nivelesDelMundo.every((nivel) => tieneTresEstrellas(estado, nivel.id));
+>>>>>>> 5e8e690 (spec-02-mundo-1: figuras geometricas, REPITE, reproduccion en paralelo e insignia Iteracion)
 }

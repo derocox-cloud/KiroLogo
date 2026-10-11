@@ -112,6 +112,70 @@ describe('estrellas · ejemplos', () => {
 });
 
 // ============================================================================
+// 2.6 Invitación de abstracción en el nivel 1.1 (usaRepite)
+// Valida: Requisito 4.5
+// ============================================================================
+
+describe('estrellas · invitación de abstracción (nivel 1.1)', () => {
+  /** Reto del nivel 1.1 (presupuestoEstrella 3, exige usaRepite). */
+  function reto11(): Reto {
+    const r = resolverReto('1.1', 0);
+    if (!r.exito) throw new Error('no se pudo resolver 1.1');
+    return r.reto;
+  }
+
+  const gd = (v: number): InvocacionComando => ({
+    tipo: 'invocacionComando',
+    nombre: 'GIRADERECHA',
+    argumentos: [num(v)],
+    ...P,
+  });
+
+  /** Cuadrado dibujado a mano: AV 100 GD 90 cuatro veces (sin REPITE). */
+  const cuadradoAMano: Programa = {
+    tipo: 'programa',
+    instrucciones: [av(100), gd(90), av(100), gd(90), av(100), gd(90), av(100), gd(90)],
+  };
+
+  it('cuadrado a mano gana precisión pero NIEGA abstracción y muestra la invitación', () => {
+    const cal = calificar(cuadradoAMano, veredicto(true, 'coincide', 1, 0), reto11());
+
+    expect(cal.precision.otorgada).toBe(true);
+    expect(cal.abstraccion.otorgada).toBe(false);
+    if (!cal.abstraccion.otorgada) {
+      expect(cal.abstraccion.motivo.clave).toBe('exigenciasSinConfirmar');
+      if (cal.abstraccion.motivo.clave === 'exigenciasSinConfirmar') {
+        expect(cal.abstraccion.motivo.claves).toContain('usaRepite');
+      }
+    }
+    expect(cal.mensajeAbstraccion).toBe(
+      'Lo conseguiste. Pero dibujaste los cuatro lados uno a uno: yo los vi llegar de la misma forma, cuatro veces. ¿Puedes enseñarme a repetir con REPITE?',
+    );
+  });
+
+  it('la invitación NO aparece si no se ganó la precisión (nunca bloquea, solo invita)', () => {
+    const cal = calificar(cuadradoAMano, veredicto(false, 'iouInsuficiente', 0.3, 0), reto11());
+    expect(cal.precision.otorgada).toBe(false);
+    expect(cal.abstraccion.otorgada).toBe(false);
+    expect(cal.mensajeAbstraccion).toBeNull();
+  });
+
+  it('un programa con REPITE cumple la exigencia y no genera invitación', () => {
+    // REPITE 4 [AV 100 GD 90] como AST del jugador.
+    const programaConRepite: Programa = {
+      tipo: 'programa',
+      instrucciones: [
+        { tipo: 'repeticion', veces: num(4), cuerpo: [av(100), gd(90)], ...P },
+      ],
+    };
+    const cal = calificar(programaConRepite, veredicto(true, 'coincide', 1, 0), reto11());
+    expect(cal.precision.otorgada).toBe(true);
+    expect(cal.abstraccion.otorgada).toBe(true);
+    expect(cal.mensajeAbstraccion).toBeNull();
+  });
+});
+
+// ============================================================================
 // Property 17: las tres estrellas son bicondicionales independientes (16.5)
 // Valida: Requisitos 19.1, 19.2, 19.3, 19.5, 19.11, 27.11
 // ============================================================================

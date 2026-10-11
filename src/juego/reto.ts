@@ -11,6 +11,7 @@ import { ESTADO_INICIAL } from '../motor/tortuga.js';
 import { extraerSegmentos, type Segmento } from '../motor/segmentos.js';
 import { codificar } from '../azar/codigo-semilla.js';
 import { buscarNivel } from '../niveles/catalogo.js';
+import { GENERADORES } from './generadores-mundo-1.js';
 import type { Nivel } from '../niveles/tipos.js';
 import { buscarGenerador } from '../niveles/generadores/registro.js';
 
@@ -66,6 +67,7 @@ export function resolverReto(idNivel: string, semilla: number): ResultadoReto {
   }
   const nivel = busqueda.nivel;
 
+<<<<<<< HEAD
   // El programa de referencia y la semilla efectiva salen de una de dos vías:
   //  - autorado: la referencia fija del nivel; la semilla recibida se ignora y la
   //    efectiva es la del nivel.
@@ -73,12 +75,17 @@ export function resolverReto(idNivel: string, semilla: number): ResultadoReto {
   //    la semilla recibida; la efectiva es la que produjo el candidato aceptable
   //    (puede diferir de la pedida si hubo descartes).
   let referencia: Programa;
+=======
+  // Resolver referencia: autorado usa la semilla fija; generado invoca el generador.
+  let referencia: import('../lenguaje/ast.js').Programa;
+>>>>>>> 5e8e690 (spec-02-mundo-1: figuras geometricas, REPITE, reproduccion en paralelo e insignia Iteracion)
   let semillaEfectiva: number;
 
   if (nivel.origen.tipo === 'autorado') {
     referencia = nivel.origen.referencia;
     semillaEfectiva = nivel.origen.semilla;
   } else {
+<<<<<<< HEAD
     const generador = buscarGenerador(nivel.origen.idGenerador);
     if (generador === null) {
       return { exito: false, error: crearError('generadorDesconocido', {}) };
@@ -94,6 +101,16 @@ export function resolverReto(idNivel: string, semilla: number): ResultadoReto {
     }
     referencia = generado.referencia;
     semillaEfectiva = generado.semillaEfectiva;
+=======
+    // Nivel generado: buscar el generador por idGenerador.
+    const fn = GENERADORES[nivel.origen.idGenerador];
+    if (fn === undefined) {
+      return { exito: false, error: crearError('referenciaNoEjecutable', {}) };
+    }
+    const resultado = fn(semilla);
+    referencia = resultado.programa;
+    semillaEfectiva = resultado.semillaUsada;
+>>>>>>> 5e8e690 (spec-02-mundo-1: figuras geometricas, REPITE, reproduccion en paralelo e insignia Iteracion)
   }
 
   // Ejecutar la referencia una sola vez, con los comandos del mundo del nivel.

@@ -7,6 +7,7 @@ import { contarInstrucciones } from '../lenguaje/conteo.js';
 import type { Veredicto } from '../motor/validador.js';
 import type { Reto } from './reto.js';
 import { analizar } from './abstraccion.js';
+import { crearError } from '../lenguaje/errores.js';
 
 // ============================================================================
 // Tipos públicos
@@ -30,6 +31,13 @@ export interface Calificacion {
   readonly abstraccion: EstadoEstrella;
   readonly conteoJugador: number;
   readonly presupuestoEstrella: number;
+  /**
+   * Invitación afirmativa a usar la abstracción que el nivel enseña. Solo se
+   * fija cuando el jugador ganó la precisión pero no cumplió la exigencia de
+   * abstracción: es una invitación posterior, nunca un bloqueo. `null` en
+   * cualquier otro caso (sin precisión, sin exigencias, o exigencia cumplida).
+   */
+  readonly mensajeAbstraccion: string | null;
 }
 
 const OTORGADA: EstadoEstrella = { otorgada: true };
@@ -64,6 +72,7 @@ export function calificar(
       abstraccion: negada,
       conteoJugador: 0,
       presupuestoEstrella,
+      mensajeAbstraccion: null,
     };
   }
 
@@ -94,6 +103,7 @@ export function calificar(
   // --- Abstracción ---
   const exigencias = reto.nivel.abstraccion;
   let abstraccion: EstadoEstrella;
+  let mensajeAbstraccion: string | null = null;
   if (exigencias.length === 0) {
     // Sin exigencias: se otorga si y solo si se otorgó la precisión.
     abstraccion = precision.otorgada ? OTORGADA : { otorgada: false, motivo: { clave: 'sinPrecision' } };
@@ -106,7 +116,13 @@ export function calificar(
             otorgada: false,
             motivo: { clave: 'exigenciasSinConfirmar', claves: analisis.sinConfirmar },
           };
+
+    // Invitación afirmativa: solo tras ganar precisión y solo si falta `usaRepite`.
+    // Nunca bloquea la validación; es un mensaje posterior que anima a abstraer.
+    if (precision.otorgada && analisis.sinConfirmar.includes('usaRepite')) {
+      mensajeAbstraccion = crearError('invitacionAbstraccionRepite', {}).mensaje;
+    }
   }
 
-  return { precision, economia, abstraccion, conteoJugador, presupuestoEstrella };
+  return { precision, economia, abstraccion, conteoJugador, presupuestoEstrella, mensajeAbstraccion };
 }

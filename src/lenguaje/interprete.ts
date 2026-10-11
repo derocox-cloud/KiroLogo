@@ -246,6 +246,16 @@ export function* ejecutar(
       continue;
     }
 
+    // --- Repeticion: ejecutar el cuerpo N veces ---
+    if (instruccion.tipo === 'repeticion') {
+      const vecesValor = instruccion.veces.tipo === 'numeroLiteral' ? instruccion.veces.valor : 0;
+      // Apilar en orden inverso para que la pila LIFO ejecute la iteración 0 primero.
+      for (let _rep = vecesValor - 1; _rep >= 0; _rep--) {
+        pila.push({ instrucciones: instruccion.cuerpo, indice: 0, nombre: null, lineaInvocacion: instruccion.linea });
+      }
+      continue;
+    }
+
     // --- Nodos reservados que esta spec no ejecuta ---
     if (instruccion.tipo !== 'invocacionComando') {
       const error = crearError('nodoNoImplementado', {}, { linea: instruccion.linea });

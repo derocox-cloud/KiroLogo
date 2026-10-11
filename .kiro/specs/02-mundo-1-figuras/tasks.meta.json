@@ -1,0 +1,386 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "1.1 AST — añadir `NodoRepite` a `src/lenguaje/ast.ts`": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589675956
+      },
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589681011
+      },
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589799095
+      }
+    ],
+    "1.2 Lexer — tokens de corchete y número de línea en `src/lenguaje/lexer.ts`": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676058
+      },
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589801554
+      },
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589885459
+      }
+    ],
+    "1.3 Parser — parsear `REPITE` en `src/lenguaje/parser.ts`": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676128
+      },
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589887822
+      }
+    ],
+    "1.4 Intérprete — ejecutar `NodoRepite` en `src/lenguaje/interprete.ts`": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676193
+      }
+    ],
+    "1.5 Conteo — regla para `NodoRepite` en `src/lenguaje/conteo.ts`": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676259
+      }
+    ],
+    "1.6 Errores — mensajes de corchete en `src/lenguaje/errores.ts`": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676346
+      }
+    ],
+    "2.1 Niveles autorados 1.1 y 1.4": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676416
+      },
+      {
+        "executionId": "aa5f6694-2889-4e79-943c-9916cf9fbf47",
+        "chatSessionId": "sess_d4be840c-6539-4cf2-a605-4fbd71ed1960",
+        "timestamp": 1791591471774
+      },
+      {
+        "executionId": "b740e391-6340-4bcc-92d5-5ae1d70a02d9",
+        "chatSessionId": "sess_2ff99cf9-c131-4414-b883-c2ebddc317c8",
+        "timestamp": 1791691277660
+      }
+    ],
+    "2.2 Generador 1.2 — polígono regular GD": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676476
+      },
+      {
+        "executionId": "8a626c54-e3ec-4312-825f-36cad77a33e3",
+        "chatSessionId": "sess_cda80f38-067a-4d25-b392-46543e9e33f5",
+        "timestamp": 1791691303079
+      },
+      {
+        "executionId": "8a626c54-e3ec-4312-825f-36cad77a33e3",
+        "chatSessionId": "sess_cda80f38-067a-4d25-b392-46543e9e33f5",
+        "timestamp": 1791691493016
+      }
+    ],
+    "2.3 Generador 1.3 — polígono regular GI": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676552
+      },
+      {
+        "executionId": "2bc7c78f-e389-4783-bf12-690d3cd139e3",
+        "chatSessionId": "sess_0792dacb-1023-41fc-9e1f-c5d48ad0d424",
+        "timestamp": 1791691549427
+      },
+      {
+        "executionId": "2bc7c78f-e389-4783-bf12-690d3cd139e3",
+        "chatSessionId": "sess_0792dacb-1023-41fc-9e1f-c5d48ad0d424",
+        "timestamp": 1791691654876
+      }
+    ],
+    "2.4 Generador 1.5 — arco": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676610
+      },
+      {
+        "executionId": "3d225fbc-dbbe-45c1-bbc0-0807e79625c9",
+        "chatSessionId": "sess_a81196c1-73c0-4ff8-b530-d0be316c998b",
+        "timestamp": 1791691717332
+      },
+      {
+        "executionId": "3d225fbc-dbbe-45c1-bbc0-0807e79625c9",
+        "chatSessionId": "sess_a81196c1-73c0-4ff8-b530-d0be316c998b",
+        "timestamp": 1791692033117
+      }
+    ],
+    "2.5 Registrar mundo 1 en el catálogo": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676675
+      },
+      {
+        "executionId": "7757ccee-ad3b-4d94-8cbf-e5aa3cdcd2eb",
+        "chatSessionId": "sess_1a809599-ac6a-4f57-a50a-b03b23db6078",
+        "timestamp": 1791692051210
+      },
+      {
+        "executionId": "7757ccee-ad3b-4d94-8cbf-e5aa3cdcd2eb",
+        "chatSessionId": "sess_1a809599-ac6a-4f57-a50a-b03b23db6078",
+        "timestamp": 1791692195495
+      }
+    ],
+    "2.6 Mensaje de estrella de abstracción para el nivel 1.1": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676740
+      },
+      {
+        "executionId": "57b00d88-72d8-4345-a9c0-264854e56773",
+        "chatSessionId": "sess_26c5d67c-750c-4795-8847-7510fbdfd635",
+        "timestamp": 1791692220665
+      },
+      {
+        "executionId": "57b00d88-72d8-4345-a9c0-264854e56773",
+        "chatSessionId": "sess_26c5d67c-750c-4795-8847-7510fbdfd635",
+        "timestamp": 1791692320229
+      }
+    ],
+    "3.1 Algoritmo de comparación en `src/motor/doble-dibujo.ts`": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676807
+      },
+      {
+        "executionId": "0cc0212b-fb59-4b77-8755-cdb469f777e0",
+        "chatSessionId": "sess_c47c2a0f-ad1f-4cf0-8dd8-a19dfd88b24a",
+        "timestamp": 1791692996900
+      },
+      {
+        "executionId": "0cc0212b-fb59-4b77-8755-cdb469f777e0",
+        "chatSessionId": "sess_c47c2a0f-ad1f-4cf0-8dd8-a19dfd88b24a",
+        "timestamp": 1791693039751
+      }
+    ],
+    "3.2 Mensajes de divergencia": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589676946
+      }
+    ],
+    "3.3 Tests del doble dibujo en `src/motor/doble-dibujo.test.ts`": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589677036
+      },
+      {
+        "executionId": "6c10bbd4-a96f-47d8-855c-a8cd5e0bd8e2",
+        "chatSessionId": "sess_eff2f992-52ff-4788-a222-58ce9c6f7945",
+        "timestamp": 1791693224803
+      }
+    ],
+    "3.4 Integrar la reproducción en paralelo en la UI": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589677110
+      },
+      {
+        "executionId": "992ae994-2e1b-4f2b-9274-fefb418778bc",
+        "chatSessionId": "sess_95a423ff-f70c-4372-8ad6-989f88038002",
+        "timestamp": 1791693246569
+      },
+      {
+        "executionId": "992ae994-2e1b-4f2b-9274-fefb418778bc",
+        "chatSessionId": "sess_95a423ff-f70c-4372-8ad6-989f88038002",
+        "timestamp": 1791693689120
+      }
+    ],
+    "4.1 Test de vocabulario bloqueado": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589677203
+      },
+      {
+        "executionId": "2749ee20-d03e-4f15-b0bf-637db184f658",
+        "chatSessionId": "sess_41f2c967-ca32-4ed3-b002-a23c3fd95cd5",
+        "timestamp": 1791693719309
+      },
+      {
+        "executionId": "2749ee20-d03e-4f15-b0bf-637db184f658",
+        "chatSessionId": "sess_41f2c967-ca32-4ed3-b002-a23c3fd95cd5",
+        "timestamp": 1791693804525
+      }
+    ],
+    "4.2 Panel lateral — mostrar `REPITE` al entrar al mundo 1": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589677274
+      },
+      {
+        "executionId": "2749ee20-d03e-4f15-b0bf-637db184f658",
+        "chatSessionId": "sess_41f2c967-ca32-4ed3-b002-a23c3fd95cd5",
+        "timestamp": 1791693807359
+      },
+      {
+        "executionId": "2749ee20-d03e-4f15-b0bf-637db184f658",
+        "chatSessionId": "sess_41f2c967-ca32-4ed3-b002-a23c3fd95cd5",
+        "timestamp": 1791693872700
+      }
+    ],
+    "5.1 Registrar la insignia": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589677349
+      },
+      {
+        "executionId": "8d3216a6-2f47-44ba-a911-396e75e63a86",
+        "chatSessionId": "sess_df07d3ae-6e6f-44ad-97f8-d901e46bede3",
+        "timestamp": 1791694141614
+      },
+      {
+        "executionId": "8d3216a6-2f47-44ba-a911-396e75e63a86",
+        "chatSessionId": "sess_df07d3ae-6e6f-44ad-97f8-d901e46bede3",
+        "timestamp": 1791694200632
+      }
+    ],
+    "5.2 Test de la insignia": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589677406
+      },
+      {
+        "executionId": "4a7391e8-bab5-46de-ae16-dd5097d02c87",
+        "chatSessionId": "sess_4008b0b7-fc4d-4f64-8a06-490ecd5f363e",
+        "timestamp": 1791694240003
+      }
+    ],
+    "6.1 Ejecutar `npm test` y confirmar que todos los tests pasan sin regresiones.": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589677521
+      },
+      {
+        "executionId": "38af8905-bd41-45c2-b1e5-b115f8a35b4a",
+        "chatSessionId": "sess_1d99691e-9e11-4f45-b43b-e8f74c963a9f",
+        "timestamp": 1791694450608
+      }
+    ],
+    "6.2 Verificar manualmente en el navegador:": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589677581
+      },
+      {
+        "executionId": "38af8905-bd41-45c2-b1e5-b115f8a35b4a",
+        "chatSessionId": "sess_1d99691e-9e11-4f45-b43b-e8f74c963a9f",
+        "timestamp": 1791694451646
+      }
+    ],
+    "6.3 Correr los tests de propiedad de los generadores sobre 200 semillas cada uno.": [
+      {
+        "executionId": "de839b13-1103-4e77-987e-c1f5113fafa5",
+        "chatSessionId": "sess_372ea7e0-681b-4961-b31e-7c225e3ddf88",
+        "timestamp": 1791589677642
+      },
+      {
+        "executionId": "38af8905-bd41-45c2-b1e5-b115f8a35b4a",
+        "chatSessionId": "sess_1d99691e-9e11-4f45-b43b-e8f74c963a9f",
+        "timestamp": 1791694452860
+      }
+    ],
+    "2. Implementar los cinco niveles del mundo 1": [
+      {
+        "executionId": "f1e77717-a99b-4f6f-8c74-127fa00b0577",
+        "chatSessionId": "sess_17fc2721-716d-4bcd-8f88-7226bd3db510",
+        "timestamp": 1791594051223
+      },
+      {
+        "executionId": "4dd9e9d0-d903-4b24-85db-844f0c18ba6e",
+        "chatSessionId": "sess_035db8ed-2722-4ff5-ae9c-1f5e54a0d566",
+        "timestamp": 1791690616900
+      },
+      {
+        "executionId": "4dd9e9d0-d903-4b24-85db-844f0c18ba6e",
+        "chatSessionId": "sess_035db8ed-2722-4ff5-ae9c-1f5e54a0d566",
+        "timestamp": 1791691197240
+      }
+    ],
+    "3. Implementar la reproducción en paralelo": [
+      {
+        "executionId": "666e6de8-53a8-4ff7-985e-be4a29de9a51",
+        "chatSessionId": "sess_6f4091ea-0dc8-4691-8cf7-06c138e45992",
+        "timestamp": 1791692341086
+      },
+      {
+        "executionId": "666e6de8-53a8-4ff7-985e-be4a29de9a51",
+        "chatSessionId": "sess_6f4091ea-0dc8-4691-8cf7-06c138e45992",
+        "timestamp": 1791692931742
+      }
+    ],
+    "4. Bloqueo de `REPITE` en el mundo 0": [
+      {
+        "executionId": "2749ee20-d03e-4f15-b0bf-637db184f658",
+        "chatSessionId": "sess_41f2c967-ca32-4ed3-b002-a23c3fd95cd5",
+        "timestamp": 1791693872823
+      }
+    ],
+    "5. Insignia Iteración": [
+      {
+        "executionId": "ab77d20e-099f-4826-9405-8794b8783708",
+        "chatSessionId": "sess_de4ef110-4187-4d5b-bcbf-dc15430de6cc",
+        "timestamp": 1791693921102
+      },
+      {
+        "executionId": "ab77d20e-099f-4826-9405-8794b8783708",
+        "chatSessionId": "sess_de4ef110-4187-4d5b-bcbf-dc15430de6cc",
+        "timestamp": 1791694097742
+      }
+    ],
+    "6. Verificación integral": [
+      {
+        "executionId": "38af8905-bd41-45c2-b1e5-b115f8a35b4a",
+        "chatSessionId": "sess_1d99691e-9e11-4f45-b43b-e8f74c963a9f",
+        "timestamp": 1791694276679
+      },
+      {
+        "executionId": "38af8905-bd41-45c2-b1e5-b115f8a35b4a",
+        "chatSessionId": "sess_1d99691e-9e11-4f45-b43b-e8f74c963a9f",
+        "timestamp": 1791694444621
+      }
+    ]
+  }
+}

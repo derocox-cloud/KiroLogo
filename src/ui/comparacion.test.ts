@@ -148,6 +148,73 @@ describe('comparacion · anuncio en aria-live', () => {
   });
 });
 
+describe('comparacion · mensaje de la reproducción en paralelo bajo el lienzo', () => {
+  it('al negar la precisión muestra el mensaje de divergencia de un giro', () => {
+    const m = montar();
+    m.comp.mostrar({
+      segmentosReferencia: SEG,
+      segmentosJugador: SEG,
+      veredicto: veredictoNegado(),
+      divergencia: {
+        divergencia: {
+          indice: 1,
+          tipoKiro: 'girar',
+          valorKiro: 72,
+          tipoJugador: 'girar',
+          valorJugador: 90,
+        },
+        excesoDespuesDeIgual: false,
+        programaCortoSeLlamo: null,
+      },
+    });
+    expect(m.comp.textoDivergencia()).toBe(
+      'Hasta aquí íbamos igual; en este giro yo doblé 72 grados y tú 90.',
+    );
+  });
+
+  it('muestra el mensaje de "faltaban pasos" cuando el jugador terminó antes', () => {
+    const m = montar();
+    m.comp.mostrar({
+      segmentosReferencia: SEG,
+      segmentosJugador: SEG,
+      veredicto: veredictoNegado(),
+      divergencia: {
+        divergencia: null,
+        excesoDespuesDeIgual: false,
+        programaCortoSeLlamo: 'jugador',
+      },
+    });
+    expect(m.comp.textoDivergencia()).toBe(
+      'Tu programa terminó aquí, pero todavía faltaban pasos.',
+    );
+  });
+
+  it('sin resultado paralelo no muestra ningún mensaje de divergencia', () => {
+    const m = montar();
+    m.comp.mostrar({ segmentosReferencia: SEG, segmentosJugador: SEG, veredicto: veredictoNegado() });
+    expect(m.comp.textoDivergencia()).toBe('');
+  });
+
+  it('al otorgar la precisión limpia cualquier mensaje de divergencia previo', () => {
+    const m = montar();
+    // Primero una ejecución fallida con divergencia.
+    m.comp.mostrar({
+      segmentosReferencia: SEG,
+      segmentosJugador: SEG,
+      veredicto: veredictoNegado(),
+      divergencia: {
+        divergencia: null,
+        excesoDespuesDeIgual: false,
+        programaCortoSeLlamo: 'jugador',
+      },
+    });
+    expect(m.comp.textoDivergencia().length).toBeGreaterThan(0);
+    // Luego una ejecución acertada: el mensaje desaparece.
+    m.comp.mostrar({ segmentosReferencia: SEG, segmentosJugador: SEG, veredicto: veredictoOtorgado() });
+    expect(m.comp.textoDivergencia()).toBe('');
+  });
+});
+
 describe('comparacion · sin estela del jugador', () => {
   it('anuncia que no hay estela y deja el conmutador operable', () => {
     const m = montar();

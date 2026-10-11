@@ -18,7 +18,7 @@ export type IdError =
   | 'palabraDesconocidaConSugerencia' | 'palabraDesconocidaSinSugerencia'
   | 'comandoEnIngles' | 'comandoBloqueado' | 'comandoBloqueadoCercano'
   | 'argumentoFaltante' | 'argumentoDeTipoEquivocado'
-  | 'corcheteSinCerrar' | 'corcheteDeMas' | 'corcheteInesperado'
+  | 'corcheteSinCerrar' | 'corcheteSinCerrarEnLinea' | 'corcheteDeMas' | 'corcheteDeMasEnLinea' | 'corcheteInesperado'
   | 'parametroInesperado' | 'palabraInesperada' | 'numeroInesperado'
   // ejecución
   | 'comandoNoPermitido' | 'nodoNoImplementado' | 'nodoNoImprimible'
@@ -31,8 +31,16 @@ export type IdError =
   | 'rangoSinMultiplo'
   // fallos de programación
   | 'nodoDesconocidoEnConteo' | 'nivelDesconocido' | 'referenciaNoEjecutable'
+<<<<<<< HEAD
   | 'generadorSinCandidato' | 'generadorDesconocido'
   | 'solicitudDeErrorInvalida';
+=======
+  | 'solicitudDeErrorInvalida'
+  // invitaciones de abstracción (no son fallos: aparecen tras ganar precisión)
+  | 'invitacionAbstraccionRepite'
+  // reproducción en paralelo (no son fallos: explican dónde se separaron los recorridos)
+  | 'divergenciaGiro' | 'divergenciaAvance' | 'divergenciaJugadorCorto' | 'divergenciaExcesoFinal';
+>>>>>>> 5e8e690 (spec-02-mundo-1: figuras geometricas, REPITE, reproduccion en paralelo e insignia Iteracion)
 
 /**
  * Severidad de un error: determina su destino.
@@ -76,7 +84,9 @@ export interface ParametrosPorError {
   readonly argumentoFaltante: { readonly comando: string };
   readonly argumentoDeTipoEquivocado: { readonly comando: string; readonly recibido: string };
   readonly corcheteSinCerrar: Record<string, never>;
+  readonly corcheteSinCerrarEnLinea: { readonly linea: number };
   readonly corcheteDeMas: Record<string, never>;
+  readonly corcheteDeMasEnLinea: { readonly linea: number };
   readonly corcheteInesperado: Record<string, never>;
   readonly parametroInesperado: Record<string, never>;
   readonly palabraInesperada: Record<string, never>;
@@ -112,6 +122,15 @@ export interface ParametrosPorError {
   readonly generadorSinCandidato: Record<string, never>;
   readonly generadorDesconocido: Record<string, never>;
   readonly solicitudDeErrorInvalida: Record<string, never>;
+
+  // invitaciones de abstracción
+  readonly invitacionAbstraccionRepite: Record<string, never>;
+
+  // reproducción en paralelo
+  readonly divergenciaGiro: { readonly gradosKiro: number; readonly gradosJugador: number };
+  readonly divergenciaAvance: { readonly pasosKiro: number; readonly pasosJugador: number };
+  readonly divergenciaJugadorCorto: Record<string, never>;
+  readonly divergenciaExcesoFinal: Record<string, never>;
 }
 
 // ============================================================================
@@ -275,8 +294,16 @@ function construirMensaje<K extends IdError>(
     }
     case 'corcheteSinCerrar':
       return 'Falta cerrar el corchete que abriste en la línea 2.';
+    case 'corcheteSinCerrarEnLinea': {
+      const p = parametros as ParametrosPorError['corcheteSinCerrarEnLinea'];
+      return `Falta cerrar el corchete que abriste en la línea ${p.linea}.`;
+    }
     case 'corcheteDeMas':
       return 'Hay un corchete de cierre en la línea 4 que no abriste.';
+    case 'corcheteDeMasEnLinea': {
+      const p = parametros as ParametrosPorError['corcheteDeMasEnLinea'];
+      return `Hay un corchete de cierre en la línea ${p.linea} que no abriste.`;
+    }
     case 'corcheteInesperado':
       return 'Encontré un corchete en la línea 3 sin un comando que lo reciba.';
     case 'parametroInesperado':
@@ -353,6 +380,24 @@ function construirMensaje<K extends IdError>(
       return '[programación] No hay un generador registrado con ese identificador.';
     case 'solicitudDeErrorInvalida':
       return '[programación] Se solicitó crear un error con parámetros inválidos.';
+
+    // invitaciones de abstracción (tras ganar precisión; nunca bloquean)
+    case 'invitacionAbstraccionRepite':
+      return 'Lo conseguiste. Pero dibujaste los cuatro lados uno a uno: yo los vi llegar de la misma forma, cuatro veces. ¿Puedes enseñarme a repetir con REPITE?';
+
+    // reproducción en paralelo (explican el punto de divergencia; nunca bloquean)
+    case 'divergenciaGiro': {
+      const p = parametros as ParametrosPorError['divergenciaGiro'];
+      return `Hasta aquí íbamos igual; en este giro yo doblé ${p.gradosKiro} grados y tú ${p.gradosJugador}.`;
+    }
+    case 'divergenciaAvance': {
+      const p = parametros as ParametrosPorError['divergenciaAvance'];
+      return `Hasta aquí íbamos igual; en este paso yo avancé ${p.pasosKiro} y tú ${p.pasosJugador}.`;
+    }
+    case 'divergenciaJugadorCorto':
+      return 'Tu programa terminó aquí, pero todavía faltaban pasos.';
+    case 'divergenciaExcesoFinal':
+      return 'Llegaste al mismo lugar que yo; el problema es que dibujaste de más al final.';
     
     // TypeScript debería garantizar que cubrimos todos los casos
     default:

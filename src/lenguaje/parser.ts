@@ -3,7 +3,7 @@
 // En el mundo 0 solo produce nodos InvocacionComando con argumento numérico literal.
 
 import type { Token } from './lexer.js';
-import type { Programa, Instruccion, InvocacionComando, NumeroLiteral, Expresion } from './ast.js';
+import type { Programa, Instruccion, InvocacionComando, NumeroLiteral, Expresion, Repeticion } from './ast.js';
 import { buscarComando, type Mundo, type EntradaVocabulario } from './vocabulario.js';
 import { crearError, resolverPalabraNoEjecutable, type ErrorKiroLogo } from './errores.js';
 
@@ -32,6 +32,7 @@ interface Estado {
   indice: number;
   readonly mundo: Mundo;
   readonly errores: ErrorKiroLogo[];
+  pilaCorchetes: number[];   // líneas de los corchetes de apertura activos
 }
 
 /**
@@ -51,6 +52,7 @@ export function analizar(
     indice: 0,
     mundo: opciones.mundo,
     errores: [],
+    pilaCorchetes: [],
   };
 
   const instrucciones: Instruccion[] = [];
@@ -102,7 +104,7 @@ function analizarInstruccion(estado: Estado): Instruccion | null {
       estado.indice += 1;
       return null;
     case 'corchete_cierra':
-      reportar(estado, crearError('corcheteDeMas', {}, posicion(token)));
+      reportar(estado, crearError('corcheteDeMasEnLinea', { linea: token.linea }, posicion(token)));
       estado.indice += 1;
       return null;
     case 'parametro':
@@ -168,6 +170,11 @@ function analizarComando(estado: Estado, token: Token): Instruccion | null {
   const lineaComando = token.linea;
   const columnaComando = token.columna;
   estado.indice += 1;
+
+  // Comando con lista (REPITE): aridad especial.
+  if (entrada.tiposArgumento.includes('lista')) {
+    return analizarRepite(estado, entrada, lineaComando, columnaComando);
+  }
 
   // En el mundo 0 los comandos son de aridad 0 o 1 con argumento numérico.
   if (entrada.aridad === 1) {
@@ -241,6 +248,123 @@ function analizarComandoConArgumento(
 }
 
 // ============================================================================
+// REPITE y lista de instrucciones
+// ============================================================================
+
+/**
+ * Analiza un nodo `Repeticion` tras haber consumido el token de comando REPITE/RP.
+ * Espera: numero `[` instrucciones `]`
+ */
+function analizarRepite(
+  estado: Estado,
+  _entrada: EntradaVocabulario,
+  lineaComando: number,
+  columnaComando: number,
+): Instruccion | null {
+  // 1. Número de repeticiones
+  const tokenNumero = actual(estado);
+  if (tokenNumero === undefined || tokenNumero.tipo !== 'numero') {
+    reportar(
+      estado,
+      crearError(
+        'argumentoFaltante',
+        { comando: 'REPITE' },
+        { linea: lineaComando, columna: columnaComando },
+      ),
+    );
+    return null;
+  }
+  const veces = tokenNumero.valor as number;
+  const lineaVeces = tokenNumero.linea;
+  const columnaVeces = tokenNumero.columna;
+  estado.indice += 1;
+
+  // 2. Corchete de apertura
+  const tokenAbre = actual(estado);
+  if (tokenAbre === undefined || tokenAbre.tipo !== 'corchete_abre') {
+    const pos = tokenAbre !== undefined ? posicion(tokenAbre) : { linea: lineaVeces, columna: columnaVeces };
+    reportar(
+      estado,
+      crearError('argumentoFaltante', { comando: 'REPITE' }, pos),
+    );
+    return null;
+  }
+  const lineaApertura = tokenAbre.linea;
+  estado.indice += 1;
+
+  // Empujar la línea de apertura en la pila
+  estado.pilaCorchetes.push(lineaApertura);
+
+  // 3. Lista de instrucciones
+  const cuerpo = analizarListaInstrucciones(estado);
+
+  // Si hay errores acumulados durante la lista, devolvemos null más adelante;
+  // pero primero intentamos construir el nodo si la lista terminó bien.
+
+  // 4. Corchete de cierre (si no fue consumido por analizarListaInstrucciones al encontrar EOF)
+  const tokenCierra = actual(estado);
+  if (tokenCierra !== undefined && tokenCierra.tipo === 'corchete_cierra') {
+    estado.indice += 1;
+    estado.pilaCorchetes.pop();
+  }
+  // Si cuerpo es null significa que analizarListaInstrucciones reportó EOF sin cierre
+  if (cuerpo === null) {
+    return null;
+  }
+
+  const nodo: Repeticion = {
+    tipo: 'repeticion',
+    veces: { tipo: 'numeroLiteral', valor: veces, linea: lineaVeces, columna: columnaVeces },
+    cuerpo,
+    linea: lineaComando,
+    columna: columnaComando,
+  };
+  return nodo;
+}
+
+/**
+ * Analiza instrucciones hasta encontrar `corchete_cierra` o fin de entrada.
+ * Devuelve la lista de instrucciones, o `null` si llegó al final sin corchete de cierre
+ * (en cuyo caso ya reportó el error correspondiente).
+ */
+function analizarListaInstrucciones(estado: Estado): readonly Instruccion[] | null {
+  const instrucciones: Instruccion[] = [];
+
+  while (!finalizado(estado)) {
+    const token = actual(estado)!;
+
+    // Fin de la lista
+    if (token.tipo === 'corchete_cierra') {
+      return instrucciones;
+    }
+
+    const antes = estado.indice;
+    const instruccion = analizarInstruccion(estado);
+    if (instruccion !== null) {
+      instrucciones.push(instruccion);
+    } else {
+      // Error: recuperar hasta el siguiente comando o corchete de cierre
+      sincronizarEnLista(estado);
+    }
+    // Salvaguarda contra bucles infinitos
+    if (estado.indice === antes) {
+      estado.indice += 1;
+    }
+  }
+
+  // EOF sin encontrar corchete de cierre: reportar error con la línea de apertura
+  const lineaApertura =
+    estado.pilaCorchetes.length > 0
+      ? estado.pilaCorchetes[estado.pilaCorchetes.length - 1]!
+      : 1;
+  reportar(
+    estado,
+    crearError('corcheteSinCerrarEnLinea', { linea: lineaApertura }, { linea: lineaApertura }),
+  );
+  return null;
+}
+
+// ============================================================================
 // Recuperación por sincronización
 // ============================================================================
 
@@ -253,6 +377,20 @@ function sincronizar(estado: Estado): void {
   while (!finalizado(estado)) {
     const token = actual(estado)!;
     if (token.tipo === 'comando') {
+      return;
+    }
+    estado.indice += 1;
+  }
+}
+
+/**
+ * Variante de sincronización dentro de una lista de instrucciones:
+ * también se detiene en `corchete_cierra` para no consumir el cierre de la lista.
+ */
+function sincronizarEnLista(estado: Estado): void {
+  while (!finalizado(estado)) {
+    const token = actual(estado)!;
+    if (token.tipo === 'comando' || token.tipo === 'corchete_cierra') {
       return;
     }
     estado.indice += 1;

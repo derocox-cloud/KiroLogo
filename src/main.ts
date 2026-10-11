@@ -58,9 +58,17 @@ import { crearControles, type Controles } from './ui/controles.js';
 import { crearDemostracion, type Demostracion, type RelojEspera } from './ui/demostracion.js';
 import { crearDiff, type EstiloDiff, type LectorTemaDiff } from './ui/diff.js';
 import { crearComparacion, type Comparacion } from './ui/comparacion.js';
+<<<<<<< HEAD
 import { crearPanelSemilla, type PanelSemilla } from './ui/panel-semilla.js';
 import { crearSelectorNivel, type SelectorNivel } from './ui/selector-nivel.js';
 import { crearGuia, type Guia } from './ui/guia.js';
+=======
+import { compararOperaciones, type ResultadoParalelo } from './motor/divergencia.js';
+import {
+  crearReproduccionParalelo,
+  type ReproduccionParalelo,
+} from './ui/reproduccion-paralelo.js';
+>>>>>>> 5e8e690 (spec-02-mundo-1: figuras geometricas, REPITE, reproduccion en paralelo e insignia Iteracion)
 
 // ============================================================================
 // Estado de la aplicación
@@ -224,6 +232,7 @@ function crearLectoresTema(documento: Document): {
   lienzo: LectorTema;
   diff: LectorTemaDiff;
   personajes: LectorTemaPersonajes;
+  personajesJugadorParalelo: LectorTemaPersonajes;
 } {
   function raiz(): CSSStyleDeclaration | null {
     const vista = documento.defaultView;
@@ -298,7 +307,31 @@ function crearLectoresTema(documento: Document): {
     };
   };
 
-  return { lienzo, diff, personajes };
+  // Estilo de la tortuga del jugador en la reproducción en paralelo: naranja, para
+  // distinguirla de la de Kiro. Kiro y el lápiz conservan sus colores; solo la
+  // tortuga cambia de color. La distinción no depende solo del color (la de Kiro
+  // va con Kiro montado y la reproducción anuncia a quién pertenece cada tortuga).
+  const personajesJugadorParalelo: LectorTemaPersonajes = (): EstiloPersonajes => {
+    const e = raiz();
+    const base = personajes();
+    return {
+      ...base,
+      contorno: leerVar(
+        e,
+        '--color-tortuga-jugador-paralelo-contorno',
+        '#c2410c',
+      ),
+      relleno: leerVar(e, '--color-tortuga-jugador-paralelo-relleno', '#fff0e6'),
+      cabeza: leerVar(e, '--color-tortuga-jugador-paralelo-cabeza', '#a63a0a'),
+      marcaRumbo: leerVar(
+        e,
+        '--color-tortuga-jugador-paralelo-marca-rumbo',
+        '#f76707',
+      ),
+    };
+  };
+
+  return { lienzo, diff, personajes, personajesJugadorParalelo };
 }
 
 // ============================================================================
@@ -652,6 +685,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     anunciar,
   });
 
+<<<<<<< HEAD
   // Demostración de la referencia. Se (re)crea en `montarReto`, porque captura
   // las operaciones del reto en curso; aquí solo se declara la referencia.
   let demostracion: Demostracion | null = null;
@@ -675,6 +709,41 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       },
     });
   }
+=======
+  // Reproducción en paralelo: las dos tortugas sobre la misma cuadrícula del lado
+  // del jugador. La de Kiro con su estilo; la del jugador en naranja. Comparte el
+  // reloj de animación y la consulta de movimiento reducido con el resto.
+  const reproduccionParalelo: ReproduccionParalelo = crearReproduccionParalelo({
+    lienzo: {
+      capaPersonajes: () => lienzoJugador.capaPersonajes(),
+      limpiarPersonajes: () => lienzoJugador.limpiarPersonajes(),
+    },
+    reloj,
+    leerTemaKiro: lectores.personajes,
+    leerTemaJugador: lectores.personajesJugadorParalelo,
+    movimientoReducido: () => movimiento.reducido(),
+    anunciar,
+  });
+
+  // Demostración de la referencia.
+  const demostracion: Demostracion = crearDemostracion({
+    lienzo: {
+      capaPersonajes: () => lienzoReferencia.capaPersonajes(),
+      limpiarPersonajes: () => lienzoReferencia.limpiarPersonajes(),
+      limpiarEstela: (capa) => lienzoReferencia.limpiarEstela(capa),
+    },
+    animador: crearAnimador(lienzoReferencia, reloj, () => movimiento.reducido()),
+    operaciones: reto.operaciones,
+    estadoInicial: ESTADO_INICIAL,
+    leerTemaPersonajes: lectores.personajes,
+    relojEspera,
+    anunciar,
+    avisarSinDemostracion: () => {
+      // Un nivel sin operaciones no tiene demostración; se avisa por el globo.
+      globo.celebrar('Este reto no tiene demostración que mostrar.');
+    },
+  });
+>>>>>>> 5e8e690 (spec-02-mundo-1: figuras geometricas, REPITE, reproduccion en paralelo e insignia Iteracion)
 
   // Controles.
   const controles: Controles = crearControles({
@@ -984,17 +1053,38 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       console.error('No se pudo guardar el progreso.', e);
     }
 
+<<<<<<< HEAD
     // Si la guía estaba activa y este intento acertó, cede a la celebración.
     if (guia && guia.activa && calificacion.precision.otorgada) {
       guia.alPrimerAcierto();
     }
 
     // Comenta la calificación y, si niega la precisión, muestra el diff.
+=======
+    // Si la precisión se niega, reproduce en paralelo los dos recorridos para
+    // señalar el primer paso donde se separaron. Reutiliza las operaciones ya
+    // ejecutadas (las de Kiro y las del jugador): no vuelve a parsear ni ejecutar.
+    let divergencia: ResultadoParalelo | null = null;
+    if (veredicto !== null && !veredicto.coincide) {
+      divergencia = compararOperaciones(reto.operaciones, operaciones);
+      // Además del mensaje, las dos tortugas avanzan a la vez sobre la misma
+      // cuadrícula: la de Kiro (su estilo) y la del jugador (naranja). Es la
+      // forma de ver —no solo leer— dónde se separaron los dos recorridos.
+      reproduccionParalelo.reproducir(reto.operaciones, operaciones, ESTADO_INICIAL);
+    } else {
+      // Precisión otorgada o sin veredicto: no hay reproducción en paralelo.
+      reproduccionParalelo.detener();
+    }
+
+    // Comenta la calificación y, si niega la precisión, muestra el diff y, bajo
+    // el lienzo, dónde se separaron los dos recorridos.
+>>>>>>> 5e8e690 (spec-02-mundo-1: figuras geometricas, REPITE, reproduccion en paralelo e insignia Iteracion)
     globo.comentarCalificacion(calificacion);
     comparacion.mostrar({
       segmentosReferencia: reto.segmentos,
       segmentosJugador: segmentos,
       veredicto,
+      divergencia,
     });
 
     // Actualiza el estado (veredicto y estrellas ya calculados, sin recalcular).
@@ -1040,6 +1130,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
 
   function detener(): void {
     animador.detener();
+    reproduccionParalelo.detener();
     ejecutando = false;
     controles.marcarDetenido();
   }
@@ -1050,6 +1141,8 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
 
   function reiniciar(): void {
     animador.reiniciar(ESTADO_INICIAL);
+    // Corta la reproducción en paralelo y vuelve a una sola tortuga en el inicio.
+    reproduccionParalelo.detener();
     dibujarPersonajesEnInicial();
     ejecutando = false;
     controles.marcarFinDeSecuencia();

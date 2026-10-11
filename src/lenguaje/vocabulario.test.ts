@@ -8,6 +8,7 @@ import {
   buscarComando,
   comandosDelMundo,
 } from './vocabulario.js';
+import { resolverPalabraNoEjecutable } from './errores.js';
 
 describe('vocabulario.ts', () => {
   describe('Tipos básicos', () => {
@@ -257,6 +258,42 @@ describe('vocabulario.ts', () => {
     it('mundo 5 incluye todos los comandos', () => {
       const mundo5 = comandosDelMundo(5);
       expect(mundo5).toHaveLength(VOCABULARIO.length);
+    });
+  });
+
+  describe('Vocabulario bloqueado en el mundo 0', () => {
+    // Req. 7 — Vocabulario bloqueado: en el mundo 0, REPITE todavía no existe
+    // para el jugador. El bloqueo es un dato del vocabulario (REPITE vive en el
+    // mundo 1), no una regla del parser.
+    it('REPITE no forma parte del vocabulario desbloqueado del mundo 0', () => {
+      const desbloqueados = comandosDelMundo(0);
+      expect(desbloqueados.some(e => e.nombre === 'REPITE')).toBe(false);
+
+      const repite = VOCABULARIO.find(e => e.nombre === 'REPITE');
+      expect(repite).toBeDefined();
+      // El mundo de REPITE (1) es posterior al mundo actual (0): está bloqueado.
+      expect(repite!.mundo).toBeGreaterThan(0);
+    });
+
+    it('intentar usar REPITE en el mundo 0 produce el mensaje de desbloqueo', () => {
+      const error = resolverPalabraNoEjecutable('REPITE', 0);
+      expect(error.mensaje).toBe(
+        'REPITE todavía no está disponible. Se desbloquea en el mundo 1.',
+      );
+    });
+
+    it('la comprobación es de vocabulario bloqueado, no un error de parser genérico', () => {
+      // El id es comandoBloqueado (validación previa al parser), no un error
+      // sintáctico como palabraInesperada o numeroInesperado.
+      const error = resolverPalabraNoEjecutable('REPITE', 0);
+      expect(error.id).toBe('comandoBloqueado');
+      // Es un mensaje dirigido al jugador, no un fallo de programación.
+      expect(error.severidad).toBe('jugador');
+    });
+
+    it('REPITE queda disponible al entrar al mundo 1', () => {
+      const desbloqueados = comandosDelMundo(1);
+      expect(desbloqueados.some(e => e.nombre === 'REPITE')).toBe(true);
     });
   });
 

@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { CATALOGO, buscarNivel } from './catalogo.js';
 import { NIVEL_0_1, REFERENCIA_0_1, MUNDO_0 } from './mundo-0-primeros-pasos.js';
+import { MUNDO_1, NIVEL_1_1, REFERENCIA_1_1 } from './mundo-1-figuras.js';
 import type { Nivel, OrigenNivel, ExigenciaAbstraccion } from './tipos.js';
 import { contarInstrucciones } from '../lenguaje/conteo.js';
 import type { Programa, InvocacionComando, NumeroLiteral } from '../lenguaje/ast.js';
@@ -124,7 +125,7 @@ describe('nivel 0.1', () => {
 
 describe('catálogo', () => {
   it('incluye el mundo 0 con el nivel 0.1', () => {
-    expect(CATALOGO.length).toBe(MUNDO_0.length);
+    expect(CATALOGO.length).toBe(MUNDO_0.length + MUNDO_1.length);
     expect(CATALOGO.some((n) => n.id === '0.1')).toBe(true);
   });
 
@@ -182,5 +183,44 @@ describe('catálogo', () => {
   it('el tipo Nivel está disponible para el catálogo', () => {
     const primero: Nivel = CATALOGO[0]!;
     expect(primero.id).toBe('0.1');
+  });
+});
+
+// ============================================================================
+// El mundo 1 (2.5)
+// ============================================================================
+
+describe('mundo 1', () => {
+  it('tiene exactamente cinco niveles', () => {
+    expect(MUNDO_1).toHaveLength(5);
+  });
+
+  it('registra los cinco niveles (1.1–1.5) en el catálogo', () => {
+    for (const id of ['1.1', '1.2', '1.3', '1.4', '1.5']) {
+      expect(CATALOGO.some((n) => n.id === id)).toBe(true);
+    }
+  });
+
+  it('todos sus niveles declaran mundo 1 y concepto iteracion', () => {
+    for (const nivel of MUNDO_1) {
+      expect(nivel.mundo).toBe(1);
+      expect(nivel.concepto).toBe('iteracion');
+    }
+  });
+
+  it('el presupuesto del nivel 1.1 es 3, calculado de su referencia', () => {
+    // El presupuesto no es un campo almacenado: se deriva del conteo de la
+    // referencia 'REPITE 4 [AV 100 GD 90]' (1 por REPITE + AV + GD = 3).
+    const r = contarInstrucciones(REFERENCIA_1_1);
+    expect(r.exito).toBe(true);
+    if (r.exito) expect(r.instrucciones).toBe(3);
+  });
+
+  it('el nivel 1.1 es autorado y su referencia es la que se cuenta', () => {
+    expect(NIVEL_1_1.id).toBe('1.1');
+    expect(NIVEL_1_1.origen.tipo).toBe('autorado');
+    if (NIVEL_1_1.origen.tipo === 'autorado') {
+      expect(NIVEL_1_1.origen.referencia).toBe(REFERENCIA_1_1);
+    }
   });
 });

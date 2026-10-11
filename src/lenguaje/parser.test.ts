@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
 import { analizar } from './parser.js';
 import { analizarLexico } from './lexer.js';
-import type { InvocacionComando, NumeroLiteral } from './ast.js';
+import type { InvocacionComando, NumeroLiteral, Repeticion } from './ast.js';
 import { crearPrng } from '../azar/prng.js';
 import { type Mundo } from './vocabulario.js';
 
@@ -165,9 +165,9 @@ describe('parser', () => {
       expect(errores.some((e) => e.id === 'corcheteInesperado')).toBe(true);
     });
 
-    it('corchete de cierre sin apertura reporta corcheteDeMas', () => {
+    it('corchete de cierre sin apertura reporta corcheteDeMasEnLinea', () => {
       const { errores } = analizarTexto(']');
-      expect(errores[0]!.id).toBe('corcheteDeMas');
+      expect(errores[0]!.id).toBe('corcheteDeMasEnLinea');
     });
 
     it('parámetro suelto reporta parametroInesperado', () => {
@@ -348,6 +348,111 @@ describe('parser', () => {
         }),
         { seed: 7, numRuns: 200 },
       );
+    });
+  });
+
+  // ==========================================================================
+  // REPITE y lista de instrucciones (Requisitos 1, 2 — spec 02)
+  // ==========================================================================
+
+  describe('REPITE — nodo Repeticion', () => {
+    it('REPITE 4 [AV 100 GD 90] → Repeticion con veces=4 y cuerpo de 2 instrucciones', () => {
+      const { programa, errores } = analizarTexto('REPITE 4 [AV 100 GD 90]', 1);
+      expect(errores).toHaveLength(0);
+      expect(programa).not.toBeNull();
+      expect(programa!.instrucciones).toHaveLength(1);
+
+      const nodo = programa!.instrucciones[0] as Repeticion;
+      expect(nodo.tipo).toBe('repeticion');
+      expect((nodo.veces as NumeroLiteral).valor).toBe(4);
+      expect(nodo.cuerpo).toHaveLength(2);
+
+      const av = nodo.cuerpo[0] as InvocacionComando;
+      expect(av.tipo).toBe('invocacionComando');
+      expect(av.nombre).toBe('AVANZA');
+      expect((av.argumentos[0] as NumeroLiteral).valor).toBe(100);
+
+      const gd = nodo.cuerpo[1] as InvocacionComando;
+      expect(gd.tipo).toBe('invocacionComando');
+      expect(gd.nombre).toBe('GIRADERECHA');
+      expect((gd.argumentos[0] as NumeroLiteral).valor).toBe(90);
+    });
+
+    it('RP 3 [GD 120 AV 80] → alias RP funciona igual que REPITE', () => {
+      const { programa, errores } = analizarTexto('RP 3 [GD 120 AV 80]', 1);
+      expect(errores).toHaveLength(0);
+      expect(programa).not.toBeNull();
+
+      const nodo = programa!.instrucciones[0] as Repeticion;
+      expect(nodo.tipo).toBe('repeticion');
+      expect((nodo.veces as NumeroLiteral).valor).toBe(3);
+      expect(nodo.cuerpo).toHaveLength(2);
+
+      const gd = nodo.cuerpo[0] as InvocacionComando;
+      expect(gd.nombre).toBe('GIRADERECHA');
+      expect((gd.argumentos[0] as NumeroLiteral).valor).toBe(120);
+
+      const av = nodo.cuerpo[1] as InvocacionComando;
+      expect(av.nombre).toBe('AVANZA');
+      expect((av.argumentos[0] as NumeroLiteral).valor).toBe(80);
+    });
+
+    it('REPITE 2 [REPITE 3 [AV 50 GD 120]] → Repeticion anidada correcta', () => {
+      const { programa, errores } = analizarTexto('REPITE 2 [REPITE 3 [AV 50 GD 120]]', 1);
+      expect(errores).toHaveLength(0);
+      expect(programa).not.toBeNull();
+      expect(programa!.instrucciones).toHaveLength(1);
+
+      const exterior = programa!.instrucciones[0] as Repeticion;
+      expect(exterior.tipo).toBe('repeticion');
+      expect((exterior.veces as NumeroLiteral).valor).toBe(2);
+      expect(exterior.cuerpo).toHaveLength(1);
+
+      const interior = exterior.cuerpo[0] as Repeticion;
+      expect(interior.tipo).toBe('repeticion');
+      expect((interior.veces as NumeroLiteral).valor).toBe(3);
+      expect(interior.cuerpo).toHaveLength(2);
+
+      const av = interior.cuerpo[0] as InvocacionComando;
+      expect(av.nombre).toBe('AVANZA');
+      expect((av.argumentos[0] as NumeroLiteral).valor).toBe(50);
+
+      const gd = interior.cuerpo[1] as InvocacionComando;
+      expect(gd.nombre).toBe('GIRADERECHA');
+      expect((gd.argumentos[0] as NumeroLiteral).valor).toBe(120);
+    });
+  });
+
+  describe('REPITE — errores de corchete', () => {
+    it('REPITE 4 [AV 100 GD 90 sin ] → error corcheteSinCerrarEnLinea con línea 1', () => {
+      const { programa, errores } = analizarTexto('REPITE 4 [AV 100 GD 90', 1);
+      expect(programa).toBeNull();
+      expect(errores.length).toBeGreaterThan(0);
+      const errorCorchete = errores.find((e) => e.id === 'corcheteSinCerrarEnLinea');
+      expect(errorCorchete).toBeDefined();
+      expect(errorCorchete!.linea).toBe(1);
+    });
+
+    it('AV 100 GD 90] con ] sobrante → error corcheteDeMasEnLinea con línea correcta', () => {
+      const { programa, errores } = analizarTexto('AV 100 GD 90]', 1);
+      expect(programa).toBeNull();
+      const errorCorchete = errores.find((e) => e.id === 'corcheteDeMasEnLinea');
+      expect(errorCorchete).toBeDefined();
+      expect(errorCorchete!.linea).toBe(1);
+    });
+
+    it('mensaje de corcheteSinCerrarEnLinea contiene el número de línea correcto', () => {
+      const { errores } = analizarTexto('REPITE 4 [AV 100 GD 90', 1);
+      const errorCorchete = errores.find((e) => e.id === 'corcheteSinCerrarEnLinea');
+      expect(errorCorchete!.mensaje).toContain('línea 1');
+    });
+
+    it('mensaje de corcheteDeMasEnLinea contiene el número de línea correcto', () => {
+      const { errores } = analizarTexto('AV 100\n]', 1);
+      const errorCorchete = errores.find((e) => e.id === 'corcheteDeMasEnLinea');
+      expect(errorCorchete).toBeDefined();
+      expect(errorCorchete!.linea).toBe(2);
+      expect(errorCorchete!.mensaje).toContain('línea 2');
     });
   });
 });

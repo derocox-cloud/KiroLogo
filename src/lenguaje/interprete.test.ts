@@ -22,6 +22,8 @@ import type {
 import { comandosDelMundo, VOCABULARIO, type EntradaVocabulario } from './vocabulario.js';
 import { ESTADO_INICIAL, type EstadoTortuga } from '../motor/tortuga.js';
 import { crearPrng } from '../azar/prng.js';
+import { analizarLexico } from './lexer.js';
+import { analizar } from './parser.js';
 import { generarPrograma } from '../azar/generadores-prueba.test.js';
 
 // ============================================================================
@@ -162,19 +164,69 @@ describe('interprete', () => {
       expect(r.error!.linea).not.toBeNull();
     });
 
-    it('un nodo reservado reporta nodoNoImplementado', () => {
-      const repeticion: Instruccion = {
-        tipo: 'repeticion',
-        veces: numero(4),
-        cuerpo: [inv('AVANZA', numero(100))],
+    it('un nodo reservado (no repeticion) reporta nodoNoImplementado', () => {
+      // condicionalUnaRama es un nodo reservado aun no ejecutable en mundo 0.
+      const cond: Instruccion = {
+        tipo: 'condicionalUnaRama',
+        condicion: numero(1),
+        entonces: [inv('AVANZA', numero(100))],
         ...pos(),
       };
-      const r = correr(prog([repeticion]));
+      const r = correr(prog([cond]));
       expect(r.error).not.toBeNull();
       expect(r.error!.id).toBe('nodoNoImplementado');
     });
   });
 
+  // ==========================================================================
+  // REPITE — ejecucion de Repeticion (Req 1.4 — spec 02)
+  // ==========================================================================
+
+  describe('REPITE — ejecucion', () => {
+    it('REPITE 4 [AV 100 GD 90] produce 8 operaciones (igual que cuadrado a mano)', () => {
+      // Usando los comandos del mundo 1 (REPITE desbloqueado)
+      const { tokens } = analizarLexico('REPITE 4 [AV 100 GD 90]');
+      const { programa: prog4 } = analizar(tokens, { mundo: 1 });
+      expect(prog4).not.toBeNull();
+      const permitidos1 = comandosDelMundo(1).filter((e) => e.ejecutable);
+      const r = correr(prog4!, { comandosPermitidos: permitidos1 });
+      expect(r.error).toBeNull();
+      expect(r.operaciones).toHaveLength(8);
+      // 4 pares (mover, girar) en orden correcto
+      for (let i = 0; i < 4; i++) {
+        expect(r.operaciones[i * 2]!.tipo).toBe('mover');
+        expect(r.operaciones[i * 2 + 1]!.tipo).toBe('girar');
+      }
+    });
+
+    it('REPITE 0 [AV 100] no produce operaciones', () => {
+      const { tokens } = analizarLexico('REPITE 0 [AV 100]');
+      const { programa: prog0 } = analizar(tokens, { mundo: 1 });
+      expect(prog0).not.toBeNull();
+      const permitidos1 = comandosDelMundo(1).filter((e) => e.ejecutable);
+      const r = correr(prog0!, { comandosPermitidos: permitidos1 });
+      expect(r.error).toBeNull();
+      expect(r.operaciones).toHaveLength(0);
+    });
+
+    it('REPITE 2 [REPITE 3 [AV 50 GD 60]] produce 12 operaciones en orden correcto', () => {
+      const { tokens } = analizarLexico('REPITE 2 [REPITE 3 [AV 50 GD 60]]');
+      const { programa: prog2 } = analizar(tokens, { mundo: 1 });
+      expect(prog2).not.toBeNull();
+      const permitidos1 = comandosDelMundo(1).filter((e) => e.ejecutable);
+      const r = correr(prog2!, { comandosPermitidos: permitidos1 });
+      expect(r.error).toBeNull();
+      expect(r.operaciones).toHaveLength(12);
+      // Todos los pares deben ser (mover, girar)
+      for (let i = 0; i < 6; i++) {
+        expect(r.operaciones[i * 2]!.tipo).toBe('mover');
+        expect(r.operaciones[i * 2 + 1]!.tipo).toBe('girar');
+      }
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // Placeholder para cerrar el describe previo que se abrió antes
   // ==========================================================================
   // Generador que suspende (Req 7.1)
   // ==========================================================================

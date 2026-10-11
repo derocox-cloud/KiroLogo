@@ -41,7 +41,11 @@ function crearAlmacen(inicial: Record<string, string> = {}): Storage & { datos: 
 /** Calificación con las tres estrellas otorgadas o negadas y un conteo opcional. */
 function calif(p: boolean, e: boolean, a: boolean, conteo = 1): Calificacion {
   const est = (o: boolean) => (o ? { otorgada: true as const } : { otorgada: false as const, motivo: { clave: 'sinPrecision' as const } });
+<<<<<<< HEAD
   return { precision: est(p), economia: est(e), abstraccion: est(a), conteoJugador: conteo, presupuestoEstrella: 1 };
+=======
+  return { precision: est(p), economia: est(e), abstraccion: est(a), conteoJugador: 1, presupuestoEstrella: 1, mensajeAbstraccion: null };
+>>>>>>> 5e8e690 (spec-02-mundo-1: figuras geometricas, REPITE, reproduccion en paralelo e insignia Iteracion)
 }
 
 // ============================================================================

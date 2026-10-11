@@ -64,6 +64,44 @@ describe('panel-comandos · filtro por mundo', () => {
   });
 });
 
+describe('panel-comandos · REPITE se desbloquea en el mundo 1', () => {
+  // Requisito 7.2: al entrar al mundo 1, el panel muestra REPITE con su
+  // descripción y un ejemplo. Requisito 7.3: solo los comandos desbloqueados.
+
+  it('no incluye REPITE cuando el mundo activo es 0', () => {
+    const { panel } = montar(0);
+    const nombres = panel.entradas.map((e) => e.nombre);
+    expect(nombres).not.toContain('REPITE');
+    expect(panel.raiz.textContent ?? '').not.toContain('REPITE');
+  });
+
+  it('incluye REPITE con descripción y ejemplo cuando el mundo activo es 1', () => {
+    const { panel } = montar(1);
+    const entradaRepite = panel.entradas.find((e) => e.nombre === 'REPITE');
+    expect(entradaRepite).toBeDefined();
+    expect(entradaRepite!.descripcion.length).toBeGreaterThan(0);
+    expect(entradaRepite!.ejemplo.length).toBeGreaterThan(0);
+
+    // El botón de REPITE renderiza su descripción y su ejemplo íntegros.
+    const indice = panel.entradas.indexOf(entradaRepite!);
+    const boton = panel.botones[indice]!;
+    const texto = boton.textContent ?? '';
+    expect(texto).toContain('REPITE');
+    expect(texto).toContain(entradaRepite!.descripcion);
+    expect(texto).toContain(entradaRepite!.ejemplo);
+    // El nombre accesible también lleva el contenido completo.
+    expect(boton.getAttribute('aria-label') ?? '').toContain(entradaRepite!.ejemplo);
+  });
+
+  it('mantiene REPITE visible en mundos superiores a 1', () => {
+    for (const mundo of [2, 3, 4, 5] as const) {
+      const { panel } = montar(mundo);
+      const nombres = panel.entradas.map((e) => e.nombre);
+      expect(nombres).toContain('REPITE');
+    }
+  });
+});
+
 describe('panel-comandos · fidelidad de textos', () => {
   it('muestra nombre, abreviatura, descripción y ejemplo carácter por carácter', () => {
     const { panel } = montar(0);

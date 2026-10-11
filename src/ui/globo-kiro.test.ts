@@ -38,6 +38,7 @@ function calificacion(otorgadas: { p: boolean; e: boolean; a: boolean }): Califi
     abstraccion: otorgadas.a ? ok : neg,
     conteoJugador: 3,
     presupuestoEstrella: 1,
+    mensajeAbstraccion: null,
   };
 }
 
