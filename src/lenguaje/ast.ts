@@ -19,7 +19,27 @@ export interface InvocacionComando extends NodoBase {
   readonly tipo: 'invocacionComando';
   readonly nombre: string;                        // nombre largo del Vocabulario
   readonly argumentos: readonly Expresion[];
+  // Argumento SIN RESOLVER de PONCOLOR (mundo 2). Es opcional y vive aparte de
+  // `argumentos` a propósito: el argumento de color no es una `Expresion`
+  // numérica (es una palabra de color o una terna RGB), y meterlo en el union
+  // `Expresion` obligaría a tocar cada switch exhaustivo que recorre expresiones
+  // (conteo.ts, abstraccion.ts, interprete.ts). Al colgarlo de un campo propio y
+  // opcional, el parser lo transporta al intérprete para que lo resuelva contra
+  // `colores.ts` (R4.2, R4.3) sin alterar el conteo (PONCOLOR sigue contando 1
+  // como cualquier invocacionComando) ni el análisis de abstracción.
+  readonly argumentoColor?: ArgumentoColor;
 }
+
+/**
+ * Argumento de color de `PONCOLOR` tal como lo leyó el parser, sin resolver. El
+ * intérprete (mundo 2) lo resuelve contra el catálogo de colores: una `palabra`
+ * por nombre (`naranja`, `"naranja`) o una `listaRGB` de tres enteros
+ * (`[255 0 0]`). Vive en el AST porque el parseo ya distinguió la forma; la
+ * validación del rango y del nombre es responsabilidad del intérprete.
+ */
+export type ArgumentoColor =
+  | { readonly clase: 'palabra'; readonly valor: string }
+  | { readonly clase: 'listaRGB'; readonly valores: readonly number[] };
 
 // ============================================================================
 // Nodos reservados para specs futuras

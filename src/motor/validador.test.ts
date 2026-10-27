@@ -20,8 +20,12 @@ import {
   type Mascara,
   type NormalizacionNivel,
 } from './validador.js';
-import type { Punto } from './tortuga.js';
-import type { Segmento } from './segmentos.js';
+import { ESTADO_INICIAL, type Punto } from './tortuga.js';
+import { extraerSegmentos, type Segmento } from './segmentos.js';
+import { analizarLexico } from '../lenguaje/lexer.js';
+import { analizar } from '../lenguaje/parser.js';
+import { ejecutar } from '../lenguaje/interprete.js';
+import { comandosDelMundo } from '../lenguaje/vocabulario.js';
 
 // ============================================================================
 // Fuerza bruta de referencia para la dilatación
@@ -758,5 +762,104 @@ describe('Feature: 08-diseno-visual, Property 1: el veredicto de presentación n
       }),
       { seed: 804, numRuns: 100 },
     );
-  }, 60_000);
+  }, 120_000);
+});
+
+// ============================================================================
+// 8.1 · Frontera decorativa: el canal de color/grosor/relleno es invisible
+// para la validación de precisión.
+// Valida: Requisito 4.8
+//
+// Dos programas que dejan EXACTAMENTE los mismos trazos —uno pelado y otro con
+// SUBELAPIZ/BAJALAPIZ, PONCOLOR, PONGROSOR y RELLENA intercalados— producen la
+// misma lista de segmentos y, por tanto, el mismo IoU y el mismo veredicto. La
+// decoración no puede aprobar ni reprobar un nivel. Se usa el pipeline real
+// (lexer → parser → ejecutar → extraerSegmentos → validar), no operaciones
+// armadas a mano, para ejercitar de verdad la frontera. Este test documenta que
+// ni `segmentos.ts` ni `validador.ts` necesitan cambio alguno.
+// ============================================================================
+
+describe('validador · frontera decorativa (R4.8)', () => {
+  // Mundo 2: traslación y rotación libres, escala exacta (la normalización del
+  // mundo en el que viven los comandos decorativos).
+  const NORM_MUNDO_2: NormalizacionNivel = { traslacion: 'libre', rotacion: 'libre', escala: 'exacta' };
+  const PERMITIDOS_2 = comandosDelMundo(2);
+
+  /** Pipeline real: texto KiroLogo del mundo 2 → segmentos dibujados. */
+  function segmentosDe(texto: string): readonly Segmento[] {
+    const lexico = analizarLexico(texto);
+    const sintactico = analizar(lexico.tokens, { mundo: 2 });
+    // Un texto de referencia bien formado nunca debería fallar al parsear; si lo
+    // hace, es un error del propio test y conviene que la aserción lo delate.
+    expect(sintactico.errores).toEqual([]);
+    expect(sintactico.programa).not.toBeNull();
+    const generador = ejecutar(sintactico.programa!, {
+      estadoInicial: ESTADO_INICIAL,
+      comandosPermitidos: PERMITIDOS_2,
+      semilla: 0,
+    });
+    let paso = generador.next();
+    while (!paso.done) paso = generador.next();
+    expect(paso.value.error).toBeNull();
+    expect(paso.value.guardaActivada).toBeNull();
+    return extraerSegmentos(paso.value.operaciones);
+  }
+
+  // Un cuadrado sin ninguna decoración: la referencia/objetivo.
+  const CUADRADO_PELADO = 'REPITE 4 [AV 100 GD 90]';
+
+  // El MISMO cuadrado, con el canal decorativo intercalado de todas las formas:
+  //  - PONCOLOR y PONGROSOR antes de dibujar,
+  //  - un par SUBELAPIZ/BAJALAPIZ que NO mueve la tortuga (no añade ni quita
+  //    trazo: sube el lápiz y lo baja en el mismo punto),
+  //  - RELLENA al final.
+  // Los trazos con el lápiz abajo son idénticos a los del cuadrado pelado.
+  const CUADRADO_DECORADO =
+    'PONCOLOR rojo PONGROSOR 5 SUBELAPIZ BAJALAPIZ REPITE 4 [AV 100 GD 90] RELLENA';
+
+  it('el programa decorado deja exactamente los mismos segmentos que el pelado', () => {
+    const pelado = segmentosDe(CUADRADO_PELADO);
+    const decorado = segmentosDe(CUADRADO_DECORADO);
+
+    // Mismo número de trazos: ni color, ni grosor, ni relleno, ni el par de
+    // lápiz añadieron o quitaron un segmento.
+    expect(decorado).toHaveLength(pelado.length);
+    expect(decorado.length).toBeGreaterThan(0);
+
+    // Y las mismas coordenadas, tramo a tramo (el `paso`/`linea` puede diferir
+    // porque las operaciones decorativas ocupan pasos; lo que importa para la
+    // validación geométrica son los puntos).
+    decorado.forEach((seg, i) => {
+      const esperado = pelado[i]!;
+      expect(seg.desde).toEqual(esperado.desde);
+      expect(seg.hasta).toEqual(esperado.hasta);
+    });
+  });
+
+  it('decorado contra pelado da coincidencia con IoU 1.0: la decoración no cambia el veredicto', () => {
+    const pelado = segmentosDe(CUADRADO_PELADO);
+    const decorado = segmentosDe(CUADRADO_DECORADO);
+
+    const v = validar(decorado, pelado, NORM_MUNDO_2);
+    expect(v.coincide).toBe(true);
+    expect(v.motivo).toBe('coincide');
+    expect(v.iou).toBe(1);
+    expect(v.excesoPorcentaje).toBe(0);
+  });
+
+  it('el veredicto del decorado es idéntico al del pelado contra el mismo objetivo', () => {
+    const pelado = segmentosDe(CUADRADO_PELADO);
+    const decorado = segmentosDe(CUADRADO_DECORADO);
+
+    // La referencia de precisión: pelado contra sí mismo.
+    const referencia = validar(pelado, pelado, NORM_MUNDO_2);
+    // Lo que el jugador decorado obtiene contra la misma referencia.
+    const conDecorado = validar(decorado, pelado, NORM_MUNDO_2);
+
+    expect(conDecorado.coincide).toBe(referencia.coincide);
+    expect(conDecorado.motivo).toBe(referencia.motivo);
+    expect(conDecorado.iou).toBe(referencia.iou);
+    expect(conDecorado.excesoPorcentaje).toBe(referencia.excesoPorcentaje);
+    expect(conDecorado.angulo).toBe(referencia.angulo);
+  });
 });

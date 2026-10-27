@@ -1000,3 +1000,112 @@ describe('Property 11: forma de los mensajes del catálogo', () => {
     );
   });
 });
+
+// ============================================================================
+// 7. Mundo 2: mensajes de PARA…FIN, redefinición, color y grosor
+// Valida: Requisitos R4.3, R6.1–R6.7
+// ============================================================================
+
+describe('Mundo 2: mensajes nuevos del catálogo', () => {
+  describe('procedimientos PARA…FIN', () => {
+    it('finSinPara sustituye la línea y es severidad jugador (R6.5)', () => {
+      const error = crearError('finSinPara', { linea: 7 }, { linea: 7, columna: 1 });
+      expect(error.id).toBe('finSinPara');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('Encontré FIN en la línea 7 pero no hay ningún PARA abierto.');
+      expect(error.linea).toBe(7);
+      expect(error.columna).toBe(1);
+    });
+
+    it('paraSinFin sustituye nombre y línea (R6.6)', () => {
+      const error = crearError('paraSinFin', { nombre: 'CUADRADO', linea: 1 }, { linea: 1 });
+      expect(error.id).toBe('paraSinFin');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('El comando CUADRADO que empezaste en la línea 1 nunca termina con FIN.');
+      expect(error.linea).toBe(1);
+    });
+
+    it('procedimientoRedefinido sustituye el nombre (R6.7)', () => {
+      const error = crearError('procedimientoRedefinido', { nombre: 'CUADRADO', linea: 9 }, { linea: 9 });
+      expect(error.id).toBe('procedimientoRedefinido');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('Ya le enseñaste a Kiro qué es CUADRADO más arriba. No puedo aprenderlo dos veces; edita la primera definición.');
+      expect(error.linea).toBe(9);
+    });
+
+    it('paraNombreQueEsLenguaje sustituye el nombre reservado (R6.2)', () => {
+      const error = crearError('paraNombreQueEsLenguaje', { nombre: 'AVANZA' });
+      expect(error.id).toBe('paraNombreQueEsLenguaje');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('AVANZA es una palabra de KiroLogo y no se puede volver a definir.');
+    });
+  });
+
+  describe('decorado: color y grosor', () => {
+    it('colorInvalido sustituye el color escrito y es severidad jugador (R4.3)', () => {
+      const error = crearError('colorInvalido', { escrita: 'turquesa' });
+      expect(error.id).toBe('colorInvalido');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('No conozco el color turquesa. Puedes usar: rojo, azul, verde, amarillo, naranja, morado, rosa, café, negro, blanco o gris.');
+    });
+
+    it('colorInvalido lista los once colores en el orden de NOMBRES_COLOR', () => {
+      const error = crearError('colorInvalido', { escrita: 'turquesa' });
+      // El orden y la redacción quedan fijados: bloquea cambios accidentales en
+      // la lista de colores que debe replicar NOMBRES_COLOR de colores.ts.
+      expect(error.mensaje).toContain(
+        'Puedes usar: rojo, azul, verde, amarillo, naranja, morado, rosa, café, negro, blanco o gris.',
+      );
+    });
+
+    it('grosorInvalido da el mensaje fijo del rango 1–50', () => {
+      const error = crearError('grosorInvalido', {});
+      expect(error.id).toBe('grosorInvalido');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('El grosor debe ser un número entero entre 1 y 50.');
+    });
+  });
+});
+
+// ============================================================================
+// 8. Mundo 2: sugerencia de procedimientos en resolverPalabraNoEjecutable
+// Valida: Requisitos R6.3, R6.4
+// ============================================================================
+
+describe('resolverPalabraNoEjecutable con procedimientos definidos', () => {
+  it('sugiere un procedimiento definido cercano (R6.3)', () => {
+    // FLOt → FLOR es distancia 1; ningún comando del vocabulario queda dentro
+    // del umbral (≤2) de FLOT, así que el procedimiento gana de forma determinista.
+    const error = resolverPalabraNoEjecutable('FLOt', 2, undefined, ['FLOR']);
+    expect(error.id).toBe('palabraDesconocidaConSugerencia');
+    expect(error.mensaje).toContain('¿Querías decir FLOR?');
+  });
+
+  it('sugiere el procedimiento cuando está estrictamente más cerca que cualquier comando (R6.3)', () => {
+    // CUADRADi → CUADRADO es distancia 1; ningún comando se le acerca al umbral.
+    const error = resolverPalabraNoEjecutable('CUADRADi', 2, undefined, ['CUADRADO']);
+    expect(error.id).toBe('palabraDesconocidaConSugerencia');
+    expect(error.mensaje).toBe('No sé cómo hacer CUADRADi. ¿Querías decir CUADRADO?');
+  });
+
+  it('no sugiere nada cuando ningún candidato entra en el umbral (R6.4)', () => {
+    // ZZZZZZZ está lejos de todo comando y del procedimiento FLOR/CUADRADO.
+    const error = resolverPalabraNoEjecutable('ZZZZZZZ', 2, undefined, ['CUADRADO']);
+    expect(error.id).toBe('palabraDesconocidaSinSugerencia');
+    expect(error.mensaje).toBe('No sé cómo hacer ZZZZZZZ.');
+  });
+
+  it('sin el 4.º argumento se comporta igual que antes: no propone procedimientos', () => {
+    // AVANSA → AVANZA (comando del vocabulario) exactamente como en el mundo 0/1,
+    // sin que la ausencia del parámetro procedimientos altere nada.
+    const error = resolverPalabraNoEjecutable('AVANSA', 0);
+    expect(error.id).toBe('palabraDesconocidaConSugerencia');
+    expect(error.mensaje).toBe('No sé cómo hacer AVANSA. ¿Querías decir AVANZA?');
+  });
+
+  it('con lista de procedimientos vacía explícita mantiene el comportamiento del vocabulario', () => {
+    const error = resolverPalabraNoEjecutable('AVANSA', 0, undefined, []);
+    expect(error.id).toBe('palabraDesconocidaConSugerencia');
+    expect(error.mensaje).toBe('No sé cómo hacer AVANSA. ¿Querías decir AVANZA?');
+  });
+});

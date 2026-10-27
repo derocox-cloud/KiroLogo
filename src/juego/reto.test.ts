@@ -209,3 +209,94 @@ describe('Property 25: regresión del catálogo', () => {
     expect(fallos, fallos.join('\n')).toHaveLength(0);
   });
 });
+
+// ============================================================================
+// Cableado del mundo 2 (12.2)
+// Confirma que resolverReto resuelve los seis niveles del mundo 2 de punta a
+// punta: autorados (2.1, 2.4) y generados (2.2, 2.3, 2.5, 2.6). El chequeo
+// pesado sobre 200 semillas vive en 10.6; aquí solo se confirma el CABLEADO.
+// ============================================================================
+
+describe('reto · cableado del mundo 2', () => {
+  it('resuelve el 2.1 (autorado) con presupuesto 8 y límite duro inactivo', () => {
+    const r = resolverReto('2.1', 0);
+    expect(r.exito).toBe(true);
+    if (!r.exito) return;
+    // El presupuesto es el Conteo de la referencia, no un número a mano.
+    const conteo = contarInstrucciones(r.reto.referencia);
+    expect(conteo.exito).toBe(true);
+    if (conteo.exito) expect(r.reto.presupuestoEstrella).toBe(conteo.instrucciones);
+    expect(r.reto.presupuestoEstrella).toBe(8);
+    // Mundo 2 < 3: el límite duro no se activa.
+    expect(r.reto.limiteDuroActivo).toBe(false);
+  });
+
+  it('resuelve el 2.4 (autorado) con presupuesto 7 y límite duro inactivo', () => {
+    const r = resolverReto('2.4', 0);
+    expect(r.exito).toBe(true);
+    if (!r.exito) return;
+    expect(r.reto.presupuestoEstrella).toBe(7);
+    expect(r.reto.limiteDuroActivo).toBe(false);
+  });
+
+  it('resuelve los cuatro generados (2.2, 2.3, 2.5, 2.6) para varias semillas', () => {
+    const fallos: string[] = [];
+    for (const id of ['2.2', '2.3', '2.5', '2.6']) {
+      for (const semilla of [0, 1, 7, 42, 100]) {
+        const r = resolverReto(id, semilla);
+        if (!r.exito) {
+          fallos.push(`${id} (semilla ${semilla}): no se resolvió (${r.error.id})`);
+          continue;
+        }
+        // La referencia encuadra (hay al menos un segmento) y el límite duro
+        // sigue inactivo en el mundo 2.
+        if (r.reto.segmentos.length === 0) {
+          fallos.push(`${id} (semilla ${semilla}): sin segmentos`);
+        }
+        if (r.reto.limiteDuroActivo) {
+          fallos.push(`${id} (semilla ${semilla}): límite duro activo en mundo 2`);
+        }
+        // El presupuesto siempre se deriva del Conteo de la referencia.
+        const conteo = contarInstrucciones(r.reto.referencia);
+        if (conteo.exito && r.reto.presupuestoEstrella !== conteo.instrucciones) {
+          fallos.push(`${id} (semilla ${semilla}): presupuesto no deriva del Conteo`);
+        }
+      }
+    }
+    expect(fallos, fallos.join('\n')).toHaveLength(0);
+  });
+
+  it('la referencia del 2.6 gana la abstracción defineProcedimiento (R10.2)', () => {
+    const r = resolverReto('2.6', 3);
+    expect(r.exito).toBe(true);
+    if (!r.exito) return;
+    const analisis = analizarAbstraccion(r.reto.referencia, [{ clave: 'defineProcedimiento' }]);
+    expect(analisis.confirmadas).toContain('defineProcedimiento');
+  });
+
+  it('cada generado del mundo 2 aprueba su propio nivel con las tres estrellas', () => {
+    for (const id of ['2.2', '2.3', '2.5', '2.6']) {
+      const r = resolverReto(id, 9);
+      expect(r.exito).toBe(true);
+      if (!r.exito) continue;
+      const veredicto = validar(r.reto.segmentos, r.reto.segmentos, r.reto.nivel.normalizacion);
+      const cal = calificar(r.reto.referencia, veredicto, r.reto);
+      expect(cal.precision.otorgada, `${id} precisión`).toBe(true);
+      expect(cal.economia.otorgada, `${id} economía`).toBe(true);
+      expect(cal.abstraccion.otorgada, `${id} abstracción`).toBe(true);
+    }
+  });
+
+  it('la misma semilla reproduce el mismo reto generado del mundo 2 (determinismo)', () => {
+    for (const id of ['2.2', '2.3', '2.5', '2.6']) {
+      const a = resolverReto(id, 12345);
+      const b = resolverReto(id, 12345);
+      expect(a.exito && b.exito).toBe(true);
+      if (a.exito && b.exito) {
+        expect(a.reto.semillaEfectiva).toBe(b.reto.semillaEfectiva);
+        expect(JSON.stringify(a.reto.referencia)).toBe(JSON.stringify(b.reto.referencia));
+        expect(a.reto.segmentos.length).toBe(b.reto.segmentos.length);
+      }
+    }
+  });
+});

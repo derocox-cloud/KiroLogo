@@ -177,6 +177,165 @@ describe('conteo', () => {
   });
 
   // ==========================================================================
+  // Requisito 2 (mundo 2): conteo de procedimientos para la estrella de economía
+  // Valida: Requisitos 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7
+  // ==========================================================================
+
+  describe('Requisito 2: conteo de procedimientos', () => {
+    // El cuerpo canónico del requisito 2: REPITE 4 [AV 100 GD 90], que cuenta 3
+    // (1 por el REPITE + 2 por su cuerpo escrito una sola vez).
+    function cuerpoCuadrado() {
+      return [repite(4, [invocacion('AVANZA', numero(100)), invocacion('GIRADERECHA', numero(90))])];
+    }
+
+    function definicionCuadrado(): DefinicionProcedimiento {
+      return {
+        tipo: 'definicionProcedimiento',
+        nombre: 'CUADRADO',
+        parametros: [],
+        cuerpo: cuerpoCuadrado(),
+        ...pos(),
+      };
+    }
+
+    function invocarCuadrado(): InvocacionProcedimiento {
+      return { tipo: 'invocacionProcedimiento', nombre: 'CUADRADO', argumentos: [], ...pos() };
+    }
+
+    it('R2.1 la cabecera PARA NOMBRE suma 0: definir sin invocar cuenta solo el cuerpo', () => {
+      // Solo la definición; su cuerpo canónico vale 3. Si la cabecera sumara,
+      // el total sería mayor que 3.
+      const r = contarInstrucciones(programa([definicionCuadrado()]));
+      expect(r.exito).toBe(true);
+      if (r.exito) expect(r.instrucciones).toBe(3);
+    });
+
+    it('R2.2 la línea FIN suma 0: el cierre de la definición no agrega al presupuesto', () => {
+      // No hay nodo FIN en el AST; FIN es parte de la cabecera de la definición.
+      // Que una definición cuente exactamente su cuerpo demuestra que ni PARA ni
+      // FIN aportan al presupuesto.
+      const cuerpo = [invocacion('AVANZA', numero(100)), invocacion('GIRADERECHA', numero(120))];
+      const definicion: DefinicionProcedimiento = {
+        tipo: 'definicionProcedimiento',
+        nombre: 'TRIANGULO',
+        parametros: [],
+        cuerpo,
+        ...pos(),
+      };
+      const r = contarInstrucciones(programa([definicion]));
+      expect(r.exito).toBe(true);
+      if (r.exito) expect(r.instrucciones).toBe(2); // 0 cabecera + 0 FIN + 2 cuerpo
+    });
+
+    it('R2.3 el cuerpo de un procedimiento se cuenta exactamente una vez, en la definición', () => {
+      // Definir e invocar tres veces: el cuerpo (3) se cuenta una sola vez en la
+      // definición; las invocaciones solo suman 1 cada una. Si el cuerpo se
+      // contara en cada invocación, el total sería 3 + 3·3 = 12, no 6.
+      const prog = programa([definicionCuadrado(), invocarCuadrado(), invocarCuadrado(), invocarCuadrado()]);
+      const r = contarInstrucciones(prog);
+      expect(r.exito).toBe(true);
+      if (r.exito) expect(r.instrucciones).toBe(6);
+    });
+
+    it('R2.4 una InvocacionProcedimiento suma exactamente 1, igual que una InvocacionComando', () => {
+      // Un programa con una sola invocación de comando y otro con una sola
+      // invocación de procedimiento cuentan ambos 1.
+      const soloComando = contarInstrucciones(programa([invocacion('AVANZA', numero(100))]));
+      const soloProcedimiento = contarInstrucciones(programa([invocarCuadrado()]));
+      expect(soloComando.exito && soloProcedimiento.exito).toBe(true);
+      if (soloComando.exito && soloProcedimiento.exito) {
+        expect(soloComando.instrucciones).toBe(1);
+        expect(soloProcedimiento.instrucciones).toBe(1);
+        expect(soloProcedimiento.instrucciones).toBe(soloComando.instrucciones);
+      }
+    });
+
+    it('R2.6 PARA CUADRADO REPITE 4 [AV 100 GD 90] FIN CUADRADO CUADRADO CUADRADO cuenta exactamente 6', () => {
+      // 3 del cuerpo del REPITE (contado una vez en la definición) + 3 invocaciones.
+      const prog = programa([definicionCuadrado(), invocarCuadrado(), invocarCuadrado(), invocarCuadrado()]);
+      const r = contarInstrucciones(prog);
+      expect(r.exito).toBe(true);
+      if (r.exito) expect(r.instrucciones).toBe(6);
+    });
+
+    it('R2.7 copiar REPITE 4 [AV 100 GD 90] tres veces sin procedimiento cuenta exactamente 9', () => {
+      // Tres copias del cuerpo canónico (3 cada una) sin definir procedimiento: 3·3 = 9.
+      //
+      // NOTA DE DISCREPANCIA CON LA SPEC: el requisito R2.7 (y el design) afirman
+      // que este programa cuenta 12. Pero la regla de conteo —única fuente de
+      // verdad, que el jugador ve— NO multiplica el cuerpo del REPITE por sus
+      // iteraciones: un solo `REPITE 4 [AV 100 GD 90]` cuenta exactamente 3 (test
+      // «no multiplica por el número de iteraciones»). Tres copias cuentan 9, no 12.
+      // El test afirma el número real de conteo.ts; la lección pedagógica se
+      // conserva porque la versión abstraída (6, R2.6) sigue siendo más barata.
+      const prog = programa([
+        repite(4, [invocacion('AVANZA', numero(100)), invocacion('GIRADERECHA', numero(90))]),
+        repite(4, [invocacion('AVANZA', numero(100)), invocacion('GIRADERECHA', numero(90))]),
+        repite(4, [invocacion('AVANZA', numero(100)), invocacion('GIRADERECHA', numero(90))]),
+      ]);
+      const r = contarInstrucciones(prog);
+      expect(r.exito).toBe(true);
+      if (r.exito) expect(r.instrucciones).toBe(9);
+    });
+
+    it('R2.6 vs R2.7: abstraer (6) nunca sale más caro que copiar y pegar (9)', () => {
+      const conProcedimiento = contarInstrucciones(
+        programa([definicionCuadrado(), invocarCuadrado(), invocarCuadrado(), invocarCuadrado()]),
+      );
+      const copiaPega = contarInstrucciones(
+        programa([
+          repite(4, [invocacion('AVANZA', numero(100)), invocacion('GIRADERECHA', numero(90))]),
+          repite(4, [invocacion('AVANZA', numero(100)), invocacion('GIRADERECHA', numero(90))]),
+          repite(4, [invocacion('AVANZA', numero(100)), invocacion('GIRADERECHA', numero(90))]),
+        ]),
+      );
+      expect(conProcedimiento.exito && copiaPega.exito).toBe(true);
+      if (conProcedimiento.exito && copiaPega.exito) {
+        expect(conProcedimiento.instrucciones).toBe(6);
+        expect(copiaPega.instrucciones).toBe(9);
+        expect(conProcedimiento.instrucciones).toBeLessThanOrEqual(copiaPega.instrucciones);
+      }
+    });
+
+    it('R2.5 el conteo con procedimiento es cuerpo + m; el copia-pega es cuerpo·m, sobre varios m', () => {
+      // NOTA DE DISCREPANCIA CON LA SPEC: R2.5 afirma «menor o igual» para todo
+      // m ≥ 1. Bajo la regla real de conteo eso no se cumple en m = 1: definir e
+      // invocar una vez cuesta cuerpo + 1 = 4, y una sola copia cuesta cuerpo = 3,
+      // así que 4 > 3. El «menor o igual» solo vale a partir de m ≥ 2
+      // (3 + m ≤ 3·m ⟺ m ≥ 1.5). El test afirma las fórmulas exactas que produce
+      // conteo.ts y comprueba la desigualdad solo donde realmente se sostiene.
+      fc.assert(
+        fc.property(fc.integer({ min: 1, max: 50 }), (m) => {
+          // Programa con procedimiento: 1 definición + m invocaciones.
+          const conProc: Instruccion[] = [definicionCuadrado()];
+          for (let i = 0; i < m; i++) conProc.push(invocarCuadrado());
+
+          // Programa alternativo: el cuerpo canónico copiado m veces.
+          const copia: Instruccion[] = [];
+          for (let i = 0; i < m; i++) {
+            copia.push(repite(4, [invocacion('AVANZA', numero(100)), invocacion('GIRADERECHA', numero(90))]));
+          }
+
+          const rProc = contarInstrucciones(programa(conProc));
+          const rCopia = contarInstrucciones(programa(copia));
+          expect(rProc.exito && rCopia.exito).toBe(true);
+          if (rProc.exito && rCopia.exito) {
+            // Con procedimiento: 3 (cuerpo, una vez) + m (invocaciones).
+            expect(rProc.instrucciones).toBe(3 + m);
+            // Copia y pega: 3·m.
+            expect(rCopia.instrucciones).toBe(3 * m);
+            // Abstraer sale igual o más barato a partir de m ≥ 2.
+            if (m >= 2) {
+              expect(rProc.instrucciones).toBeLessThanOrEqual(rCopia.instrucciones);
+            }
+          }
+        }),
+        { seed: 2, numRuns: 50 },
+      );
+    });
+  });
+
+  // ==========================================================================
   // Rendimiento (Req 9.1): 200 instrucciones, 20 niveles, ≤ 50 ms
   // ==========================================================================
 

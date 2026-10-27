@@ -25,7 +25,7 @@ import '@fontsource-variable/jetbrains-mono/index.css';
 
 import type { Programa } from './lenguaje/ast.js';
 import { analizarLexico } from './lenguaje/lexer.js';
-import { analizar } from './lenguaje/parser.js';
+import { analizar, nombresDeProcedimientos } from './lenguaje/parser.js';
 import { esErrorParaJugador, crearError, type ErrorKiroLogo } from './lenguaje/errores.js';
 import { comandosDelMundo } from './lenguaje/vocabulario.js';
 import { ejecutar, type Operacion, type ResultadoEjecucion } from './lenguaje/interprete.js';
@@ -780,6 +780,18 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     mundo: reto.nivel.mundo,
     insertarTexto: (t: string) => editor.insertarEnCursor(t),
     anunciar,
+  });
+
+  // Mantener el panel al día con los procedimientos que el jugador define en el
+  // texto: en cada cambio se tokeniza y se obtienen los nombres válidos (los PARA
+  // … FIN bien formados, en orden de definición) para reflejar altas, bajas y
+  // renombres (R7.3, R7.4). Se usa la primera pasada del parser por los tokens, no
+  // el AST completo: así los procedimientos bien formados aparecen aunque el resto
+  // del programa todavía tenga errores mientras el jugador escribe. El panel ignora
+  // una lista igual a la vigente, así que esto no reconstruye en cada tecla.
+  editor.alCambiar((texto: string) => {
+    const lexico = analizarLexico(texto);
+    panel.fijarProcedimientos(nombresDeProcedimientos(lexico.tokens));
   });
 
   // El panel de comandos se crea ANTES que los controles: va junto al editor (a su

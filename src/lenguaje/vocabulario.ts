@@ -159,9 +159,9 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     aridad: 'variable',
     tiposArgumento: ['palabra'],
     mundo: 2,
-    descripcion: 'Declara un procedimiento con nombre y parámetros.',
-    ejemplo: 'PARA cuadrado :lado',
-    insercion: 'PARA cuadrado :lado',
+    descripcion: 'Le enseña a Kiro un comando nuevo con un nombre.',
+    ejemplo: 'PARA cuadrado',
+    insercion: 'PARA cuadrado',
     ejecutable: false,
   },
   {

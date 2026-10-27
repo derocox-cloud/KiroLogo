@@ -7,10 +7,17 @@ import type { Programa, Instruccion } from './ast.js';
 import { buscarComando, type EntradaVocabulario } from './vocabulario.js';
 import { crearError, type ErrorKiroLogo } from './errores.js';
 import {
+  resolverColorPorNombre,
+  resolverColorRGB,
+  type Color,
+} from './colores.js';
+import {
   ESTADO_INICIAL,
   desplazar,
   girar,
   alCentro,
+  conLapiz,
+  conVisibilidad,
   type EstadoTortuga,
   type Punto,
 } from '../motor/tortuga.js';
@@ -28,6 +35,9 @@ export interface OperacionBase {
   readonly estadoAntes: EstadoTortuga;
   readonly estadoDespues: EstadoTortuga;
 }
+
+/** Campos comunes de una operación salvo `estadoDespues`, que cada caso fija. */
+type BaseSinDespues = Omit<OperacionBase, 'estadoDespues'>;
 
 /** Desplazamiento. Lleva los puntos y el lápiz vigente durante el movimiento. */
 export interface OperacionMover extends OperacionBase {
@@ -66,13 +76,42 @@ export interface OperacionReubicar extends OperacionBase {
   readonly tipo: 'reubicar';
 }
 
+// --- Canal decorativo (mundo 2) ------------------------------------------
+// Estas tres operaciones viajan al renderizador para que el dibujo se vea con
+// el color, el grosor y el relleno que pidió el jugador, pero NUNCA se vuelven
+// un segmento: `extraerSegmentos` solo mira `mover` con el lápiz abajo, así que
+// el validador —que compara máscaras de segmentos— no las ve. Esa es la
+// frontera que hace que la decoración no pueda aprobar ni reprobar un nivel
+// (R4.8). Mantener esa invariante es la razón de que no muevan la tortuga.
+
+/** Cambio de color del trazo. Decorativa: no produce segmento, no la lee el validador. */
+export interface OperacionColor extends OperacionBase {
+  readonly tipo: 'color';
+  readonly color: Color;             // nombre resuelto o terna RGB
+}
+
+/** Cambio de grosor del trazo. Decorativa. */
+export interface OperacionGrosor extends OperacionBase {
+  readonly tipo: 'grosor';
+  readonly grosor: number;           // entero 1..50
+}
+
+/** Relleno del área cerrada donde está la tortuga. Decorativa. */
+export interface OperacionRelleno extends OperacionBase {
+  readonly tipo: 'relleno';
+  readonly color: Color;
+}
+
 export type Operacion =
   | OperacionMover
   | OperacionGirar
   | OperacionLapiz
   | OperacionVisibilidad
   | OperacionLimpiar
-  | OperacionReubicar;
+  | OperacionReubicar
+  | OperacionColor
+  | OperacionGrosor
+  | OperacionRelleno;
 
 // ============================================================================
 // Guardas y límites
@@ -121,6 +160,43 @@ interface Marco {
 }
 
 // ============================================================================
+// Estado decorativo (mundo 2)
+// ============================================================================
+
+/**
+ * Color, grosor y relleno vigentes durante la ejecución. Vive en el intérprete
+ * y NO en `EstadoTortuga`: la tortuga pura no conoce color ni grosor (su modelo
+ * es posición, rumbo y lápiz). El intérprete lo arrastra entre operaciones y lo
+ * adjunta a las operaciones decorativas que emite. Arranca en negro y grosor 1.
+ */
+interface EstadoDecorativo {
+  color: Color;
+  grosor: number;
+}
+
+/** Color por omisión del trazo: negro. Se resuelve una sola vez del catálogo. */
+const COLOR_NEGRO: Color = (() => {
+  const r = resolverColorPorNombre('negro');
+  // `negro` siempre existe en el catálogo; el fallback deja el tipo sin dudas.
+  return r.ok ? r.color : { r: 0, g: 0, b: 0, nombre: 'negro' };
+})();
+
+/**
+ * Resultado de ejecutar un comando. Distingue tres desenlaces que el bucle
+ * principal trata distinto:
+ *  - 'operacion': el comando produjo una operación (y, si aplica, un nuevo
+ *    estado decorativo);
+ *  - 'error': el comando se reconoció pero su argumento es inválido (color o
+ *    grosor fuera de rango). Detiene la ejecución conservando el estado vigente;
+ *  - 'noEjecutable': el comando está permitido pero esta capa no lo ejecuta
+ *    (no debería ocurrir con el vocabulario de los mundos 0-2).
+ */
+type ResultadoComando =
+  | { readonly clase: 'operacion'; readonly operacion: Operacion; readonly decorativo: EstadoDecorativo }
+  | { readonly clase: 'error'; readonly error: ErrorKiroLogo }
+  | { readonly clase: 'noEjecutable' };
+
+// ============================================================================
 // Función principal
 // ============================================================================
 
@@ -149,6 +225,9 @@ export function* ejecutar(
   // Estado que se pone en cero al comenzar cada ejecución, sin arrastrar nada.
   let paso = 0;
   let estado: EstadoTortuga = opciones.estadoInicial ?? ESTADO_INICIAL;
+  // El estado decorativo arranca en los valores por omisión (negro, grosor 1) y
+  // se actualiza al ejecutar PONCOLOR/PONGROSOR. RELLENA lee el color vigente.
+  let decorativo: EstadoDecorativo = { color: COLOR_NEGRO, grosor: 1 };
   const inicioTiempo = ahora();
 
   const operaciones: Operacion[] = [];
@@ -279,15 +358,22 @@ export function* ejecutar(
     }
 
     // Producir la operación según la semántica del comando (por nombre canónico).
-    const operacion = ejecutarComando(nombreCanonico, argumento(instruccion), estado, paso, instruccion.linea, profundidadActual());
-    if (operacion === null) {
-      // Comando permitido pero no ejecutable en esta spec (no debería ocurrir en mundo 0).
+    const resultado = ejecutarComando(nombreCanonico, instruccion, estado, decorativo, paso, instruccion.linea, profundidadActual());
+    if (resultado.clase === 'noEjecutable') {
+      // Comando permitido pero no ejecutable en esta capa (no debería ocurrir).
       const error = crearError('comandoNoPermitido', { nombre: instruccion.nombre }, { linea: instruccion.linea });
       return { operaciones, guardaActivada: null, error };
     }
+    if (resultado.clase === 'error') {
+      // Argumento inválido (color o grosor): se detiene conservando el estado
+      // decorativo vigente, sin emitir operación por esta instrucción.
+      return { operaciones, guardaActivada: null, error: resultado.error };
+    }
 
+    const operacion = resultado.operacion;
     operaciones.push(operacion);
     estado = operacion.estadoDespues;
+    decorativo = resultado.decorativo;
     paso += 1;
 
     // Medición de tiempo periódica.
@@ -319,56 +405,183 @@ function argumento(instruccion: Instruccion & { tipo: 'invocacionComando' }): nu
 }
 
 /**
- * Ejecuta un comando del mundo 0 y produce su operación. Devuelve null si el
- * comando no pertenece al mundo 0 (no ejecutable en esta spec).
+ * Describe una terna RGB para el mensaje `colorInvalido` cuando la lista no es
+ * válida (p. ej. `[255 0]` o `[256 0 0]`). No es un color del catálogo, así que
+ * se rinde tal cual la escribió el jugador, entre corchetes.
+ */
+function describirListaRGB(valores: readonly number[]): string {
+  return `[${valores.join(' ')}]`;
+}
+
+/**
+ * Ejecuta un comando de los mundos 0, 1 y 2 y produce su `ResultadoComando`.
+ * Recibe la instrucción completa para leer el argumento sin resolver de color, y
+ * el estado decorativo vigente para arrastrarlo y, en RELLENA, leer el color.
  */
 function ejecutarComando(
   nombre: string,
-  arg: number | null,
+  instruccion: Instruccion & { tipo: 'invocacionComando' },
   estadoAntes: EstadoTortuga,
+  decorativo: EstadoDecorativo,
   paso: number,
   linea: number,
   profundidad: number,
-): Operacion | null {
-  const base = { paso, linea, profundidad, estadoAntes };
+): ResultadoComando {
+  const base: BaseSinDespues = { paso, linea, profundidad, estadoAntes };
 
   switch (nombre) {
     case 'AVANZA':
     case 'RETROCEDE': {
-      const distancia = arg ?? 0;
+      const distancia = argumento(instruccion) ?? 0;
       const sentido = nombre === 'AVANZA' ? 'adelante' : 'atras';
       const r = desplazar(estadoAntes, distancia, sentido);
       const estadoDespues = r.valido ? r.estado : estadoAntes;
-      return {
+      return opOk({
         ...base,
         tipo: 'mover',
         desde: { x: estadoAntes.posicion.x, y: estadoAntes.posicion.y },
         hasta: { x: estadoDespues.posicion.x, y: estadoDespues.posicion.y },
         lapizAbajo: estadoAntes.lapizAbajo,
         estadoDespues,
-      };
+      }, decorativo);
     }
     case 'GIRADERECHA':
     case 'GIRAIZQUIERDA': {
-      const grados = arg ?? 0;
+      const grados = argumento(instruccion) ?? 0;
       const sentido: SentidoGiro = nombre === 'GIRADERECHA' ? 'derecha' : 'izquierda';
       const r = girar(estadoAntes, grados, sentido);
       const estadoDespues = r.valido ? r.estado : estadoAntes;
-      return { ...base, tipo: 'girar', grados, sentido, estadoDespues };
+      return opOk({ ...base, tipo: 'girar', grados, sentido, estadoDespues }, decorativo);
     }
     case 'CENTRO': {
       const estadoDespues = alCentro(estadoAntes);
-      return { ...base, tipo: 'reubicar', estadoDespues };
+      return opOk({ ...base, tipo: 'reubicar', estadoDespues }, decorativo);
     }
     case 'BORRAPANTALLA': {
       // Va al centro con rumbo 0, conservando lápiz y visibilidad; descarta la
       // estela (lo aplica el extractor de segmentos al ver la operación limpiar).
       const estadoDespues = alCentro(estadoAntes);
-      return { ...base, tipo: 'limpiar', estadoDespues };
+      return opOk({ ...base, tipo: 'limpiar', estadoDespues }, decorativo);
     }
+
+    // --- Mundo 2: lápiz ---------------------------------------------------
+    // `conLapiz` devuelve siempre un estado equivalente, sin error, aunque el
+    // lápiz ya esté en ese valor: eso vuelve idempotente a SUBELAPIZ/BAJALAPIZ
+    // (R3.7). El flag viaja en la operación para que, cuando llegue el `mover`
+    // siguiente, `extraerSegmentos` sepa si hay trazo.
+    case 'SUBELAPIZ': {
+      const estadoDespues = conLapiz(estadoAntes, false);
+      return opOk({ ...base, tipo: 'lapiz', lapizAbajo: false, estadoDespues }, decorativo);
+    }
+    case 'BAJALAPIZ': {
+      const estadoDespues = conLapiz(estadoAntes, true);
+      return opOk({ ...base, tipo: 'lapiz', lapizAbajo: true, estadoDespues }, decorativo);
+    }
+
+    // --- Mundo 2: visibilidad --------------------------------------------
+    // Igual que el lápiz: `conVisibilidad` nunca falla y es idempotente al
+    // repetir OCULTATORTUGA/MUESTRATORTUGA sobre el mismo estado (R5.4, R5.5).
+    case 'OCULTATORTUGA': {
+      const estadoDespues = conVisibilidad(estadoAntes, false);
+      return opOk({ ...base, tipo: 'visibilidad', visible: false, estadoDespues }, decorativo);
+    }
+    case 'MUESTRATORTUGA': {
+      const estadoDespues = conVisibilidad(estadoAntes, true);
+      return opOk({ ...base, tipo: 'visibilidad', visible: true, estadoDespues }, decorativo);
+    }
+
+    // --- Mundo 2: canal decorativo ---------------------------------------
+    // Ninguno mueve la tortuga: estadoDespues === estadoAntes. Y como no emiten
+    // `mover`, no producen trazo, así que el validador no los ve (R4.8).
+    case 'PONCOLOR':
+      return ejecutarPonColor(instruccion, base, decorativo, estadoAntes);
+    case 'PONGROSOR':
+      return ejecutarPonGrosor(instruccion, base, decorativo, estadoAntes);
+    case 'RELLENA': {
+      // RELLENA no toma argumento de color (aridad 0 en el vocabulario): rellena
+      // con el color vigente del estado decorativo. La detección del área cerrada
+      // (R4.7: sin área, no cambia el lienzo) es tarea del renderizador; aquí solo
+      // se emite la operación con el color actual.
+      const operacion: OperacionRelleno = { ...base, tipo: 'relleno', color: decorativo.color, estadoDespues: estadoAntes };
+      return { clase: 'operacion', operacion, decorativo };
+    }
+
     default:
-      return null;
+      return { clase: 'noEjecutable' };
   }
+}
+
+/** Envuelve una operación que no cambia el estado decorativo. */
+function opOk(operacion: Operacion, decorativo: EstadoDecorativo): ResultadoComando {
+  return { clase: 'operacion', operacion, decorativo };
+}
+
+/**
+ * PONCOLOR: resuelve el argumento de color (palabra del catálogo o terna RGB)
+ * contra `colores.ts`. Si es válido, actualiza el color vigente y emite
+ * `OperacionColor`; si no, detiene con `colorInvalido` y conserva el color
+ * anterior (R4.1, R4.3).
+ */
+function ejecutarPonColor(
+  instruccion: Instruccion & { tipo: 'invocacionComando' },
+  base: BaseSinDespues,
+  decorativo: EstadoDecorativo,
+  estadoAntes: EstadoTortuga,
+): ResultadoComando {
+  const arg = instruccion.argumentoColor;
+  if (arg === undefined) {
+    // El parser no armó el argumento de color; se trata como color inválido.
+    return errorColor('', base.linea);
+  }
+
+  if (arg.clase === 'palabra') {
+    const r = resolverColorPorNombre(arg.valor);
+    if (!r.ok) {
+      return errorColor(arg.valor, base.linea);
+    }
+    const operacion: OperacionColor = { ...base, tipo: 'color', color: r.color, estadoDespues: estadoAntes };
+    return { clase: 'operacion', operacion, decorativo: { ...decorativo, color: r.color } };
+  }
+
+  // listaRGB: exige exactamente tres enteros 0..255 (lo valida resolverColorRGB).
+  const [rojo, verde, azul] = arg.valores;
+  if (arg.valores.length !== 3 || rojo === undefined || verde === undefined || azul === undefined) {
+    return errorColor(describirListaRGB(arg.valores), base.linea);
+  }
+  const r = resolverColorRGB(rojo, verde, azul);
+  if (!r.ok) {
+    return errorColor(describirListaRGB(arg.valores), base.linea);
+  }
+  const operacion: OperacionColor = { ...base, tipo: 'color', color: r.color, estadoDespues: estadoAntes };
+  return { clase: 'operacion', operacion, decorativo: { ...decorativo, color: r.color } };
+}
+
+/**
+ * PONGROSOR: exige un entero entre 1 y 50. Si es válido, actualiza el grosor
+ * vigente y emite `OperacionGrosor`; si no, detiene con `grosorInvalido` y
+ * conserva el grosor anterior (R4.4, R4.5).
+ */
+function ejecutarPonGrosor(
+  instruccion: Instruccion & { tipo: 'invocacionComando' },
+  base: BaseSinDespues,
+  decorativo: EstadoDecorativo,
+  estadoAntes: EstadoTortuga,
+): ResultadoComando {
+  const g = argumento(instruccion);
+  if (g === null || !Number.isInteger(g) || g < 1 || g > 50) {
+    return { clase: 'error', error: crearError('grosorInvalido', {}, { linea: base.linea }) };
+  }
+  const operacion: OperacionGrosor = { ...base, tipo: 'grosor', grosor: g, estadoDespues: estadoAntes };
+  return { clase: 'operacion', operacion, decorativo: { ...decorativo, grosor: g } };
+}
+
+/** Construye el resultado de error de color con la posición de la instrucción. */
+function errorColor(escrita: string, linea: number): ResultadoComando {
+  // `colorInvalido` rechaza una `escrita` vacía (la trata como solicitud
+  // inválida); el caso de argumento ausente nunca debería llegar por el parser,
+  // pero si lo hiciera, un texto marcador evita el error de programación.
+  const texto = escrita.trim() === '' ? '(sin color)' : escrita;
+  return { clase: 'error', error: crearError('colorInvalido', { escrita: texto }, { linea }) };
 }
 
 // ============================================================================

@@ -1,11 +1,12 @@
 // Insignias de KiroLogo.
 //
 // Las insignias de concepto se otorgan al dominar un mundo entero: las tres
-// estrellas en todos sus niveles. Esta spec reconoce dos: *Secuencia* (mundo 0)
-// e *Iteración* (mundo 1). El otorgamiento se deriva **solo** del progreso y el
-// catálogo, sin estado propio persistido, de modo que es reproducible a partir
-// de las estrellas guardadas (requisito 8.4). Ninguna otra insignia por concepto
-// ni transversal se otorga aquí (requisito 8.5).
+// estrellas en todos sus niveles. Aquí se reconocen tres: *Secuencia* (mundo 0),
+// *Iteración* (mundo 1) y *Descomposición* (mundo 2). El otorgamiento se deriva
+// **solo** del progreso y el catálogo, sin estado propio persistido, de modo que
+// es reproducible a partir de las estrellas guardadas y, por lo mismo, se
+// mantiene otorgado exactamente una vez sin crear una segunda instancia. Ninguna
+// otra insignia por concepto ni transversal se otorga aquí.
 
 import { CATALOGO } from '../niveles/catalogo.js';
 import type { Nivel } from '../niveles/tipos.js';
@@ -16,12 +17,13 @@ import type { Progreso } from './progreso.js';
 // ============================================================================
 
 /** Las insignias por concepto disponibles en esta spec. */
-export type IdInsignia = 'secuencia' | 'iteracion';
+export type IdInsignia = 'secuencia' | 'iteracion' | 'descomposicion';
 
 /** El mundo al que pertenece cada insignia por concepto. */
 const MUNDO_DE_INSIGNIA: Readonly<Record<IdInsignia, number>> = {
   secuencia: 0,
   iteracion: 1,
+  descomposicion: 2,
 };
 
 // ============================================================================
@@ -72,13 +74,25 @@ export function insigniaIteracionOtorgada(progreso: Progreso): boolean {
   return mundoCompletoConTresEstrellas(1, progreso);
 }
 
+/**
+ * ¿Se otorga la insignia *Descomposición*? Verdadero solo si todos los niveles
+ * del mundo 2 tienen las tres estrellas cada uno. Falta una sola estrella en
+ * cualquiera y no se otorga.
+ *
+ * @param progreso Progreso del jugador
+ */
+export function insigniaDescomposicionOtorgada(progreso: Progreso): boolean {
+  return mundoCompletoConTresEstrellas(2, progreso);
+}
+
 // ============================================================================
 // Insignias por mundo
 // ============================================================================
 
 /**
- * Las insignias otorgadas de un mundo. Hoy el mundo 0 tiene *Secuencia* y el
- * mundo 1 tiene *Iteración*; cualquier otro mundo devuelve una lista vacía.
+ * Las insignias otorgadas de un mundo. Hoy el mundo 0 tiene *Secuencia*, el
+ * mundo 1 tiene *Iteración* y el mundo 2 tiene *Descomposición*; cualquier otro
+ * mundo devuelve una lista vacía.
  *
  * @param mundo Número de mundo (0 a 5)
  * @param progreso Progreso del jugador
@@ -92,6 +106,9 @@ export function insigniasDelMundo(mundo: number, progreso: Progreso): readonly I
       otorgadas.push(id);
     }
     if (id === 'iteracion' && insigniaIteracionOtorgada(progreso)) {
+      otorgadas.push(id);
+    }
+    if (id === 'descomposicion' && insigniaDescomposicionOtorgada(progreso)) {
       otorgadas.push(id);
     }
   }

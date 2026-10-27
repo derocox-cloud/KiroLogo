@@ -5,6 +5,14 @@ export default defineConfig({
   base: '/',
   test: {
     environment: 'node',
+    // La validacion geometrica rasteriza mascaras de 800x800 por fuerza bruta,
+    // y las pruebas de regresion ejercen cada generador sobre 200 semillas. Con
+    // la suite completa en paralelo (maxWorkers=2) esos casos pesados compiten
+    // por CPU y rozan el timeout por defecto de 5 s, aunque aislados corren en
+    // segundos. Se sube el limite para que la contencion no los haga fallar; las
+    // guardas del interprete (5 s de ejecucion) siguen atrapando cuelgues reales.
+    testTimeout: 60_000,
+    hookTimeout: 60_000,
     include: ['src/**/*.test.ts'],
     exclude: [...configDefaults.exclude, '**/node_modules/**'],
     globals: false,

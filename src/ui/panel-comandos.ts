@@ -96,6 +96,14 @@ export interface PanelComandos {
    * `comandosDelMundo` del nuevo mundo. No-op si el mundo ya era el vigente.
    */
   fijarMundo(mundo: Mundo): void;
+  /**
+   * Fija la lista de procedimientos del jugador (nombres en orden de definición,
+   * ya filtrados: solo los registrados en la `Tabla_Procedimientos`). Reconstruye
+   * la sección de procedimientos, que va DESPUÉS de los comandos del lenguaje, sin
+   * tocar los botones de comando: altas, bajas y renombres se reflejan en cada
+   * llamada (R7.1, R7.2, R7.4, R7.5).
+   */
+  fijarProcedimientos(nombres: readonly string[]): void;
 }
 
 // ============================================================================
@@ -138,6 +146,10 @@ export function crearPanelComandos(deps: DependenciasPanel): PanelComandos {
   let mundoActual = deps.mundo;
   let entradas: readonly EntradaVocabulario[] = [];
   let botones: HTMLButtonElement[] = [];
+  // Procedimientos del jugador, en orden de definición. El panel los dibuja tras
+  // los comandos del lenguaje y los conserva hasta el próximo `fijarProcedimientos`
+  // (un cambio de mundo no los borra: siguen siendo los que el texto definió).
+  let procedimientos: readonly string[] = [];
 
   function activarEntrada(entrada: EntradaVocabulario): void {
     // Inserta el texto de inserción de la entrada (el nombre más un espacio para
@@ -145,6 +157,14 @@ export function crearPanelComandos(deps: DependenciasPanel): PanelComandos {
     // editor aplica límites y pide el mensaje.
     const linea = deps.insertarTexto(entrada.insercion);
     deps.anunciar(`Inserté ${entrada.nombre} en la línea ${linea}.`);
+  }
+
+  function activarProcedimiento(nombre: string): void {
+    // Un procedimiento se usa igual que un comando: inserta su nombre tal como se
+    // escribió (más un espacio para separarlo de lo que siga) por la misma vía
+    // del editor, que aplica límites y pide el mensaje.
+    const linea = deps.insertarTexto(`${nombre} `);
+    deps.anunciar(`Inserté ${nombre} en la línea ${linea}.`);
   }
 
   // Una sola parada de Tab: solo el último botón con el foco (al inicio, el primero) es
@@ -231,6 +251,51 @@ export function crearPanelComandos(deps: DependenciasPanel): PanelComandos {
       raiz.appendChild(boton);
       botones.push(boton);
     }
+
+    // Procedimientos del jugador: van DESPUÉS de los comandos del lenguaje, en
+    // orden de definición, con el mismo tratamiento de botón (la lección del mundo
+    // 2: un procedimiento se lee igual que un comando del lenguaje), pero sin
+    // abreviatura, descripción ni ejemplo, porque un procedimiento no los tiene.
+    // Se añaden a `botones`, así el roving tabindex y las flechas los recorren en
+    // el conjunto combinado y Tab sigue teniendo una sola parada (R7.1, R7.2).
+    for (const nombre of procedimientos) {
+      const boton = doc.createElement('button');
+      boton.type = 'button';
+      boton.className = 'kl-comando kl-procedimiento';
+      boton.setAttribute('data-procedimiento', nombre);
+      // Lo que el botón escribe en el editor (nombre + espacio), como en los comandos.
+      boton.setAttribute('data-insercion', `${nombre} `);
+
+      const titulo = doc.createElement('span');
+      titulo.className = 'kl-comando-titulo';
+      const nombreTrozo = doc.createElement('span');
+      nombreTrozo.className = 'kl-comando-nombre';
+      nombreTrozo.textContent = nombre;
+      titulo.appendChild(nombreTrozo);
+      boton.appendChild(titulo);
+
+      // Nombre accesible: el nombre del procedimiento y que es uno del jugador.
+      boton.setAttribute('aria-label', `${nombre}. Procedimiento que definiste.`);
+      boton.addEventListener('click', () => activarProcedimiento(nombre));
+      for (const evento of ['mouseenter', 'focus']) {
+        boton.addEventListener(evento, () => {
+          ayuda.textContent = `${nombre}. Procedimiento que definiste.`;
+          ayuda.style.top = `${boton.offsetTop}px`;
+          ayuda.classList.add('kl-activa');
+        });
+      }
+      for (const evento of ['mouseleave', 'blur']) {
+        boton.addEventListener(evento, () => {
+          ayuda.textContent = TEXTO_AYUDA_INICIAL;
+          ayuda.classList.remove('kl-activa');
+        });
+      }
+      const indice = botones.length;
+      boton.addEventListener('focus', () => marcarActivo(indice));
+      raiz.appendChild(boton);
+      botones.push(boton);
+    }
+
     raiz.appendChild(ayuda);
 
     // La reconstrucción reinicia la ayuda al texto inicial: ningún botón está señalado.
@@ -260,6 +325,18 @@ export function crearPanelComandos(deps: DependenciasPanel): PanelComandos {
     fijarMundo(mundo: Mundo): void {
       if (mundo === mundoActual) return; // no-op: el vocabulario vigente no cambia
       mundoActual = mundo;
+      reconstruir();
+    },
+    fijarProcedimientos(nombres: readonly string[]): void {
+      // No-op si la lista no cambió: evita reconstruir (y reiniciar el roving
+      // tabindex) en cada tecleo cuando los procedimientos siguen siendo los mismos.
+      if (
+        nombres.length === procedimientos.length &&
+        nombres.every((n, i) => n === procedimientos[i])
+      ) {
+        return;
+      }
+      procedimientos = nombres.slice();
       reconstruir();
     },
   };

@@ -6,6 +6,12 @@ import { describe, it, expect } from 'vitest';
 import { CATALOGO, buscarNivel } from './catalogo.js';
 import { NIVEL_0_1, REFERENCIA_0_1, MUNDO_0 } from './mundo-0-primeros-pasos.js';
 import { MUNDO_1, NIVEL_1_1, REFERENCIA_1_1 } from './mundo-1-figuras.js';
+import {
+  MUNDO_2,
+  NIVEL_2_1,
+  NIVEL_2_6,
+  REFERENCIA_2_1,
+} from './mundo-2-composicion.js';
 import type { Nivel, OrigenNivel, ExigenciaAbstraccion } from './tipos.js';
 import { contarInstrucciones } from '../lenguaje/conteo.js';
 import type { Programa, InvocacionComando, NumeroLiteral } from '../lenguaje/ast.js';
@@ -125,7 +131,7 @@ describe('nivel 0.1', () => {
 
 describe('catálogo', () => {
   it('incluye el mundo 0 con el nivel 0.1', () => {
-    expect(CATALOGO.length).toBe(MUNDO_0.length + MUNDO_1.length);
+    expect(CATALOGO.length).toBe(MUNDO_0.length + MUNDO_1.length + MUNDO_2.length);
     expect(CATALOGO.some((n) => n.id === '0.1')).toBe(true);
   });
 
@@ -221,6 +227,57 @@ describe('mundo 1', () => {
     expect(NIVEL_1_1.origen.tipo).toBe('autorado');
     if (NIVEL_1_1.origen.tipo === 'autorado') {
       expect(NIVEL_1_1.origen.referencia).toBe(REFERENCIA_1_1);
+    }
+  });
+});
+
+// ============================================================================
+// El mundo 2 (12.2)
+// ============================================================================
+
+describe('mundo 2', () => {
+  it('tiene exactamente seis niveles', () => {
+    expect(MUNDO_2).toHaveLength(6);
+  });
+
+  it('registra los seis niveles (2.1–2.6) en el catálogo', () => {
+    for (const id of ['2.1', '2.2', '2.3', '2.4', '2.5', '2.6']) {
+      expect(CATALOGO.some((n) => n.id === id)).toBe(true);
+    }
+  });
+
+  it('busca cada nivel del mundo 2 por su identificador', () => {
+    for (const id of ['2.1', '2.2', '2.3', '2.4', '2.5', '2.6']) {
+      expect(buscarNivel(id).hallado).toBe(true);
+    }
+  });
+
+  it('todos sus niveles declaran mundo 2 y concepto descomposicion', () => {
+    for (const nivel of MUNDO_2) {
+      expect(nivel.mundo).toBe(2);
+      expect(nivel.concepto).toBe('descomposicion');
+    }
+  });
+
+  it('el nivel 2.6 exige la abstracción defineProcedimiento (R10.1)', () => {
+    const claves = NIVEL_2_6.abstraccion.map((e) => e.clave);
+    expect(claves).toContain('defineProcedimiento');
+  });
+
+  it('el presupuesto del nivel 2.1 es 8, calculado de su referencia (R8.3)', () => {
+    // El presupuesto no es un campo almacenado: se deriva del Conteo sobre la
+    // referencia 'REPITE 4 [...] AV 100 GD 30 REPITE 3 [...]'
+    // (REPITE+AV+GD por el cuadrado = 3, AV + GD = 2, REPITE+AV+GD = 3) = 8.
+    const r = contarInstrucciones(REFERENCIA_2_1);
+    expect(r.exito).toBe(true);
+    if (r.exito) expect(r.instrucciones).toBe(8);
+  });
+
+  it('el nivel 2.1 es autorado y su referencia es la que se cuenta', () => {
+    expect(NIVEL_2_1.id).toBe('2.1');
+    expect(NIVEL_2_1.origen.tipo).toBe('autorado');
+    if (NIVEL_2_1.origen.tipo === 'autorado') {
+      expect(NIVEL_2_1.origen.referencia).toBe(REFERENCIA_2_1);
     }
   });
 });
