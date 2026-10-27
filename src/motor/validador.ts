@@ -183,6 +183,16 @@ export const UMBRAL_IOU = 0.9;
 /** Umbral máximo de exceso de trazo (en porcentaje) para conceder la coincidencia. */
 export const UMBRAL_EXCESO = 5;
 
+/**
+ * Tolerancia de IoU para el desempate de `veredictoParaMostrar` (Caso 2): margen por debajo del cual
+ * la comparación en POSICIONES REALES se prefiere para pintar aunque su IoU sea algo menor que la de
+ * la alineada por caja envolvente. Cubre el contraejemplo medido (oficial.iou 0.7965 − real.iou 0.7212
+ * = 0.0753) sin que una figura mal hecha (que en su sitio no se parece a nada, `real.iou` muy bajo)
+ * caiga dentro del margen. Solo afecta a la presentación del diff; nunca al veredicto oficial ni a las
+ * estrellas. Exportada para que la prueba de propiedad la lea en vez de duplicar el número mágico.
+ */
+export const MARGEN_MOSTRAR_REAL = 0.1;
+
 export type MotivoVeredicto = 'coincide' | 'excesoDeTrazo' | 'iouInsuficiente' | 'sinEstelaDelJugador';
 
 export interface Comparacion {
@@ -674,7 +684,8 @@ const POSICIONES_REALES: NormalizacionNivel = { traslacion: 'fija', rotacion: 'f
  * @param segmentosJugador Segmentos de la estela del jugador
  * @param segmentosObjetivo Segmentos del programa de referencia
  * @param normalizacion Normalización declarada por el nivel
- * @returns El veredicto oficial o el de las posiciones reales, el que tenga mayor IoU
+ * @returns El veredicto oficial o el de las posiciones reales; se prefiere el de posiciones reales
+ *          cuando su IoU llega hasta MARGEN_MOSTRAR_REAL por debajo del de la alineada
  */
 export function veredictoParaMostrar(
   oficial: Veredicto,
@@ -689,5 +700,8 @@ export function veredictoParaMostrar(
   const real = validar(segmentosJugador, segmentosObjetivo, POSICIONES_REALES);
   // Nunca se muestra como «correcto» un dibujo al que el validador negó la precisión.
   if (real.coincide || real.motivo === 'sinEstelaDelJugador') return oficial;
-  return real.iou >= oficial.iou ? real : oficial;
+  // Se prefiere la comparación en posiciones reales —la que el jugador ve en pantalla— cuando explica
+  // la forma casi tan bien como la alineada (su IoU está dentro de MARGEN_MOSTRAR_REAL). Una figura
+  // correcta movida/girada queda fuera del margen y se sigue mostrando alineada (Caso 2, Opción B).
+  return real.iou >= oficial.iou - MARGEN_MOSTRAR_REAL ? real : oficial;
 }

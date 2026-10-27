@@ -1,0 +1,151 @@
+{
+  "pbtResults": {
+    "1. Escribir el test exploratorio de la condición del bug (Caso 2, contraejemplo medido)": {
+      "status": "passed",
+      "failingExample": "Contraejemplo medido (escalonada 150 vs 140, reto AC3VRQC, normalización libre/libre):\n- Kiro (objetivo): AVANZA 80 / GD 90 / AVANZA 140 / GI 90 / AVANZA 120 / GD 90 / AVANZA 140\n- Jugador: igual pero con 150 en los tramos largos.\n\nEl test FALLA sobre el código sin arreglar (RED esperado) en la aserción de comportamiento esperado:\n  expect(mostrado.traslacion).toEqual({ x: 0, y: 0 })\n  AssertionError: expected { x: -150, y: -100 } to deeply equal { x: 0, y: 0 }\n\nveredictoParaMostrar devuelve la comparación ALINEADA por caja envolvente (oficial), cuya traslacion es { x: -150, y: -100 }, en vez de la de posiciones reales ({0,0}, ángulo 0). Causa confirmada: el desempate estricto real.iou >= oficial.iou es falso (oficial.iou ≈ 0.7965 > real.iou ≈ 0.7212), así que se pinta la alineada; el centrado por caja desplaza la figura y descoloca el tramo inicial coincidente (midpoint (0,40)).\n\nLas aserciones del estado medido que dispara el bug PASAN: oficial.iou > real.iou, oficial.coincide === false, real.coincide === false.",
+      "lastRunTimestamp": 1793070238196
+    },
+    "2. Escribir los tests de preservación (observation-first, ANTES del arreglo)": {
+      "status": "passed",
+      "lastRunTimestamp": 1793071055246
+    }
+  },
+  "executionHistory": {
+    "1. Escribir el test exploratorio de la condición del bug (Caso 2, contraejemplo medido)": [
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793069872736
+      },
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793069879335
+      },
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793070401260
+      }
+    ],
+    "2. Escribir los tests de preservación (observation-first, ANTES del arreglo)": [
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793069872770
+      },
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793070404193
+      },
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793071197357
+      }
+    ],
+    "3.1 Implementar la condición del desempate con `MARGEN_MOSTRAR_REAL`": [
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793069872792
+      },
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793071200818
+      },
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793071816020
+      }
+    ],
+    "3.2 Actualizar la aserción afectada del property test del IoU mostrado": [
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793069872813
+      },
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793071819211
+      },
+      {
+        "executionId": "749085a9-9fe0-42cb-a6b7-3e463f58ff4d",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793130352321
+      },
+      {
+        "executionId": "75494e58-a1f9-4b00-8f52-389b22563c90",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793133744950
+      },
+      {
+        "executionId": "75494e58-a1f9-4b00-8f52-389b22563c90",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793134070847
+      }
+    ],
+    "3.3 Verificar que el test exploratorio de la tarea 1 ahora pasa (fix checking)": [
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793069872853
+      },
+      {
+        "executionId": "75494e58-a1f9-4b00-8f52-389b22563c90",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793134075937
+      },
+      {
+        "executionId": "75494e58-a1f9-4b00-8f52-389b22563c90",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793134214778
+      }
+    ],
+    "3.4 Verificar que los tests de preservación de la tarea 2 siguen pasando (preservation checking)": [
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793069872871
+      },
+      {
+        "executionId": "75494e58-a1f9-4b00-8f52-389b22563c90",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793134217910
+      },
+      {
+        "executionId": "75494e58-a1f9-4b00-8f52-389b22563c90",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793134221001
+      }
+    ],
+    "4. Checkpoint - Verificación final de toda la suite": [
+      {
+        "executionId": "1b1d02ee-9f7c-4bd1-a38a-d213b1e4ff64",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793069872886
+      },
+      {
+        "executionId": "75494e58-a1f9-4b00-8f52-389b22563c90",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793134224329
+      },
+      {
+        "executionId": "75494e58-a1f9-4b00-8f52-389b22563c90",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793134245515
+      }
+    ],
+    "3. Arreglo del desfase de alineación del Caso 2 (Opción B — ampliar el desempate de `veredictoParaMostrar` con `MARGEN_MOSTRAR_REAL`)": [
+      {
+        "executionId": "75494e58-a1f9-4b00-8f52-389b22563c90",
+        "chatSessionId": "sess_75479abc-977a-4238-be53-2a9488be4758",
+        "timestamp": 1793134221029
+      }
+    ]
+  }
+}
