@@ -38,6 +38,14 @@ beforeEach(() => {
 // ============================================================================
 
 describe('panel-semilla · código', () => {
+  it('asocia el estado del reto con el código para lectores de pantalla', () => {
+    const panel = crear();
+    panel.presentarReto({ codigoSemilla: 'ABC2345', generado: true });
+    const idNota = panel.salidaCodigo.getAttribute('aria-describedby');
+    expect(idNota).toBeTruthy();
+    expect(panel.raiz.querySelector(`#${idNota}`)?.textContent).toMatch(/otro reto|reproducir/i);
+  });
+
   it('muestra el código del reto en un elemento de solo lectura con nombre accesible', () => {
     const panel = crear();
     panel.presentarReto({ codigoSemilla: 'ABC2345', generado: true });

@@ -103,6 +103,7 @@ export function crearPanelSemilla(deps: DependenciasPanelSemilla): PanelSemilla 
   const salidaCodigo = doc.createElement('output');
   salidaCodigo.className = 'kl-panel-semilla-valor';
   salidaCodigo.setAttribute('aria-labelledby', idEtiqueta);
+  salidaCodigo.setAttribute('aria-describedby', 'kl-panel-semilla-nota');
   // Seleccionable con teclado para copiar.
   salidaCodigo.tabIndex = 0;
 
@@ -113,6 +114,7 @@ export function crearPanelSemilla(deps: DependenciasPanelSemilla): PanelSemilla 
   // --- Nota de estado (texto, no solo color) ---
   const nota = doc.createElement('p');
   nota.className = 'kl-panel-semilla-nota';
+  nota.id = 'kl-panel-semilla-nota';
   raiz.appendChild(nota);
 
   // --- Acción: otro reto ---
