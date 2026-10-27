@@ -486,6 +486,37 @@ export interface Veredicto {
   readonly coincidencia: Mascara;
   readonly exceso: Mascara;
   readonly falta: Mascara;
+  /**
+   * Máscara NUEVA y separada, solo para PINTAR (Caso 1 del bugfix
+   * diff-visual-coincidencia-exceso). Es el excedente REAL del trazo del jugador
+   * a lo largo de todo el trazo, calculado SIEMPRE en MARCO REAL (sin centrar, sin
+   * girar, independiente de la normalización), porque el excedente que el jugador
+   * ve vive en coordenadas reales (p. ej. y=100..110), no en el marco centrado/
+   * girado de `mascaraJugador`.
+   *
+   * Fórmula: trazo del jugador dilatado (radio 8) menos la línea de Kiro dilatada
+   * al MISMO radio 8, ambos en posiciones reales. Al dilatar las dos máscaras con
+   * el mismo disco, el solape lateral (el grosor) se cancela y solo sobrevive el
+   * excedente LONGITUDINAL. A diferencia de `exceso` (que se deriva sobre máscaras
+   * dilatadas y centradas, y absorbe el excedente como coincidencia), `excesoVisual`
+   * marca rojo el excedente a lo largo del trazo. NO alimenta
+   * `excesoPorcentaje`/`coincide`/`motivo`: es solo salida de pintado. Opcional
+   * para no romper los veredictos de prueba que no lo fijan.
+   */
+  readonly excesoVisual?: Mascara;
+}
+
+/**
+ * Diferencia de máscaras: posiciones encendidas en `a` pero apagadas en `b`
+ * (`a \ b`). Base de `excesoVisual`: el trazo del jugador dilatado que no está
+ * respaldado por la línea de Kiro dilatada al mismo radio (marco real).
+ */
+function diferenciaMascaras(a: Mascara, b: Mascara): Mascara {
+  const salida = crearMascara();
+  for (let i = 0; i < TOTAL; i++) {
+    if (a[i] === 1 && b[i] === 0) salida[i] = 1;
+  }
+  return salida;
 }
 
 /**
@@ -528,6 +559,23 @@ export function validar(
   const mascaraJugador = dilatar(rasterizar(segmentosJugador, traslacionJugador));
   const objetivoBase = dilatar(rasterizar(segmentosObjetivo, traslacionObjetivo));
 
+  // `excesoVisual` (Caso 1) se calcula SIEMPRE en MARCO REAL: sin centrar, sin
+  // girar, independiente de la normalización. El excedente que el jugador VE vive
+  // en coordenadas reales (p. ej. y=100..110), no en el marco centrado/girado de
+  // `mascaraJugador`, que es solo un artefacto de alineación del veredicto.
+  //
+  // Fórmula única: trazo del jugador dilatado (radio 8) MENOS línea de Kiro
+  // dilatada al MISMO radio 8, ambos en posiciones reales ({0,0}). Al dilatar las
+  // DOS máscaras con el mismo disco, el solape lateral (el grosor del trazo) se
+  // cancela entre ellas y solo sobrevive el excedente LONGITUDINAL (lo que el
+  // jugador trazó de más a lo largo del trazo). Restar la línea de Kiro SIN
+  // dilatar, en cambio, dejaría ~2k celdas en los bordes del trazo (franjas
+  // laterales de grosor), que no son excedente real. Por eso restamos dilatada
+  // contra dilatada. Ver tareas 3.1/3.2.
+  const jugadorRealDilatado = dilatar(rasterizar(segmentosJugador));
+  const objetivoRealDilatado = dilatar(rasterizar(segmentosObjetivo));
+  const excesoVisual = diferenciaMascaras(jugadorRealDilatado, objetivoRealDilatado);
+
   // Caso: estela del jugador vacía o ninguna posición dentro del arreglo.
   let jugadorTieneTinta = false;
   for (let i = 0; i < TOTAL; i++) {
@@ -551,8 +599,12 @@ export function validar(
       coincidencia,
       exceso,
       falta,
+      // Sin estela del jugador no hay excedente que pintar.
+      excesoVisual: crearMascara(),
     };
   }
+  // A partir de aquí el jugador tiene tinta; `excesoVisual` (marco real) ya se
+  // calculó arriba y es el mismo valor en las dos ramas restantes.
 
   // Rotación: libre busca el mejor giro; fija evalúa solo el ángulo 0.
   if (normalizacion.rotacion === 'libre') {
@@ -571,6 +623,8 @@ export function validar(
       coincidencia: c.coincidencia,
       exceso: c.exceso,
       falta: c.falta,
+      // Marco real, independiente del giro aplicado al veredicto.
+      excesoVisual,
     };
   }
 
@@ -589,6 +643,8 @@ export function validar(
     coincidencia: c.coincidencia,
     exceso: c.exceso,
     falta: c.falta,
+    // Marco real: con traslación/rotación fijas coincide con el marco del veredicto.
+    excesoVisual,
   };
 }
 
