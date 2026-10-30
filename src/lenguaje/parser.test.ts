@@ -165,6 +165,14 @@ describe('parser', () => {
       expect(errores.some((e) => e.id === 'corcheteInesperado')).toBe(true);
     });
 
+    it('el mensaje de corcheteInesperado nombra la línea real del corchete', () => {
+      const { errores } = analizarTexto('AVANZA 100\n[ AVANZA 100');
+      const error = errores.find((e) => e.id === 'corcheteInesperado');
+      expect(error).toBeDefined();
+      expect(error!.linea).toBe(2);
+      expect(error!.mensaje).toBe('Encontré un corchete en la línea 2 sin un comando que lo reciba.');
+    });
+
     it('corchete de cierre sin apertura reporta corcheteDeMasEnLinea', () => {
       const { errores } = analizarTexto(']');
       expect(errores[0]!.id).toBe('corcheteDeMasEnLinea');

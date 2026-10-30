@@ -83,7 +83,7 @@ export interface ParametrosPorError {
   readonly corcheteSinCerrarEnLinea: { readonly linea: number };
   readonly corcheteDeMas: Record<string, never>;
   readonly corcheteDeMasEnLinea: { readonly linea: number };
-  readonly corcheteInesperado: Record<string, never>;
+  readonly corcheteInesperado: { readonly linea: number };
   readonly parametroInesperado: Record<string, never>;
   readonly palabraInesperada: Record<string, never>;
   readonly numeroInesperado: Record<string, never>;
@@ -300,8 +300,10 @@ function construirMensaje<K extends IdError>(
       const p = parametros as ParametrosPorError['corcheteDeMasEnLinea'];
       return `Hay un corchete de cierre en la línea ${p.linea} que no abriste.`;
     }
-    case 'corcheteInesperado':
-      return 'Encontré un corchete en la línea 3 sin un comando que lo reciba.';
+    case 'corcheteInesperado': {
+      const p = parametros as ParametrosPorError['corcheteInesperado'];
+      return `Encontré un corchete en la línea ${p.linea} sin un comando que lo reciba.`;
+    }
     case 'parametroInesperado':
       return 'Encontré :largo en la línea 3 sin un comando que lo reciba.';
     case 'palabraInesperada':

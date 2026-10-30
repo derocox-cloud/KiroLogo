@@ -100,7 +100,7 @@ function analizarInstruccion(estado: Estado): Instruccion | null {
   // son errores «inesperado» (requisitos 5.10, 5.11).
   switch (token.tipo) {
     case 'corchete_abre':
-      reportar(estado, crearError('corcheteInesperado', {}, posicion(token)));
+      reportar(estado, crearError('corcheteInesperado', { linea: token.linea }, posicion(token)));
       estado.indice += 1;
       return null;
     case 'corchete_cierra':

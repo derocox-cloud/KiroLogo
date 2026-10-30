@@ -233,10 +233,10 @@ describe('errores.ts', () => {
       });
       
       it('corcheteInesperado', () => {
-        const error = crearError('corcheteInesperado', {});
+        const error = crearError('corcheteInesperado', { linea: 7 });
         expect(error.id).toBe('corcheteInesperado');
         expect(error.severidad).toBe('jugador');
-        expect(error.mensaje).toBe('Encontré un corchete en la línea 3 sin un comando que lo reciba.');
+        expect(error.mensaje).toBe('Encontré un corchete en la línea 7 sin un comando que lo reciba.');
       });
       
       it('parametroInesperado', () => {
@@ -954,7 +954,7 @@ describe('Property 11: forma de los mensajes del catálogo', () => {
       () => crearError('argumentoDeTipoEquivocado', { comando: prng.elegir(nombres), recibido: '"hola' }),
       () => crearError('corcheteSinCerrar', {}),
       () => crearError('corcheteDeMas', {}),
-      () => crearError('corcheteInesperado', {}),
+      () => crearError('corcheteInesperado', { linea: prng.entero(1, 40) }),
       () => crearError('parametroInesperado', {}),
       () => crearError('palabraInesperada', {}),
       () => crearError('numeroInesperado', {}),
