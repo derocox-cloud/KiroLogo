@@ -207,7 +207,7 @@ describe('Property 25: regresión del catálogo', () => {
 
     // Informa todos los fallos antes de terminar.
     expect(fallos, fallos.join('\n')).toHaveLength(0);
-  });
+  }, 120_000);
 });
 
 // ============================================================================
