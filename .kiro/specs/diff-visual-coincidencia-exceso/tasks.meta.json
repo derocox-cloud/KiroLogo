@@ -1,0 +1,197 @@
+{
+  "pbtResults": {
+    "1. Escribir los tests exploratorios de la condición del bug (contraejemplos)": {
+      "status": "unexpected_pass",
+      "failingExample": "Los inputs de ejemplo descritos NO disparan el bug sobre el código sin arreglar. Probado con los inputs exactos de la Tarea 1:\n\nCASO 2 (zigzag incompleto, jugador = ZIGZAG.slice(0,2)):\n  oficial.iou = 0.0941, real.iou = 0.4450  →  real.iou >= oficial.iou = true\n  veredictoParaMostrar YA devuelve el de posiciones reales:\n  traslacion = {x:0, y:0}, angulo = 0, exceso = 0, coincidencia = 3234 posiciones.\n  (El comportamiento correcto que la Tarea 1 quiere afirmar YA ocurre.)\n\nCASO 1 (L vs línea, jugador = [vertical(0,0→0,100), horizontal(0,100→100,100)]):\n  oficial.iou = 0.0498, real.iou = 0.5308  →  real.iou >= oficial.iou = true\n  veredictoParaMostrar YA devuelve el de posiciones reales:\n  traslacion = {x:0, y:0}, exceso = 1677 (> 0), coincidencia = 1897.\n  (El exceso real YA se pinta como exceso.)\n\nAdemás, la suite existente (90 tests) pasa en verde, incluyendo tests que ya afirman este comportamiento correcto (\"un tramo de más sí sobra: la L contra una línea…\" y \"un dibujo que sigue a Kiro en su sitio pero está incompleto…\").\n\nConclusión: para estos inputs concretos, la comparación ALINEADA nunca gana el desempate global (su IoU es 0.05–0.09 frente a 0.44–0.53 de la real), así que el desempate `real.iou >= oficial.iou` ya elige la comparación correcta. La premisa del design «si la alineada gana el desempate» no se cumple con estos ejemplos.",
+      "lastRunTimestamp": 1793055768668
+    }
+  },
+  "executionHistory": {
+    "1. Escribir los tests exploratorios de la condición del bug (contraejemplos)": [
+      {
+        "executionId": "d458bf7f-841b-4b23-8936-9446c3492979",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793055281113
+      },
+      {
+        "executionId": "d458bf7f-841b-4b23-8936-9446c3492979",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793055287697
+      },
+      {
+        "executionId": "d458bf7f-841b-4b23-8936-9446c3492979",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793056014701
+      }
+    ],
+    "2. Escribir los tests de preservación (observation-first, ANTES del arreglo)": [
+      {
+        "executionId": "d458bf7f-841b-4b23-8936-9446c3492979",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793055281146
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793062628804
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793062809996
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793063409831
+      }
+    ],
+    "3.1 Implementar el arreglo del criterio de elección": [
+      {
+        "executionId": "d458bf7f-841b-4b23-8936-9446c3492979",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793055281170
+      }
+    ],
+    "3.2 Verificar que los tests exploratorios de la condición del bug ahora pasan (fix checking)": [
+      {
+        "executionId": "d458bf7f-841b-4b23-8936-9446c3492979",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793055281188
+      }
+    ],
+    "3.3 Verificar que los tests de preservación siguen pasando (preservation checking)": [
+      {
+        "executionId": "d458bf7f-841b-4b23-8936-9446c3492979",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793055281210
+      }
+    ],
+    "4. Checkpoint - Verificación final de toda la suite": [
+      {
+        "executionId": "d458bf7f-841b-4b23-8936-9446c3492979",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793055281253
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793062628931
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793066228735
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793066313772
+      }
+    ],
+    "1. Escribir el test exploratorio de la condición del bug (Caso 1, contraejemplo medido)": [
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793062628785
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793062632713
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793062806713
+      }
+    ],
+    "3.1 Derivar y propagar la máscara `excesoVisual` en el validador": [
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793062628836
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793063424584
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793064933721
+      }
+    ],
+    "3.2 Pintar con `excesoVisual` en `src/ui/diff.ts`": [
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793062628867
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793064936904
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793065925338
+      }
+    ],
+    "3.3 Reenviar `excesoVisual` desde `src/ui/comparacion.ts`": [
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793062628885
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793065928832
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793066136854
+      }
+    ],
+    "3.4 Verificar que el test exploratorio de la tarea 1 ahora pasa (fix checking)": [
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793062628902
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793066143036
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793066221019
+      }
+    ],
+    "3.5 Verificar que los tests de preservación de la tarea 2 siguen pasando (preservation checking)": [
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793062628918
+      },
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793066224519
+      }
+    ],
+    "3. Arreglo del exceso visual del diff (Opción A — máscara nueva `excesoVisual`)": [
+      {
+        "executionId": "8b16d331-41b5-49b6-82a7-852996a44217",
+        "chatSessionId": "sess_e8bbf14a-12ed-4aae-a956-ce9e2347a95c",
+        "timestamp": 1793066224538
+      }
+    ]
+  }
+}

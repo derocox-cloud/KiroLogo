@@ -177,6 +177,7 @@ export function crearComparacion(deps: DependenciasComparacion): Comparacion {
         coincidencia: v.coincidencia,
         exceso: v.exceso,
         falta: v.falta,
+        excesoVisual: v.excesoVisual,
         traslacion: v.traslacion,
         traslacionObjetivo: v.traslacionObjetivo,
         angulo: v.angulo,

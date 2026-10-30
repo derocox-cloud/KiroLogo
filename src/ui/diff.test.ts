@@ -773,3 +773,183 @@ describe('diff · Feature: 08-diseno-visual, Property 2 — idempotencia del rep
     30000,
   );
 });
+
+// ============================================================================
+// Tarea 3.2 — el rojo del pintado limpio usa `excesoVisual` (marco real)
+//
+// Cuando `RegionesDiff.excesoVisual` está presente, `dibujarLimpio` clasifica el
+// rojo con esa máscara en MARCO REAL (identidad), muestreando cada punto del trazo
+// real del jugador directamente, sin sumar la traslación del marco centrado. Así el
+// excedente se marca rojo A LO LARGO del trazo (y no solo en la punta, como hacía
+// `exceso` sobre máscaras dilatadas y centradas). Sin `excesoVisual`, el pintado usa
+// `exceso` exactamente como hoy (preservación).
+//
+// `DobleDibujo` solo registra métodos, no el `set` de strokeStyle/lineWidth. Para
+// saber con qué color y grosor se pintó cada tramo se envuelve el contexto en un
+// Proxy que intercepta el `set` de esas dos propiedades y, en cada `stroke`, guarda
+// el color y el grosor vigentes junto con las líneas de ese trazo.
+// ============================================================================
+
+/** Un trazo capturado: su color/grosor vigentes y sus líneas [x1, y1, x2, y2]. */
+interface TrazoCapturado {
+  color: string;
+  grosor: number;
+  lineas: number[][];
+}
+
+/**
+ * Envuelve un `DobleDibujo` en un Proxy que intercepta el `set` de strokeStyle y
+ * lineWidth (que el doble no registra como llamadas) y arma, por cada `stroke`, el
+ * trazo capturado con el color y el grosor vigentes y las líneas moveTo/lineTo de
+ * ese subtrayecto. Devuelve el contexto proxy y la lista acumulada de trazos.
+ */
+function contextoCapturaEstilo(): { ctx: DobleDibujo; trazos: TrazoCapturado[] } {
+  const base = new DobleDibujo();
+  const trazos: TrazoCapturado[] = [];
+  let color = String(base.strokeStyle);
+  let grosor = base.lineWidth;
+
+  const ctx = new Proxy(base, {
+    set(obj, prop, valor): boolean {
+      if (prop === 'strokeStyle') color = String(valor);
+      if (prop === 'lineWidth') grosor = valor as number;
+      // @ts-expect-error índice dinámico sobre el doble.
+      obj[prop] = valor;
+      return true;
+    },
+    get(obj, prop) {
+      if (prop === 'stroke') {
+        return () => {
+          const desdeAqui = obj.llamadas.map((l) => l.metodo).lastIndexOf('beginPath');
+          const lineas: number[][] = [];
+          let origen: number[] | null = null;
+          for (const l of obj.llamadas.slice(desdeAqui + 1)) {
+            const a = l.args as number[];
+            // Las cuatro esquinas del recorte (±400, ±400) no son una línea del trazo.
+            if (Math.abs(a[0]!) === 400 && Math.abs(a[1]!) === 400) continue;
+            if (l.metodo === 'moveTo') origen = a;
+            if (l.metodo === 'lineTo' && origen !== null) {
+              lineas.push([origen[0]!, origen[1]!, a[0]!, a[1]!]);
+            }
+          }
+          trazos.push({ color, grosor, lineas });
+          obj.stroke();
+        };
+      }
+      const valor = Reflect.get(obj, prop);
+      return typeof valor === 'function' ? valor.bind(obj) : valor;
+    },
+  });
+
+  return { ctx, trazos };
+}
+
+describe('diff · Tarea 3.2 — el rojo del pintado limpio usa `excesoVisual` (marco real)', () => {
+  const seg = (a: number, b: number, c: number, d: number, paso: number): Segmento => ({
+    desde: { x: a, y: b },
+    hasta: { x: c, y: d },
+    paso,
+    linea: 1,
+  });
+  const LIBRE: NormalizacionNivel = { traslacion: 'libre', rotacion: 'libre', escala: 'exacta' };
+
+  /** Largo total de un conjunto de líneas [x1, y1, x2, y2]. */
+  const largoDe = (lineas: number[][]): number =>
+    lineas.reduce((suma, [x1, y1, x2, y2]) => suma + Math.hypot(x2! - x1!, y2! - y1!), 0);
+
+  // Colores del tema: verde = coincidencia, rojo = exceso, gris = falta.
+  const VERDE = estiloColor().coincidencia.color;
+  const ROJO = estiloColor().exceso.color;
+
+  // Caso 1 medido: Kiro traza AVANZA 100, el jugador AVANZA 110, normalización libre.
+  const objetivo = [seg(0, 0, 0, 100, 0)];
+  const jugador = [seg(0, 0, 0, 110, 0)];
+
+  /** Valida el Caso 1 y arma el `RegionesDiff` con todos los campos del veredicto. */
+  function regionesCaso1(conExcesoVisual: boolean): { regiones: RegionesDiff; trazosFig: { referencia: Segmento[]; jugador: Segmento[] } } {
+    const v = validar(jugador, objetivo, LIBRE);
+    expect(v.coincide).toBe(false);
+    expect(v.excesoVisual, 'la tarea 3.1 debe haber fijado excesoVisual').toBeDefined();
+    const regiones: RegionesDiff = {
+      coincidencia: v.coincidencia,
+      exceso: v.exceso,
+      falta: v.falta,
+      traslacion: v.traslacion,
+      traslacionObjetivo: v.traslacionObjetivo,
+      angulo: v.angulo,
+      ...(conExcesoVisual ? { excesoVisual: v.excesoVisual } : {}),
+    };
+    return { regiones, trazosFig: { referencia: objetivo, jugador } };
+  }
+
+  it('con excesoVisual el excedente SÍ se pinta de rojo, donde con `exceso` (centrado) no salía nada', () => {
+    // Con excesoVisual (marco real).
+    const con = contextoCapturaEstilo();
+    const { regiones, trazosFig } = regionesCaso1(true);
+    crearDiff({ ctx: con.ctx, leerTema: estiloColor }).dibujar(regiones, trazosFig);
+    const rojoCon = con.trazos.filter((t) => t.color === ROJO).flatMap((t) => t.lineas);
+    const verdeCon = con.trazos.filter((t) => t.color === VERDE).flatMap((t) => t.lineas);
+
+    // Sin excesoVisual (comportamiento de hoy: clasifica el rojo con `exceso` en marco centrado).
+    const sin = contextoCapturaEstilo();
+    const sinReg = regionesCaso1(false);
+    crearDiff({ ctx: sin.ctx, leerTema: estiloColor }).dibujar(sinReg.regiones, sinReg.trazosFig);
+    const rojoSin = sin.trazos.filter((t) => t.color === ROJO).flatMap((t) => t.lineas);
+
+    // El punto del fix: con el marco centrado y la coincidencia dilatada, el rojo de `exceso` NO
+    // sale sobre el eje real del trazo (la dilatación lo absorbe como coincidencia). Con excesoVisual
+    // (marco real) el excedente SÍ se marca rojo, en la punta del trazo donde el jugador se pasó.
+    expect(largoDe(rojoSin), 'con `exceso` centrado el excedente no se pinta sobre el eje del trazo').toBe(0);
+    expect(rojoCon.length, 'con excesoVisual el excedente SÍ se pinta de rojo').toBeGreaterThan(0);
+    expect(largoDe(rojoCon), 'y el rojo con excesoVisual es mayor que con `exceso`').toBeGreaterThan(largoDe(rojoSin));
+    expect(verdeCon.length, 'y sigue habiendo coincidencia verde').toBeGreaterThan(0);
+
+    // El rojo cae en la PUNTA del trazo (y alto, cerca de 110), no al principio ni repartido por el
+    // tramo coincidente: el verde no supera al rojo en y, y el rojo arranca bien entrado el trazo.
+    const yMaxRojo = Math.max(...rojoCon.flatMap(([, y1, , y2]) => [y1!, y2!]));
+    const yMinRojo = Math.min(...rojoCon.flatMap(([, y1, , y2]) => [y1!, y2!]));
+    const yMaxVerde = Math.max(...verdeCon.flatMap(([, y1, , y2]) => [y1!, y2!]));
+    expect(yMaxRojo).toBeGreaterThan(yMaxVerde);
+    expect(yMinRojo, 'el rojo marca el excedente del extremo, no el origen del trazo').toBeGreaterThan(50);
+  });
+
+  it('el verde de coincidencia cubre el tramo que sigue a Kiro (y≈0..100), la mayor parte del trazo', () => {
+    const { ctx, trazos } = contextoCapturaEstilo();
+    const { regiones, trazosFig } = regionesCaso1(true);
+    crearDiff({ ctx, leerTema: estiloColor }).dibujar(regiones, trazosFig);
+
+    const verde = trazos.filter((t) => t.color === VERDE).flatMap((t) => t.lineas);
+    const rojo = trazos.filter((t) => t.color === ROJO).flatMap((t) => t.lineas);
+    const largoVerde = largoDe(verde);
+    const largoRojo = largoDe(rojo);
+
+    // Verde + rojo cubren todo el trazo del jugador (110), sin perder ni repetir nada.
+    expect(largoVerde + largoRojo).toBeCloseTo(110, 0);
+    // La coincidencia es la mayor parte del trazo.
+    expect(largoVerde).toBeGreaterThan(largoRojo);
+    // El verde arranca en el origen del trazo.
+    const yMinVerde = Math.min(...verde.flatMap(([, y1, , y2]) => [y1!, y2!]));
+    expect(yMinVerde).toBeLessThan(5);
+  });
+
+  it('preservación: sin excesoVisual, el pintado limpio es idéntico al de hoy (usa `exceso`)', () => {
+    // Mismo veredicto, dibujado con y sin excesoVisual. Sin él, el comportamiento es el de hoy:
+    // el rojo se clasifica con `exceso` (marco centrado), que en el Caso 1 marca solo la puntita.
+    const sin = regionesCaso1(false);
+    const ctxSin = new DobleDibujo();
+    crearDiff({ ctx: ctxSin, leerTema: estiloColor }).dibujar(sin.regiones, sin.trazosFig);
+
+    // Pintar con `exceso` directamente (sin el campo excesoVisual) produce exactamente
+    // la misma secuencia de llamadas que el comportamiento histórico. Repetirlo da lo mismo.
+    const ctxSin2 = new DobleDibujo();
+    crearDiff({ ctx: ctxSin2, leerTema: estiloColor }).dibujar(sin.regiones, sin.trazosFig);
+    expect(ctxSin2.llamadas).toEqual(ctxSin.llamadas);
+
+    // Y con excesoVisual el dibujo CAMBIA respecto de sin él: el rojo es mayor (a lo largo del
+    // trazo) en vez de la puntita. Así se comprueba que excesoVisual sí altera el pintado.
+    const con = regionesCaso1(true);
+    const ctxCon = new DobleDibujo();
+    crearDiff({ ctx: ctxCon, leerTema: estiloColor }).dibujar(con.regiones, con.trazosFig);
+    expect(ctxCon.llamadas).not.toEqual(ctxSin.llamadas);
+  });
+});

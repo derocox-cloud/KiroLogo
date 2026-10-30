@@ -40,6 +40,15 @@ export interface RegionesDiff {
   readonly coincidencia: Mascara;
   readonly exceso: Mascara;
   readonly falta: Mascara;
+  /**
+   * Excedente del trazo del jugador en MARCO REAL (sin centrar ni girar): el trazo
+   * dilatado del jugador que no respalda la línea de Kiro dilatada al mismo radio,
+   * con traslación {0, 0}. Cuando está presente, el rojo del pintado limpio se
+   * clasifica con esta máscara en lugar de `exceso` (marco centrado), de modo que el
+   * excedente se marca a lo largo del trazo y no solo en la punta. Opcional: sin
+   * ella (llamadas antiguas) el pintado usa `exceso` exactamente como hoy.
+   */
+  readonly excesoVisual?: Mascara;
   /** Traslación aplicada por el validador a la figura del jugador, en posiciones enteras. */
   readonly traslacion: Punto;
   /**
@@ -319,12 +328,24 @@ export function crearDiff(deps: DependenciasDiff): Diff {
     ctx.rect(-LADO / 2, -LADO / 2, LADO, LADO);
     ctx.clip();
 
+    // El excedente que se pinta de rojo. Con `excesoVisual` presente se clasifica en
+    // MARCO REAL (identidad): `excesoVisual` vive en coordenadas reales del trazo del
+    // jugador (p. ej. y=100..110), así que se muestrea con el mismo `p` que recorre
+    // `trocear` sobre los segmentos reales, SIN `delJugador` (que sumaría la traslación
+    // para ir al marco centrado). Sin `excesoVisual` (llamadas antiguas) el rojo se
+    // clasifica con `exceso` en el marco centrado, exactamente como hoy. La coincidencia
+    // se clasifica siempre en el marco centrado. Se mantiene la precedencia exceso antes
+    // que coincidencia.
+    const esExceso =
+      regiones.excesoVisual !== undefined
+        ? (p: Punto) => encendida(regiones.excesoVisual!, p)
+        : (p: Punto) => encendida(regiones.exceso, delJugador(p));
+
     // Sin estela del jugador solo se dibuja la falta (requisito 23.8).
     const delJugadorPorClase = hayJugador
       ? trocear<'coincidencia' | 'exceso'>(trazos.jugador, (p) => {
-          const m = delJugador(p);
-          if (encendida(regiones.exceso, m)) return 'exceso';
-          return encendida(regiones.coincidencia, m) ? 'coincidencia' : null;
+          if (esExceso(p)) return 'exceso';
+          return encendida(regiones.coincidencia, delJugador(p)) ? 'coincidencia' : null;
         })
       : new Map<'coincidencia' | 'exceso', Tramo[]>();
     const faltaDeLaReferencia = trocear<'falta'>(trazos.referencia, (p) =>

@@ -16,7 +16,6 @@ const IDS_SIMPLES: readonly IdError[] = [
   'comillaSinPalabra',
   'corcheteSinCerrar',
   'corcheteDeMas',
-  'corcheteInesperado',
   'guardaPasos',
   'guardaTiempo',
   'limiteLineasEditor',

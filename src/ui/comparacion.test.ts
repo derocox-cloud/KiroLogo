@@ -21,9 +21,15 @@ function veredictoNegado(): Veredicto {
   const coincidencia = crearMascara();
   const exceso = crearMascara();
   const falta = crearMascara();
+  const excesoVisual = crearMascara();
   encender(coincidencia, 400, 400);
   encender(exceso, 410, 410);
   encender(falta, 420, 420);
+  // El excedente real a lo largo del trazo (Caso 1): varias celdas repartidas,
+  // no una puntita. Distingue `excesoVisual` (marco real) de `exceso` (centrado).
+  encender(excesoVisual, 400, 300);
+  encender(excesoVisual, 400, 305);
+  encender(excesoVisual, 400, 310);
   return {
     coincide: false,
     iou: 0.8234,
@@ -37,6 +43,7 @@ function veredictoNegado(): Veredicto {
     coincidencia,
     exceso,
     falta,
+    excesoVisual,
   };
 }
 
@@ -144,6 +151,20 @@ describe('comparacion · diff sobre la superposición al negar precisión', () =
     m.comp.mostrar(datos);
     expect(m.comp.vista()).toBe('superposicion');
     expect(m.diffLlamadas.length).toBe(1);
+  });
+
+  it('reenvía excesoVisual del veredicto a las regiones del diff (requisitos 2.1, 3.4)', () => {
+    // El veredicto del Caso 1 trae la máscara de exceso visual (marco real); debe
+    // llegar tal cual a diff.dibujar para que el rojo cubra el excedente a lo largo
+    // del trazo y no solo la puntita que marca `exceso`.
+    const m = montar();
+    const v = veredictoNegado();
+    m.comp.mostrar({ segmentosReferencia: SEG, segmentosJugador: SEG, veredicto: v });
+    expect(m.diffLlamadas.length).toBe(1);
+    expect(m.diffLlamadas[0]!.excesoVisual).toBe(v.excesoVisual);
+    // No altera las demás regiones ni el exceso de conteo.
+    expect(m.diffLlamadas[0]!.exceso).toBe(v.exceso);
+    expect(m.diffLlamadas[0]!.coincidencia).toBe(v.coincidencia);
   });
 
   it('no dibuja el diff cuando la precisión se otorga', () => {
