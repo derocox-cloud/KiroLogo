@@ -248,10 +248,9 @@
   determinista) y el record `GENERADORES_M2`.
 
   - [x] 10.1 Generador `estrella-m2` (nivel 2.2)
-    - `p ∈ {5, 7, 9}` (`prng.elegir`), `L` múltiplo de 20 entre 100 y 180
-      (`prng.multiplo(100, 180, 20)`), forma `REPITE p [AV L GD 360*2/p]` (R9.1).
-    - Para `p ∈ {5, 9}` el ángulo es entero (144, 80); para `p = 7` usar el entero más cercano y
-      dejar que el lazo descarte la semilla si no encuadra o degenera.
+    - `p ∈ {5, 9}` (`prng.elegir`), ángulo exacto `720/p` (144 y 80), `L` múltiplo de 20 entre 220 y 240
+      (5 puntas) o entre 140 y 240 (9 puntas); forma `REPITE p [AV L GD 720/p]` (R9.1).
+    - La estrella de 7 puntas se descartó: 720/7 no es entero y `GD 103` no es derivable.
 
   - [x] 10.2 Generador `escalera-m2` (nivel 2.3)
     - 3 a 6 peldaños (`prng.entero(3, 6)`), huella = altura, múltiplo de 20 entre 20 y 60

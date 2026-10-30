@@ -81,39 +81,51 @@ function encuadraYNoEsDegenerada(programa: Programa): boolean {
 // Generador 2.2 — estrella de p puntas
 // ============================================================================
 //
-// Forma: REPITE p [AV L GD 360*2/p]. La tortuga da dos vueltas completas (720°)
+// Forma: REPITE p [AV L GD 720/p]. La tortuga da dos vueltas completas (720°)
 // repartidas en p giros iguales, de modo que las puntas se cruzan y queda una
 // estrella de un solo trazo (R9.1).
 //
-// Manejo de p = 7: para p ∈ {5, 9} el ángulo 720/p es entero exacto (144 y 80).
-// Para p = 7 vale 102.857…, que no es entero; el requisito pide el conjunto
-// {5, 7, 9}, así que redondeamos al entero más cercano (Math.round(720/7) = 103)
-// y dejamos que la guarda de encuadre descarte la semilla: con 103° la estrella
-// de 7 puntas no cierra limpio y la figura degenera o se desencuadra, así que el
-// lazo reintenta con la semilla siguiente (que vuelve a elegir p). El resultado
-// observable es que el 2.2 produce estrellas de 5 o 9 puntas bien formadas; p = 7
-// queda como intento que casi siempre se descarta. Esto mantiene la garantía de
-// las 200 semillas (toda semilla devuelta encuadra y no degenera) sin colgar el
-// lazo, porque el fallback final es una estrella de 5 puntas conocida-buena.
-const PUNTAS_ESTRELLA: readonly number[] = [5, 7, 9];
+// Solo salen estrellas de 5 y de 9 puntas: 720/5 = 144 y 720/9 = 80 son enteros
+// exactos que el jugador deduce sin más aritmética. La de 7 puntas se descartó:
+// 720/7 = 102,857… no es entero, y redondear a `GD 103` deja una figura que no cierra
+// (queda a ~1,6 px del inicio) con un ángulo que el jugador no puede derivar. Por eso
+// el ángulo se escribe como constante de cada estrella y nunca se redondea.
+//
+// Rangos del lado (se alejan de los 100–180 del steering original; ver
+// niveles-y-progresion.md): la figura debe tener una caja envolvente de al menos 200 px
+// de lado. La estrella de 5 puntas mide ≈ 0,95·L de alto, así que necesita L ≥ 220 (con
+// 100–180 nunca llegaba a 200 y siempre se descartaba); la de 9 puntas mide ≈ 1,2·L y
+// basta con L ≥ 140. El máximo común es 240: más allá, la de 9 puntas se sale del lienzo.
+interface EstrellaM2 {
+  readonly puntas: number;
+  /** Giro exacto 720/puntas. */
+  readonly angulo: number;
+  readonly ladoMinimo: number;
+}
+
+const ESTRELLAS_M2: readonly EstrellaM2[] = [
+  { puntas: 5, angulo: 144, ladoMinimo: 220 },
+  { puntas: 9, angulo: 80, ladoMinimo: 140 },
+];
+
+const LADO_MAXIMO_ESTRELLA = 240;
 
 export function generarEstrella(semilla: number): ResultadoGenerador {
   for (let intento = 0; intento < MAX_INTENTOS; intento++) {
     const prng = crearPrng(semilla + intento);
-    const p = prng.elegir(PUNTAS_ESTRELLA);
-    const L = prng.multiplo(100, 180, 20);
-    const angulo = Math.round((360 * 2) / p);
-    const texto = `REPITE ${p} [AV ${L} GD ${angulo}]`;
+    const { puntas, angulo, ladoMinimo } = prng.elegir(ESTRELLAS_M2);
+    const L = prng.multiplo(ladoMinimo, LADO_MAXIMO_ESTRELLA, 20);
+    const texto = `REPITE ${puntas} [AV ${L} GD ${angulo}]`;
     const programa = parsear(texto);
     if (programa !== null && encuadraYNoEsDegenerada(programa)) {
       return { programa, texto, semillaUsada: semilla + intento };
     }
   }
-  // Fallback determinista: estrella de 5 puntas con lado 100 (144° exacto).
-  const texto = "REPITE 5 [AV 100 GD 144]";
+  // Fallback determinista: estrella de 5 puntas con lado 220 (144° exacto; su caja
+  // envolvente mide ≈ 209 px de alto, justo por encima del mínimo de 200).
+  const texto = "REPITE 5 [AV 220 GD 144]";
   return { programa: parsear(texto)!, texto, semillaUsada: semilla };
 }
-
 // ============================================================================
 // Generador 2.3 — escalera de n peldaños
 // ============================================================================

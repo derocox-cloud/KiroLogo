@@ -446,12 +446,10 @@ export const GENERADORES_M2: Readonly<Record<string, (semilla: number) => Result
 
 Notas de cada generador:
 
-- **2.2 estrella** — `p ∈ {5, 7, 9}` (`prng.elegir`), `L` múltiplo de 20 entre 100 y 180
-  (`prng.multiplo(100, 180, 20)`), ángulo `360*2/p`. Para `p ∈ {5, 7, 9}` el paso del polígono
-  estrellado es `720/p = {144, 102.857…, 80}`. Para que el ángulo quede en un entero exacto el
-  generador construye el texto con el ángulo redondeado solo cuando `720/p` es entero (5 y 9 dan 144
-  y 80); para `p = 7` se usa el entero más cercano y, si la figura no encuadra o degenera, el lazo de
-  reintento la descarta — igual que el mundo 1 descarta `n = 7` donde `360/n` no es entero. Forma
+- **2.2 estrella** — `p ∈ {5, 9}` (`prng.elegir`), ángulo exacto `720/p` (144 y 80, constantes de cada
+  estrella, nunca redondeados). La de 7 puntas se descartó: `720/7 = 102,857…` no es derivable y `GD 103` no
+  cierra la figura. `L` múltiplo de 20 con mínimo 220 (5 puntas) o 140 (9 puntas) y máximo 240, lo justo para
+  que la caja envolvente llegue a 200 px (con 100–180 la de 5 puntas nunca encuadraba). Forma
   `REPITE p [AV L GD angulo]` (R9.1).
 - **2.3 escalera** — 3 a 6 peldaños (`prng.entero(3, 6)`), huella = altura, múltiplo de 20 entre 20 y
   60 (`prng.multiplo(20, 60, 20)`) (R9.2).

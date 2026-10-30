@@ -186,27 +186,42 @@ describe("generador 2.2 — estrella", () => {
     }
   });
 
-  it("200 semillas: forma REPITE p [AV L GD round(720/p)], p∈{5,7,9}, L∈[100,180] mult 20", () => {
+  /** Lee `REPITE p [AV L GD angulo]` de la referencia de la estrella. */
+  function leerEstrella(texto: string): { p: number; L: number; angulo: number } {
+    const m = /^REPITE (\d+) \[AV (\d+) GD (\d+)\]$/.exec(texto);
+    expect(m, texto).not.toBeNull();
+    return { p: Number(m![1]), L: Number(m![2]), angulo: Number(m![3]) };
+  }
+
+  it("200 semillas: forma REPITE p [AV L GD 720/p] con L múltiplo de 20 en el rango de cada estrella", () => {
     for (let s = 0; s < 200; s++) {
-      const { texto } = generarEstrella(s);
-      const m = /^REPITE (\d+) \[AV (\d+) GD (\d+)\]$/.exec(texto);
-      expect(m, texto).not.toBeNull();
-      if (m) {
-        const p = Number(m[1]);
-        const L = Number(m[2]);
-        const angulo = Number(m[3]);
-        // p=5 con L≤180 siempre degenera (la estrella no llega a 200 px), así que
-        // nunca se devuelve; p=7 solo en L=180; p=9 en L≥140. El requisito permite
-        // el conjunto {5,7,9}: el lazo descarta las combinaciones que no encuadran.
-        expect([5, 7, 9]).toContain(p);
-        expect(L % 20).toBe(0);
-        expect(L).toBeGreaterThanOrEqual(100);
-        expect(L).toBeLessThanOrEqual(180);
-        expect(angulo).toBe(Math.round((360 * 2) / p));
-      }
+      const { p, L } = leerEstrella(generarEstrella(s).texto);
+      expect([5, 9], `puntas ${p}`).toContain(p);
+      expect(L % 20).toBe(0);
+      // Lado mínimo por estrella: lo justo para que la caja envolvente llegue a 200 px
+      // (la de 5 puntas mide ≈ 0,95·L de alto; la de 9, ≈ 1,2·L). Máximo común: 240.
+      expect(L).toBeGreaterThanOrEqual(p === 5 ? 220 : 140);
+      expect(L).toBeLessThanOrEqual(240);
     }
   });
 
+  it("200 semillas: salen estrellas de 5 y de 9 puntas, y nunca de 7", () => {
+    const vistas = new Set<number>();
+    for (let s = 0; s < 200; s++) vistas.add(leerEstrella(generarEstrella(s).texto).p);
+    expect([...vistas].sort()).toEqual([5, 9]);
+  });
+
+  it("200 semillas: todos los ángulos emitidos son derivables (720/p exacto: 144 y 80, sin redondeos)", () => {
+    const angulos = new Set<number>();
+    for (let s = 0; s < 200; s++) {
+      const { p, angulo } = leerEstrella(generarEstrella(s).texto);
+      // Derivable sin aritmética posterior: dos vueltas completas entre p giros.
+      expect(Number.isInteger(angulo)).toBe(true);
+      expect(angulo * p).toBe(720);
+      angulos.add(angulo);
+    }
+    expect([...angulos].sort((a, b) => a - b)).toEqual([80, 144]);
+  });
   it("200 semillas: el presupuesto es el Conteo de la referencia (3)", () => {
     for (let s = 0; s < 200; s++) {
       const r = contarInstrucciones(generarEstrella(s).programa);
