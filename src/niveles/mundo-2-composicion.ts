@@ -176,8 +176,8 @@ export const NIVEL_2_5: Nivel = {
   abstraccion: [],
   pistas: [
     'Son dos figuras separadas, sin ninguna línea que las una. ¿Cómo mueves la tortuga de una a la otra sin dejar rastro?',
-    'Dibuja el primer polígono, levanta el lápiz con SUBELAPIZ, avanza hasta el segundo, bájalo con BAJALAPIZ y dibuja el otro.',
-    'REPITE n [...]  SUBELAPIZ  AV d  BAJALAPIZ  REPITE m [...]',
+    'Dibuja el primer polígono, levanta el lápiz con SUBELAPIZ, gira a la derecha, avanza más que el ancho del primero, vuelve a girar para mirar arriba, bájalo con BAJALAPIZ y dibuja el otro.',
+    'REPITE n [...]  SUBELAPIZ  GD 90  AV d  GI 90  BAJALAPIZ  REPITE m [...]',
   ],
 };
 

@@ -455,7 +455,7 @@ Notas de cada generador:
   `REPITE p [AV L GD angulo]` (R9.1).
 - **2.3 escalera** — 3 a 6 peldaños (`prng.entero(3, 6)`), huella = altura, múltiplo de 20 entre 20 y
   60 (`prng.multiplo(20, 60, 20)`) (R9.2).
-- **2.5 dos polígonos** — cada uno de 3 a 6 lados, separados por un múltiplo de 20 entre 20 y 100; el
+- **2.5 dos polígonos** — cada uno de 3 a 6 lados, separados por un traslado horizontal `SUBELAPIZ GD 90 AV d GI 90 BAJALAPIZ` con `d` múltiplo de 20 y mayor que el ancho del primero (así las cajas no se superponen y omitir SL/BL deja un conector que niega la precisión); el
   texto usa `SUBELAPIZ`/`BAJALAPIZ` para moverse entre los dos sin trazo (R9.3, R9.4).
 - **2.6 cuadrícula** — paneles 2×2, 3×2 o 3×3; la referencia **define** un procedimiento con `PARA` y
   lo invoca una vez por panel (R9.5, R9.6). Su referencia obtiene, además de las tres estrellas, la de

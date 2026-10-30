@@ -113,10 +113,10 @@ el camino `CUADRADO` → `FLOR` → `JARDÍN` del artículo del MIT.
 | 2.2 | generado | Estrella | puntas 5, 7 o 9, largo 100–180, `REPITE p [AV L GD 360*2/p]` |
 | 2.3 | generado | Escalera | 3 a 6 peldaños, huella y altura iguales, 20–60 |
 | 2.4 | autorado | Cruz | `REPITE 4 [AV 50 GI 90 AV 50 GD 90 AV 50 GI 90]` |
-| 2.5 | generado | Dos figuras separadas | dos polígonos 3–6 lados, separación múltiplo de 20; exige `SL`/`BL` |
+| 2.5 | generado | Dos figuras separadas | dos polígonos 3–6 lados, `SL GD 90 AV d GI 90 BL` entre ellos con `d` múltiplo de 20 y mayor que el ancho del primero; exige `SL`/`BL` |
 | 2.6 | generado | Cuadrícula de paneles | 2×2 o 3×2 o 3×3; exige `defineProcedimiento` |
 
-El 2.5 obliga a `SUBELAPIZ` / `BAJALAPIZ`. El 2.6 exige la estrella de abstracción: solo se otorga si
+El 2.5 obliga a `SUBELAPIZ` / `BAJALAPIZ`: el traslado es horizontal para que las cajas de los dos polígonos no se superpongan (con una diagonal se montaban y, con traslación libre, la referencia sin `SL`/`BL` aún ganaba la precisión), y `d` crece lo necesario para que un conector olvidado supere el 10 % del perímetro, el doble de la tolerancia de exceso. El 2.6 exige la estrella de abstracción: solo se otorga si
 el programa define un procedimiento con `PARA`, y el `presupuestoEstrella` está calculado sobre una
 referencia que lo usa, así que copiar el panel seis veces no alcanza.
 

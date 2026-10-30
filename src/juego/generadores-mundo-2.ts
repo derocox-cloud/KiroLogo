@@ -144,21 +144,59 @@ export function generarEscalera(semilla: number): ResultadoGenerador {
 // Generador 2.5 — dos polígonos separados
 // ============================================================================
 //
-// Forma: REPITE n1 [AV L GD 360/n1]  SUBELAPIZ GD 45 AV sep GI 45 BAJALAPIZ  REPITE n2 [AV L GD 360/n2].
+// Forma: REPITE n1 [AV L GD 360/n1]  SUBELAPIZ GD 90 AV d GI 90 BAJALAPIZ  REPITE n2 [AV L GD 360/n2].
 // Cada polígono es regular de 3..6 lados (ángulo 360/n entero: 120, 90, 72, 60);
-// entre los dos, SUBELAPIZ levanta el lápiz, la tortuga se mueve en diagonal
-// (GD 45 → AV sep → GI 45, que la deja de nuevo con rumbo 0) y BAJALAPIZ lo baja,
-// de modo que NO queda trazo entre ellos (R9.3, R9.4). El extractor de segmentos
-// ignora el movimiento con el lápiz arriba, así que la figura resultante son
-// exactamente los dos polígonos, sin conector.
+// entre los dos, SUBELAPIZ levanta el lápiz, la tortuga se traslada d px en
+// horizontal (GD 90 → AV d → GI 90, que la deja de nuevo con rumbo 0) y BAJALAPIZ
+// lo baja, de modo que NO queda trazo entre ellos (R9.3, R9.4). El extractor de
+// segmentos ignora el movimiento con el lápiz arriba, así que la figura
+// resultante son exactamente los dos polígonos, sin conector.
 //
-// Geometría: el primer polígono se dibuja desde el origen hacia arriba; la
-// diagonal desplaza el segundo polígono arriba y a la derecha, de modo que la
-// caja envolvente combinada crece en los dos ejes a la vez. Con lados grandes
-// (120..180) la combinación supera holgadamente 200 px en ancho y alto; el lazo
-// descarta las pocas combinaciones estrechas (dos triángulos con separación
-// chica) o las que se salen del lienzo, y reintenta con la semilla siguiente.
+// Por qué el traslado es horizontal y no una diagonal: con la tortuga mirando
+// arriba, cada polígono (giros a la derecha) queda a la derecha de su primer lado,
+// entre x = 0 y x = ancho. Trasladar d > ancho del primer polígono deja el segundo
+// totalmente a su derecha: las cajas NO se superponen. Con la diagonal anterior
+// (GD 45 AV sep GI 45) las cajas se montaban y, con traslación libre, el jugador
+// ganaba la precisión sin usar SUBELAPIZ/BAJALAPIZ: el nivel no forzaba su lección.
+// Con este traslado, dibujar el conector con el lápiz abajo deja una línea horizontal
+// de d px que cae como exceso de trazo, y el nivel exige de verdad SL/BL.
+//
+// d es múltiplo de 20 (cuadrícula del lienzo, validacion-geometrica) y siempre
+// mayor que el ancho del primer polígono —por tanto también mayor que el lado L—:
+// d = techo20(ancho1) + hueco, con hueco ∈ {20, ..., 100}.
+//
+// Conector visible: si el jugador se olvida de SL/BL, el conector es
+// un trazo horizontal de d px desde el origen. Si el primer polígono es un cuadrado,
+// el conector recorre además su lado inferior (L px), que ya estaba dibujado, y solo
+// el resto (d − L) cuenta como exceso. El generador sube d hasta que ese exceso sea al
+// menos el 10 % del perímetro de la figura (el umbral del validador es 5 %), para
+// que olvidar SL/BL nunca quede dentro de la tolerancia; si no lo cumple, d crece
+// (siempre en múltiplos de 20) y el encuadre descarta las combinaciones que no caben.
+const FRACCION_MINIMA_CONECTOR = 0.1;
 const LADOS_POLIGONO_M2: readonly number[] = [3, 4, 5, 6];
+
+/**
+ * Ancho (extensión en x) de un polígono regular de n lados y lado L dibujado con
+ * `REPITE n [AV L GD 360/n]` desde el origen mirando arriba. Se calcula caminando
+ * el contorno; el polígono es convexo y queda a la derecha de su primer lado, así
+ * que su x mínimo es 0 y el ancho es su x máximo.
+ */
+function anchoPoligono(n: number, L: number): number {
+  const giro = 360 / n;
+  let x = 0;
+  let y = 0;
+  let rumbo = 0;
+  let maximo = 0;
+  for (let i = 0; i < n; i++) {
+    const rad = (rumbo * Math.PI) / 180;
+    x += L * Math.sin(rad);
+    y += L * Math.cos(rad);
+    rumbo += giro;
+    maximo = Math.max(maximo, x);
+  }
+  // Redondeo para absorber el ruido de coma flotante (p. ej. 120.00000000000001).
+  return Math.round(maximo * 1e6) / 1e6;
+}
 
 export function generarDosPoligonos(semilla: number): ResultadoGenerador {
   for (let intento = 0; intento < MAX_INTENTOS; intento++) {
@@ -166,25 +204,31 @@ export function generarDosPoligonos(semilla: number): ResultadoGenerador {
     const n1 = prng.elegir(LADOS_POLIGONO_M2);
     const n2 = prng.elegir(LADOS_POLIGONO_M2);
     const L = prng.multiplo(120, 180, 20);
-    const sep = prng.multiplo(20, 100, 20);
+    const hueco = prng.multiplo(20, 100, 20);
+    // Traslado mínimo para que el segundo polígono quede a la derecha del primero...
+    const dSinSolape = Math.ceil(anchoPoligono(n1, L) / 20) * 20 + hueco;
+    // ...y para que un conector olvidado (cuyo tramo sobre un cuadrado ya dibujado no
+    // cuenta como exceso) sea claramente visible. Siempre múltiplo de 20.
+    const solape = n1 === 4 ? L : 0;
+    const dConectorVisible = Math.ceil((solape + FRACCION_MINIMA_CONECTOR * (n1 + n2) * L) / 20) * 20;
+    const d = Math.max(dSinSolape, dConectorVisible);
     const a1 = Math.round(360 / n1);
     const a2 = Math.round(360 / n2);
     const texto =
       `REPITE ${n1} [AV ${L} GD ${a1}] ` +
-      `SUBELAPIZ GD 45 AV ${sep} GI 45 BAJALAPIZ ` +
+      `SUBELAPIZ GD 90 AV ${d} GI 90 BAJALAPIZ ` +
       `REPITE ${n2} [AV ${L} GD ${a2}]`;
     const programa = parsear(texto);
     if (programa !== null && encuadraYNoEsDegenerada(programa)) {
       return { programa, texto, semillaUsada: semilla + intento };
     }
   }
-  // Fallback determinista: hexágono + cuadrado de lado 160 separados en diagonal
-  // por 60 (caja holgada en ambos ejes, dentro del lienzo).
+  // Fallback determinista: hexágono + cuadrado de lado 160. El hexágono mide
+  // ≈ 277 de ancho, así que d = 280 + 20 = 300 deja el cuadrado a su derecha.
   const texto =
-    "REPITE 6 [AV 160 GD 60] SUBELAPIZ GD 45 AV 60 GI 45 BAJALAPIZ REPITE 4 [AV 160 GD 90]";
+    "REPITE 6 [AV 160 GD 60] SUBELAPIZ GD 90 AV 300 GI 90 BAJALAPIZ REPITE 4 [AV 160 GD 90]";
   return { programa: parsear(texto)!, texto, semillaUsada: semilla };
 }
-
 // ============================================================================
 // Generador 2.6 — cuadrícula de paneles con procedimiento
 // ============================================================================

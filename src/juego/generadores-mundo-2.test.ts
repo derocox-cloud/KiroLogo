@@ -31,6 +31,8 @@ import { ESTADO_INICIAL } from "../motor/tortuga.js";
 import { extraerSegmentos, type Segmento } from "../motor/segmentos.js";
 import { calcularEncuadre } from "../motor/encuadre.js";
 import { comandosDelMundo } from "../lenguaje/vocabulario.js";
+import { analizarLexico } from "../lenguaje/lexer.js";
+import { analizar as analizarSintaxis } from "../lenguaje/parser.js";
 import { contarInstrucciones } from "../lenguaje/conteo.js";
 import { validar } from "../motor/validador.js";
 import { calificar } from "./estrellas.js";
@@ -94,6 +96,13 @@ function apruebaLasTresEstrellas(nivel: Nivel, referencia: Programa): void {
   expect(calificacion.precision.otorgada).toBe(true);
   expect(calificacion.economia.otorgada).toBe(true);
   expect(calificacion.abstraccion.otorgada).toBe(true);
+}
+
+/** Parsea texto KiroLogo del mundo 2; lanza si el texto no es válido. */
+function programaDeTexto(texto: string): Programa {
+  const { programa, errores } = analizarSintaxis(analizarLexico(texto).tokens, { mundo: 2 });
+  if (programa === null || errores.length > 0) throw new Error(`texto inválido: ${texto}`);
+  return programa;
 }
 
 /** Muestra representativa de semillas para la validación geométrica costosa. */
@@ -246,24 +255,79 @@ describe("generador 2.5 — dos polígonos", () => {
     }
   });
 
-  it("200 semillas: ambos polígonos tienen 3..6 lados y separación mult 20 en [20,100]", () => {
+  it("200 semillas: forma REPITE n [AV L GD 360/n] SL GD 90 AV d GI 90 BL REPITE m [...], con d mult 20 y d > L", () => {
     for (let s = 0; s < 200; s++) {
       const { texto } = generarDosPoligonos(s);
-      const m = /^REPITE (\d+) \[AV \d+ GD \d+\] SUBELAPIZ GD 45 AV (\d+) GI 45 BAJALAPIZ REPITE (\d+) \[AV \d+ GD \d+\]$/.exec(texto);
+      const m =
+        /^REPITE (\d+) \[AV (\d+) GD (\d+)\] SUBELAPIZ GD 90 AV (\d+) GI 90 BAJALAPIZ REPITE (\d+) \[AV (\d+) GD (\d+)\]$/.exec(
+          texto,
+        );
       expect(m, texto).not.toBeNull();
       if (m) {
-        const n1 = Number(m[1]);
-        const sep = Number(m[2]);
-        const n2 = Number(m[3]);
+        const [n1, L1, a1, d, n2, L2, a2] = m.slice(1).map(Number) as [
+          number, number, number, number, number, number, number,
+        ];
         for (const n of [n1, n2]) {
           expect(n).toBeGreaterThanOrEqual(3);
           expect(n).toBeLessThanOrEqual(6);
         }
-        expect(sep % 20).toBe(0);
-        expect(sep).toBeGreaterThanOrEqual(20);
-        expect(sep).toBeLessThanOrEqual(100);
+        expect(L2).toBe(L1);
+        // Ángulos derivables: 360/n exacto (120, 90, 72, 60).
+        expect(a1 * n1).toBe(360);
+        expect(a2 * n2).toBe(360);
+        // El traslado horizontal cae en la cuadrícula de 20 y supera el lado.
+        expect(d % 20).toBe(0);
+        expect(d).toBeGreaterThan(L1);
       }
     }
+  });
+
+  it("200 semillas: los dos polígonos no se superponen (sus cajas no se tocan)", () => {
+    for (let s = 0; s < 200; s++) {
+      const { texto, programa } = generarDosPoligonos(s);
+      const n1 = Number(/^REPITE (\d+)/.exec(texto)![1]);
+      const { segmentos } = ejecutarYObtenerSegmentos(programa);
+      const xs = (segs: readonly Segmento[]) => segs.flatMap((g) => [g.desde.x, g.hasta.x]);
+      const primero = xs(segmentos.slice(0, n1));
+      const segundo = xs(segmentos.slice(n1));
+      expect(Math.max(...primero), texto).toBeLessThan(Math.min(...segundo));
+    }
+  });
+
+  it("muestra de semillas: la referencia SIN SUBELAPIZ/BAJALAPIZ no obtiene la estrella de precisión", () => {
+    for (const s of MUESTRA) {
+      const { texto, programa } = generarDosPoligonos(s);
+      const { segmentos: objetivo } = ejecutarYObtenerSegmentos(programa);
+      const sinLapiz = programaDeTexto(texto.replace(/\s*(SUBELAPIZ|BAJALAPIZ)/g, ""));
+      const { segmentos: dibujo } = ejecutarYObtenerSegmentos(sinLapiz);
+
+      const veredicto = validar(dibujo, objetivo, NIVEL_2_5.normalizacion);
+      const calificacion = calificar(sinLapiz, veredicto, retoDeReferencia(NIVEL_2_5, programa, objetivo));
+      expect(calificacion.precision.otorgada, `semilla ${s}: ${texto}`).toBe(false);
+    }
+  });
+
+  it("200 semillas: olvidar SL/BL dejaría un conector que supera con holgura el 5 % de tolerancia", () => {
+    // El conector olvidado es un trazo horizontal de d px; si el primer polígono es
+    // un cuadrado, sus primeros L px recorren un lado ya dibujado y no cuentan como
+    // exceso. Lo que sobra debe ser al menos el 10 % del perímetro (umbral: 5 %).
+    for (let s = 0; s < 200; s++) {
+      const { texto } = generarDosPoligonos(s);
+      const m = /^REPITE (\d+) \[AV (\d+) GD \d+\] SUBELAPIZ GD 90 AV (\d+) GI 90 BAJALAPIZ REPITE (\d+) /.exec(texto)!;
+      const [n1, L, d, n2] = [Number(m[1]), Number(m[2]), Number(m[3]), Number(m[4])];
+      const exceso = d - (n1 === 4 ? L : 0);
+      expect(exceso, texto).toBeGreaterThanOrEqual(0.1 * (n1 + n2) * L);
+    }
+  });
+  it("la pista 3 describe lo que Kiro dibuja: traslado SL GD 90 AV d GI 90 BL", () => {
+    const pista = NIVEL_2_5.pistas[2]!;
+    for (const fragmento of ["SUBELAPIZ", "GD 90", "AV", "GI 90", "BAJALAPIZ"]) {
+      expect(pista).toContain(fragmento);
+    }
+    // El orden es el del programa de referencia.
+    expect(pista.indexOf("SUBELAPIZ")).toBeLessThan(pista.indexOf("GD 90"));
+    expect(pista.indexOf("GD 90")).toBeLessThan(pista.indexOf("GI 90"));
+    expect(pista.indexOf("GI 90")).toBeLessThan(pista.indexOf("BAJALAPIZ"));
   });
 
   it("200 semillas: el presupuesto es el Conteo de la referencia (6)", () => {

@@ -1,4 +1,4 @@
-﻿# Requirements Document
+# Requirements Document
 
 **KiroLogo · Spec 03 · Mundo 2 · Composición**
 
@@ -207,7 +207,7 @@ Términos nuevos o revisados en esta spec:
 
 1. CUANDO se genera el nivel 2.2 con una semilla, EL Generador_M2 DEBERÁ producir una estrella de `p` puntas con `p` ∈ {5, 7, 9} y largo `L` múltiplo de 20 entre 100 y 180 (inclusive), de la forma `REPITE p [AV L GD 360*2/p]`.
 2. CUANDO se genera el nivel 2.3 con una semilla, EL Generador_M2 DEBERÁ producir una escalera de 3 a 6 peldaños (inclusive) con huella y altura iguales entre sí y múltiplo de 20 entre 20 y 60 (inclusive).
-3. CUANDO se genera el nivel 2.5 con una semilla, EL Generador_M2 DEBERÁ producir dos polígonos, cada uno de 3 a 6 lados (inclusive), separados por una distancia múltiplo de 20 entre 20 y 100 (inclusive).
+3. CUANDO se genera el nivel 2.5 con una semilla, EL Generador_M2 DEBERÁ producir dos polígonos, cada uno de 3 a 6 lados (inclusive), separados por un traslado horizontal de `d` px, con `d` múltiplo de 20 y mayor que el ancho del primer polígono (de modo que las cajas de ambos no se superpongan).
 4. CUANDO se genera el nivel 2.5 con una semilla, EL programa de referencia DEBERÁ usar `SUBELAPIZ` y `BAJALAPIZ` para separar los dos polígonos sin trazo entre ellos.
 5. CUANDO se genera el nivel 2.6 con una semilla, EL Generador_M2 DEBERÁ producir una cuadrícula de paneles de 2×2, 3×2 o 3×3.
 6. CUANDO se genera el nivel 2.6 con una semilla, EL programa de referencia DEBERÁ definir un procedimiento con `PARA` e invocarlo una vez por cada panel de la cuadrícula.
