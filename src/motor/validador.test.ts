@@ -17,6 +17,7 @@ import {
   buscarMejorGiro,
   validar,
   veredictoParaMostrar,
+  MARGEN_MOSTRAR_REAL,
   type Mascara,
   type NormalizacionNivel,
 } from './validador.js';
@@ -654,7 +655,10 @@ describe('validador · veredictoParaMostrar', () => {
     for (const [jugador, objetivo] of casos) {
       const oficial = validar(jugador, objetivo, LIBRE);
       const mostrado = veredictoParaMostrar(oficial, jugador, objetivo, LIBRE);
-      expect(mostrado.iou).toBeGreaterThanOrEqual(oficial.iou);
+      // El IoU mostrado no baja del oficial más allá de MARGEN_MOSTRAR_REAL: el
+      // desempate ampliado (Caso 2, Opción B) puede preferir la comparación en
+      // posiciones reales —la que el jugador ve— aunque su IoU sea algo menor.
+      expect(mostrado.iou).toBeGreaterThanOrEqual(oficial.iou - MARGEN_MOSTRAR_REAL);
       // Y es siempre uno de los dos: ni uno inventado ni modificado.
       expect(mostrado === oficial || mismaMascara(mostrado.exceso, validar(jugador, objetivo, FIJA).exceso)).toBe(true);
     }
@@ -669,6 +673,102 @@ describe('validador · veredictoParaMostrar', () => {
     const mostrado = veredictoParaMostrar(oficial, jugador, objetivo, LIBRE);
     if (real.iou >= oficial.iou) expect(mostrado.traslacion).toEqual({ x: 0, y: 0 });
     expect(mostrado.iou).toBeGreaterThanOrEqual(oficial.iou);
+  });
+
+  // ==========================================================================
+  // Bugfix Caso 2: el desfase de la alineación por caja descoloca el tramo
+  // inicial coincidente (spec diff-visual-desfase-alineacion-caja, tarea 1).
+  //
+  // Property 1 (Bug Condition): en normalización libre/libre, con una figura
+  // escalonada cuya forma es correcta pero con tramos largos algo distintos a
+  // los de Kiro, el desempate estricto `real.iou >= oficial.iou` hace que
+  // `veredictoParaMostrar` devuelva la comparación ALINEADA por caja envolvente
+  // (`oficial`), cuya alineación desplaza ~10px la figura y descoloca el tramo
+  // inicial que en POSICIONES REALES coincide con el de Kiro, pintándolo rojo +
+  // punteado en vez de verde.
+  //
+  // Enfoque PBT acotado: como es un bug determinista, se acota la propiedad al
+  // caso concreto que falla (figura escalonada del nivel 0.3, reto AC3VRQC),
+  // para reproducibilidad.
+  //
+  // CRÍTICO: este test DEBE FALLAR sobre el código SIN arreglar. El fallo
+  // confirma que el bug existe. Codifica el comportamiento ESPERADO (Correctness
+  // Property 1 del design): tras el arreglo, `veredictoParaMostrar` devuelve la
+  // comparación de posiciones reales (traslación {0,0}, ángulo 0) y el tramo
+  // inicial coincidente cae en `coincidencia` (verde), no en `exceso`/`falta`.
+  //
+  // Valida: Requisitos 1.1, 1.2, 2.1, 2.2.
+  // ==========================================================================
+  describe('Bugfix Caso 2: el desfase de la alineación por caja descoloca el tramo inicial coincidente', () => {
+    // Figura escalonada del nivel 0.3 (reto AC3VRQC), construida desde el
+    // recorrido de la tortuga (rumbo 0 = +y; GD suma al rumbo, GI resta;
+    // AVANZA d → Δx = sen(rumbo)·d, Δy = cos(rumbo)·d):
+    //
+    //   Kiro:    AVANZA 80 / GD 90 / AVANZA 140 / GI 90 / AVANZA 120 / GD 90 / AVANZA 140
+    //   Jugador: igual, pero con 150 en los dos tramos largos de 140.
+    //
+    // El primer tramo (0,0)→(0,80) es IDÉNTICO en ambas figuras: ese es el tramo
+    // inicial que en posiciones reales está exactamente sobre el de Kiro y que
+    // el bug pinta rojo + punteado por el desfase de la alineación por caja.
+
+    // Objetivo (Kiro), tramos de 140 en los largos.
+    const objetivo: Segmento[] = [
+      seg(0, 0, 0, 80, 0),       // AVANZA 80  (rumbo 0, +y)
+      seg(0, 80, 140, 80, 1),    // AVANZA 140 (rumbo 90, +x)
+      seg(140, 80, 140, 200, 2), // AVANZA 120 (rumbo 0, +y)
+      seg(140, 200, 280, 200, 3),// AVANZA 140 (rumbo 90, +x)
+    ];
+    // Jugador: misma forma, 150 en los tramos largos.
+    const jugador: Segmento[] = [
+      seg(0, 0, 0, 80, 0),       // AVANZA 80  (idéntico al de Kiro)
+      seg(0, 80, 150, 80, 1),    // AVANZA 150 (rumbo 90, +x)
+      seg(150, 80, 150, 200, 2), // AVANZA 120 (rumbo 0, +y)
+      seg(150, 200, 300, 200, 3),// AVANZA 150 (rumbo 90, +x)
+    ];
+    // Punto medio del tramo inicial del jugador, común con el de Kiro: (0, 40).
+    const medioTramoInicial: Punto = { x: 0, y: 40 };
+
+    it('hoy la alineada gana el desempate estricto (oficial.iou > real.iou) y se pinta la comparación alineada', () => {
+      const oficial = validar(jugador, objetivo, LIBRE);
+      const real = validar(jugador, objetivo, FIJA);
+
+      // Estado medido que dispara el bug: la alineada por caja explica mejor el
+      // conjunto (mayor IoU), así que `real.iou >= oficial.iou` es FALSO.
+      // Medido en el contraejemplo: oficial.iou ≈ 0.7965 > real.iou ≈ 0.7212.
+      expect(oficial.iou).toBeGreaterThan(real.iou);
+
+      // Ninguna de las dos coincide: la estrella de precisión fue negada (hay
+      // diff que pintar), condición necesaria del bug.
+      expect(oficial.coincide).toBe(false);
+      expect(real.coincide).toBe(false);
+    });
+
+    it('COMPORTAMIENTO ESPERADO (hoy FALLA): veredictoParaMostrar devuelve la comparación de posiciones reales, no la alineada', () => {
+      const oficial = validar(jugador, objetivo, LIBRE);
+      const mostrado = veredictoParaMostrar(oficial, jugador, objetivo, LIBRE);
+
+      // Esperado tras el arreglo: se pinta la comparación de POSICIONES REALES,
+      // que no centra ni gira nada. Hoy FALLA porque el desempate estricto
+      // `0.7212 >= 0.7965` es falso y se devuelve la alineada por caja.
+      expect(mostrado.traslacion).toEqual({ x: 0, y: 0 });
+      expect(mostrado.angulo).toBe(0);
+    });
+
+    it('COMPORTAMIENTO ESPERADO (hoy FALLA): el tramo inicial coincidente cae en coincidencia (verde), no en exceso/falta', () => {
+      const oficial = validar(jugador, objetivo, LIBRE);
+      const mostrado = veredictoParaMostrar(oficial, jugador, objetivo, LIBRE);
+
+      // El punto medio del tramo inicial (0,40) está exactamente sobre el de
+      // Kiro en posiciones reales, así que debe verse VERDE (coincidencia) y NO
+      // rojo/punteado (exceso/falta). Hoy FALLA: al devolver la comparación
+      // alineada, el centrado por caja desplaza ~10px la figura y ese punto cae
+      // fuera de la coincidencia.
+      const ix = aColumna(medioTramoInicial.x);
+      const iy = aFila(medioTramoInicial.y);
+      expect(encendida(mostrado.coincidencia, ix, iy)).toBe(true);
+      expect(encendida(mostrado.exceso, ix, iy)).toBe(false);
+      expect(encendida(mostrado.falta, ix, iy)).toBe(false);
+    });
   });
 });
 
@@ -733,8 +833,15 @@ describe('Feature: 08-diseno-visual, Property 1: el veredicto de presentación n
         const oficial = validar(jugador, objetivo, NORM_LIBRE);
         const mostrado = veredictoParaMostrar(oficial, jugador, objetivo, NORM_LIBRE);
 
-        // 1) La coincidencia (IoU) del veredicto de presentación nunca empeora.
-        expect(mostrado.iou).toBeGreaterThanOrEqual(oficial.iou);
+        // 1) La coincidencia (IoU) del veredicto de presentación no baja del
+        //    oficial más allá de MARGEN_MOSTRAR_REAL. Opción B del arreglo del
+        //    Caso 2 (diff-visual-desfase-alineacion-caja): la presentación puede
+        //    preferir la comparación en posiciones reales —la que el jugador ve
+        //    en pantalla— aunque su IoU sea algo menor que la alineada, siempre
+        //    que quede dentro de ese margen acotado. El piso del IoU mostrado se
+        //    relaja a ese umbral, no a cualquier valor (se importa la constante
+        //    de validador.ts, nunca un número mágico duplicado).
+        expect(mostrado.iou).toBeGreaterThanOrEqual(oficial.iou - MARGEN_MOSTRAR_REAL);
 
         // 2) El veredicto de presentación es siempre uno de los dos reales (el
         //    oficial o el de las posiciones reales): nunca uno inventado.
@@ -751,12 +858,518 @@ describe('Feature: 08-diseno-visual, Property 1: el veredicto de presentación n
         //    precisión: el veredicto de presentación no puede subir la nota.
         if (!oficial.coincide) expect(mostrado.coincide).toBe(false);
 
-        // 4) Las Estrellas no cambian: la precisión que saldría del veredicto de
-        //    presentación es la misma que la del oficial. La calificación sale
-        //    siempre del veredicto oficial, con independencia de lo que se pinte.
-        expect(precisionDeVeredicto(mostrado)).toBe(precisionDeVeredicto(oficial));
+        // 4) Las Estrellas no cambian: el veredicto de presentación otorga la
+        //    precisión exactamente cuando la otorga el oficial, así que la nota
+        //    (número de estrellas) es idéntica. Lo que NO se exige es el mismo
+        //    sub-motivo de una precisión *negada*: con el desempate ampliado del
+        //    Caso 2 (Opción B), cuando se reruta a la comparación en posiciones
+        //    reales, su `motivo` puede caer en otro bucket de «negada»
+        //    (`iouInsuficiente` vs `excesoDeTrazo`) sin cambiar la estrella —en
+        //    producción la nota sale siempre del oficial, no del mostrado—. El
+        //    invariante real es que el mostrado nunca sube ni baja la precisión
+        //    otorgada; la aserción (3) cubre que tampoco la sube.
+        expect(precisionDeVeredicto(mostrado) === 'otorgada').toBe(
+          precisionDeVeredicto(oficial) === 'otorgada',
+        );
       }),
       { seed: 804, numRuns: 100 },
     );
   }, 60_000);
+
+  // ==========================================================================
+  // Bugfix: diff-visual-coincidencia-exceso · Tarea 2
+  // Tests de preservación (observation-first, ANTES del arreglo).
+  //
+  // Fijan el comportamiento que el arreglo del exceso visual (Opción A del
+  // design: añadir la salida NUEVA `excesoVisual`) NO debe romper. Se escriben
+  // dentro de este bloque a propósito, para REUTILIZAR el arbitrario `figuraArb`
+  // de arriba sin duplicarlo. Deben PASAR sobre el código SIN arreglar: hoy
+  // trivialmente (el arreglo aún no existe), y tras el arreglo siguen pasando
+  // porque la nueva salida es separada y no toca el conteo del veredicto.
+  //
+  // Reutiliza también `precisionDeVeredicto` y `figuraArb` del scope del bloque.
+  //
+  // Valida: Requisitos 3.1, 3.2, 3.3, 3.4, 3.5.
+  // ==========================================================================
+  describe('Tarea 2 · preservación del veredicto y las estrellas', () => {
+    const seg = (a: number, b: number, c: number, d: number, paso: number): Segmento => ({
+      desde: { x: a, y: b },
+      hasta: { x: c, y: d },
+      paso,
+      linea: 1,
+    });
+    const LIBRE: NormalizacionNivel = { traslacion: 'libre', rotacion: 'libre', escala: 'exacta' };
+    const FIJA: NormalizacionNivel = { traslacion: 'fija', rotacion: 'fija', escala: 'exacta' };
+
+    // ------------------------------------------------------------------------
+    // 3.1 — Veredicto idéntico (property-based, ≥ 100 iteraciones).
+    //
+    // Blinda la estrella de precisión: `excesoPorcentaje`, `coincide` y `motivo`
+    // deben quedar estables. Como línea base sobre el código SIN arreglar se usa
+    // el determinismo de `validar` (validar dos veces con las mismas entradas y
+    // comparar los tres campos): el valor de hoy es el valor a preservar. Tras
+    // el arreglo —que añade la salida separada `excesoVisual`— estos tres campos
+    // deben seguir idénticos, porque la pasada que los calcula no cambia.
+    //
+    // Es el test NUEVO clave de la tarea 2: ningún test existente fija que estos
+    // tres campos concretos de `validar` (no de `veredictoParaMostrar`) queden
+    // estables frente a la futura salida `excesoVisual`.
+    // ------------------------------------------------------------------------
+    it('3.1 · excesoPorcentaje, coincide y motivo de validar son estables (deterministas) con figuraArb × figuraArb (≥ 100 iteraciones)', () => {
+      fc.assert(
+        fc.property(figuraArb, figuraArb, (jugador, objetivo) => {
+          // Línea base: el comportamiento observable de HOY sobre estas entradas.
+          const base = validar(jugador, objetivo, LIBRE);
+
+          // El mismo cálculo repetido no puede cambiar los tres campos que
+          // deciden la estrella. Este es el contrato que el arreglo debe mantener
+          // byte a byte: la salida nueva `excesoVisual` no altera el conteo.
+          const repetido = validar(jugador, objetivo, LIBRE);
+          expect(repetido.excesoPorcentaje).toBe(base.excesoPorcentaje);
+          expect(repetido.coincide).toBe(base.coincide);
+          expect(repetido.motivo).toBe(base.motivo);
+
+          // Refuerzo de rango: los tres campos están en dominios válidos (no se
+          // corrompen). La precisión derivada (la nota) sale solo de coincide y
+          // motivo, igual que en `estrellas.calificar`.
+          expect(base.excesoPorcentaje).toBeGreaterThanOrEqual(0);
+          expect(typeof base.coincide).toBe('boolean');
+          expect(['coincide', 'excesoDeTrazo', 'iouInsuficiente', 'sinEstelaDelJugador']).toContain(base.motivo);
+        }),
+        { seed: 2802, numRuns: 100 },
+      );
+    }, 60_000);
+
+    // ------------------------------------------------------------------------
+    // 3.2 — Figura correcta movida sigue toda verde.
+    //
+    // Una figura COMPLETA y correcta, trasladada y girada en normalización LIBRE,
+    // hoy sale toda verde: el validador la alinea, coincide, y no hay exceso. El
+    // arreglo debe preservar esto (tras el fix, el futuro `excesoVisual` saldrá
+    // vacío aquí). Como `excesoVisual` AÚN NO existe, este test de preservación
+    // NO depende de él: fija el comportamiento observable ACTUAL —`v.coincide` y
+    // la ausencia de exceso— y que `veredictoParaMostrar` devuelve el oficial sin
+    // alterarlo.
+    // ------------------------------------------------------------------------
+    it('3.2 · una figura correcta movida en LIBRE sale toda verde hoy (coincide), y veredictoParaMostrar no la altera', () => {
+      // Zigzag completo de Kiro (el mismo marco de las pruebas de arriba).
+      const kiro = [
+        seg(0, 0, 0, 100, 0),
+        seg(0, 100, 80, 100, 1),
+        seg(80, 100, 80, 220, 2),
+        seg(80, 220, 200, 220, 3),
+      ];
+
+      // Caso trasladado (sin girar): figura completa y correcta, solo movida.
+      // Observado sobre el código SIN arreglar: coincide con IoU 1 y exceso 0 %
+      // (alineación libre exacta). Es el «toda verde» más puro.
+      const trasladado = kiro.map((s) =>
+        seg(s.desde.x + 120, s.desde.y - 90, s.hasta.x + 120, s.hasta.y - 90, s.paso),
+      );
+      const vTrasladado = validar(trasladado, kiro, LIBRE);
+      expect(vTrasladado.coincide).toBe(true);
+      expect(contar(vTrasladado.exceso)).toBe(0);
+
+      // Caso girado 90° y trasladado: (x,y) → (y, -x), luego (+300, -200). Figura
+      // completa y correcta, movida y rotada. Observado sobre el código SIN
+      // arreglar: coincide (estrella otorgada, toda verde). El giro discreto deja
+      // un exceso residual mínimo de rasterización por debajo del umbral del 5 %
+      // (no niega la coincidencia); fijamos ese comportamiento observable ACTUAL.
+      const girado = kiro.map((s) =>
+        seg(s.desde.y + 300, -s.desde.x - 200, s.hasta.y + 300, -s.hasta.x - 200, s.paso),
+      );
+      const oficial = validar(girado, kiro, LIBRE);
+      expect(oficial.coincide).toBe(true);
+      expect(oficial.excesoPorcentaje).toBeLessThanOrEqual(5);
+
+      // Y el veredicto que se pinta es el oficial, sin alterarlo (un dibujo que
+      // coincide nunca se muestra como fallo). No se toca `veredictoParaMostrar`.
+      // NOTA: este test NO depende de `excesoVisual` (aún no existe); fija el
+      // comportamiento observable actual que el arreglo debe preservar.
+      const mostrado = veredictoParaMostrar(oficial, girado, kiro, LIBRE);
+      expect(mostrado).toBe(oficial);
+      expect(mostrado.coincide).toBe(true);
+    });
+
+    // ------------------------------------------------------------------------
+    // 3.3 — Fija/fija devuelve el oficial tal cual.
+    //
+    // Ya cubierto por tests existentes que seguirán siendo válidos tras el fix,
+    // NO se duplican:
+    //   · `validador · validar` → "con rotación y traslación fijas, comparar
+    //      contra sí mismo da coincidencia" (fija `validar` con FIJA).
+    //   · `validador · veredictoParaMostrar` → "con traslación y rotación fijas
+    //      devuelve el oficial tal cual: ya es el de las posiciones reales"
+    //      (fija que `veredictoParaMostrar` devuelve el oficial en FIJA).
+    // Se añade solo un refuerzo barato: en FIJA, `validar` es determinista en los
+    // tres campos de la estrella (el contrato de preservación de 3.1 también vale
+    // con normalización fija, el caso de Mundo 3+).
+    // ------------------------------------------------------------------------
+    it('3.3 · en normalización FIJA, excesoPorcentaje/coincide/motivo de validar son estables (Mundo 3+ no cambia)', () => {
+      const kiro = [seg(0, 0, 0, 100, 0), seg(0, 100, 100, 100, 1)];
+      const jugador = [seg(0, 0, 0, 100, 0), seg(0, 100, 130, 100, 1)]; // se pasa un poco en fija
+
+      const base = validar(jugador, kiro, FIJA);
+      const repetido = validar(jugador, kiro, FIJA);
+      expect(repetido.excesoPorcentaje).toBe(base.excesoPorcentaje);
+      expect(repetido.coincide).toBe(base.coincide);
+      expect(repetido.motivo).toBe(base.motivo);
+
+      // Y `veredictoParaMostrar` devuelve el oficial sin tocarlo (ya cubierto, se
+      // referencia aquí la invariante clave para Mundo 3+).
+      expect(veredictoParaMostrar(base, jugador, kiro, FIJA)).toBe(base);
+    });
+
+    // ------------------------------------------------------------------------
+    // 3.4 — Coincidencia otorgada se comporta como hoy.
+    //
+    // Ya cubierto por el test existente `validador · veredictoParaMostrar` → "un
+    // dibujo que coincide devuelve el oficial: nunca se muestra como fallo uno
+    // que lo ganó". NO se duplica. (El caso de figura correcta movida de 3.2 ya
+    // ejercita además una coincidencia bajo normalización libre.)
+    // ------------------------------------------------------------------------
+
+    // ------------------------------------------------------------------------
+    // 3.5 — Estela vacía: la falta es toda la figura de referencia, sin exceso.
+    //
+    // Ya cubierto por tests existentes que seguirán siendo válidos tras el fix,
+    // NO se duplican:
+    //   · `validador · validar` → "la estela del jugador vacía da motivo
+    //      sinEstelaDelJugador y falta = objetivo" (falta = objetivo, exceso 0).
+    //   · `validador · veredictoParaMostrar` → "sin estela del jugador devuelve
+    //      el oficial: no hay nada que alinear".
+    // Refuerzo mínimo que SÍ aporta: fija que el veredicto sin estela es estable
+    // en los campos de la estrella (el futuro `excesoVisual` saldrá vacío aquí
+    // sin tocar este comportamiento observable).
+    // ------------------------------------------------------------------------
+    it('3.5 · sin estela del jugador, el veredicto es estable: motivo sinEstelaDelJugador, exceso 0 y falta = objetivo', () => {
+      const kiro = [seg(0, 0, 0, 100, 0)];
+
+      const base = validar([], kiro, LIBRE);
+      const repetido = validar([], kiro, LIBRE);
+
+      expect(base.motivo).toBe('sinEstelaDelJugador');
+      expect(base.excesoPorcentaje).toBe(0);
+      expect(base.coincide).toBe(false);
+      expect(contar(base.exceso)).toBe(0);
+      expect(contar(base.falta)).toBe(contar(base.mascaraObjetivo));
+
+      // Estable entre llamadas: el contrato que el arreglo debe mantener.
+      expect(repetido.motivo).toBe(base.motivo);
+      expect(repetido.excesoPorcentaje).toBe(base.excesoPorcentaje);
+      expect(repetido.coincide).toBe(base.coincide);
+    });
+
+    // ------------------------------------------------------------------------
+    // Property existente intacta (3.1/3.5): la propiedad «el IoU mostrado nunca
+    // baja del oficial y la calificación no cambia» (el `it` de ≥ 100 iteraciones
+    // de arriba, en este mismo bloque `Feature: 08-diseno-visual, Property 1`)
+    // debe seguir verde tras el arreglo. NO se reescribe: se referencia. El
+    // arreglo no toca `veredictoParaMostrar` ni el conteo, así que esa propiedad
+    // se preserva por construcción.
+    // ------------------------------------------------------------------------
+  });
+
+  // ==========================================================================
+  // Bugfix: diff-visual-desfase-alineacion-caja (Caso 2) · Tarea 2
+  // Tests de PRESERVACIÓN (observation-first, ANTES del arreglo).
+  //
+  // Fijan la línea base que el arreglo del Caso 2 (Opción B del design: ampliar
+  // el desempate de `veredictoParaMostrar` con `MARGEN_MOSTRAR_REAL`) NO debe
+  // romper. Se escriben dentro de este bloque a propósito, para REUTILIZAR el
+  // arbitrario `figuraArb` de arriba sin duplicarlo (lo pide la tarea). Deben
+  // PASAR sobre el código SIN arreglar: fijan el comportamiento observable de HOY
+  // para entradas donde `isBugCondition` es FALSO.
+  //
+  // IMPORTANTE (metodología observation-first): se observa el comportamiento del
+  // código SIN arreglar para las entradas que NO disparan el bug y se fija ese
+  // comportamiento. Estos tests NO dependen de que `veredictoParaMostrar` ya
+  // pinte la comparación real en el Caso 2 (eso lo arregla la tarea 3).
+  //
+  // El Caso 1 (`excesoVisual`, bloque «Bugfix Caso 1…») y el pintado fiel de
+  // `src/ui/diff.ts` (`src/ui/diff.propiedad.test.ts`) se blindan por sus suites
+  // existentes, que deben seguir verdes; no se reescriben aquí (3.3 y 3.6).
+  //
+  // Valida: Requisitos 3.1, 3.2, 3.4, 3.5.
+  // ==========================================================================
+  describe('Tarea 2 (Caso 2) · preservación ante el arreglo del desempate', () => {
+    const seg = (a: number, b: number, c: number, d: number, paso: number): Segmento => ({
+      desde: { x: a, y: b },
+      hasta: { x: c, y: d },
+      paso,
+      linea: 1,
+    });
+    const LIBRE: NormalizacionNivel = { traslacion: 'libre', rotacion: 'libre', escala: 'exacta' };
+    const FIJA: NormalizacionNivel = { traslacion: 'fija', rotacion: 'fija', escala: 'exacta' };
+
+    // Zigzag completo de Kiro (el mismo marco de las pruebas de arriba).
+    const ZIGZAG = [
+      seg(0, 0, 0, 100, 0),
+      seg(0, 100, 80, 100, 1),
+      seg(80, 100, 80, 220, 2),
+      seg(80, 220, 200, 220, 3),
+    ];
+
+    // ------------------------------------------------------------------------
+    // 3.1 — Veredicto OFICIAL idéntico, incluido el IoU (property-based,
+    // ≥ 100 iteraciones).
+    //
+    // La estrella de precisión y la calificación salen del veredicto OFICIAL
+    // (`validar` con la normalización del nivel). El arreglo del Caso 2 toca SOLO
+    // `veredictoParaMostrar` (el desempate de qué se pinta), NO `validar`. Por
+    // tanto `excesoPorcentaje`, `coincide`, `motivo` E `iou` del oficial deben
+    // salir byte a byte iguales a hoy. Como línea base sobre el código SIN
+    // arreglar se usa el determinismo de `validar`: el valor de HOY es el valor a
+    // preservar.
+    //
+    // DIFERENCIA con el 3.1 del bloque hermano (Caso 1): aquel NO fija `iou`;
+    // este SÍ, porque el arreglo del Caso 2 vive justo al lado del IoU (el
+    // desempate lo lee) y hay que blindar que el IoU del oficial no se roza.
+    // ------------------------------------------------------------------------
+    it('3.1 · el veredicto oficial (excesoPorcentaje/coincide/motivo/iou) es estable con figuraArb × figuraArb (≥ 100 iteraciones)', () => {
+      fc.assert(
+        fc.property(figuraArb, figuraArb, (jugador, objetivo) => {
+          // Línea base: el comportamiento observable de HOY sobre estas entradas.
+          const base = validar(jugador, objetivo, LIBRE);
+          // El mismo cálculo repetido no puede cambiar los cuatro campos del
+          // veredicto oficial. Este es el contrato que el arreglo del desempate
+          // debe mantener byte a byte: ampliar `veredictoParaMostrar` no recalcula
+          // ni altera `validar`.
+          const repetido = validar(jugador, objetivo, LIBRE);
+          expect(repetido.excesoPorcentaje).toBe(base.excesoPorcentaje);
+          expect(repetido.coincide).toBe(base.coincide);
+          expect(repetido.motivo).toBe(base.motivo);
+          expect(repetido.iou).toBe(base.iou);
+
+          // Refuerzo de rango: los campos están en dominios válidos.
+          expect(base.iou).toBeGreaterThanOrEqual(0);
+          expect(base.iou).toBeLessThanOrEqual(1);
+          expect(base.excesoPorcentaje).toBeGreaterThanOrEqual(0);
+          expect(typeof base.coincide).toBe('boolean');
+          expect(['coincide', 'excesoDeTrazo', 'iouInsuficiente', 'sinEstelaDelJugador']).toContain(base.motivo);
+        }),
+        { seed: 20_241, numRuns: 100 },
+      );
+    }, 60_000);
+
+    // ------------------------------------------------------------------------
+    // 3.2 — Figura correcta movida y girada sigue ALINEADA y toda verde.
+    //
+    // Observación sobre el código SIN arreglar: una figura COMPLETA y correcta,
+    // trasladada y girada en normalización LIBRE, se compara ALINEADA
+    // (`veredictoParaMostrar` devuelve el oficial), que coincide y sale toda
+    // verde. En su sitio (posiciones reales) no se parece a nada: `real.iou` cae
+    // muy por debajo del margen, así que el desempate ampliado del Caso 2 NO la
+    // reruta a posiciones reales. Se fija ese comportamiento actual y, además, se
+    // observa el valor de `real.iou` para documentar que está muy por debajo de
+    // cualquier margen razonable (el arreglo del Caso 2 usará `MARGEN_MOSTRAR_REAL
+    // ≈ 0.1`; aquí `real.iou` es ínfimo).
+    //
+    // Reutiliza la misma figura de la prueba existente «una figura bien hecha pero
+    // movida y girada se sigue comparando alineada» del bloque
+    // `validador · veredictoParaMostrar`.
+    // ------------------------------------------------------------------------
+    it('3.2 · una figura correcta movida y girada sigue alineada (veredictoParaMostrar === oficial), coincide y sale toda verde; su real.iou está muy por debajo del margen', () => {
+      // El mismo zigzag girado 90° y corrido (completo y correcto, solo movido y
+      // rotado): (x,y) → (y, -x), luego (+300, -200).
+      const girado = ZIGZAG.map((s) =>
+        seg(s.desde.y + 300, -s.desde.x - 200, s.hasta.y + 300, -s.hasta.x - 200, s.paso),
+      );
+
+      const oficial = validar(girado, ZIGZAG, LIBRE);
+      const real = validar(girado, ZIGZAG, FIJA);
+      const mostrado = veredictoParaMostrar(oficial, girado, ZIGZAG, LIBRE);
+
+      // El oficial reconoce la figura al alinearla: COINCIDE (estrella otorgada).
+      // Como coincide, es el Caso 3 (no se pinta diff): la figura se ve toda verde
+      // en pantalla. El giro es discreto (grados enteros), así que la
+      // rasterización deja un residuo mínimo de exceso Y de falta (observado hoy:
+      // `falta` ≈ 217 celdas, `excesoPorcentaje` por debajo del umbral del 5 %);
+      // ese residuo NO niega la coincidencia y NO se pinta, porque al coincidir no
+      // hay diff. Fijamos el comportamiento observable ACTUAL: coincide y el exceso
+      // queda bajo el umbral (no afirmamos falta/exceso == 0, que no es la línea
+      // base real con giro discreto).
+      expect(oficial.coincide).toBe(true);
+      expect(oficial.excesoPorcentaje).toBeLessThanOrEqual(5);
+
+      // En su sitio no se parece a nada: su IoU cae MUY por debajo de cualquier
+      // margen razonable (el arreglo del Caso 2 usará ≈ 0.1). Observado hoy.
+      expect(real.iou).toBeLessThan(0.1);
+      expect(real.iou).toBeLessThan(oficial.iou);
+
+      // Lo que se pinta es la comparación ALINEADA (el oficial), sin alterarla: un
+      // dibujo correcto se muestra alineado y toda verde, no desplazado a sus
+      // posiciones reales. El arreglo del desempate debe preservar esto porque
+      // `real.iou` queda fuera del margen.
+      expect(mostrado).toBe(oficial);
+      expect(mostrado.angulo).not.toBe(0);
+      expect(mostrado.coincide).toBe(true);
+    });
+
+    // ------------------------------------------------------------------------
+    // 3.4 — Fija/fija devuelve el oficial tal cual (ANTES del desempate).
+    //
+    // Con normalización `{ traslacion: 'fija', rotacion: 'fija', … }` (Mundo 3+),
+    // `veredictoParaMostrar` devuelve el oficial por su PRIMERA guarda, sin llegar
+    // nunca al desempate por IoU que amplía el arreglo del Caso 2. Observado hoy:
+    // mismo objeto que el oficial. El arreglo no toca esa guarda.
+    // ------------------------------------------------------------------------
+    it('3.4 · en normalización fija/fija, veredictoParaMostrar devuelve el oficial tal cual (no llega al desempate)', () => {
+      // Jugador que NO coincide en fija (se pasa un poco), para que la guarda que
+      // devuelve el oficial no sea la de «coincide» sino la de fija/fija: así se
+      // fija que es la normalización fija la que corta antes del desempate.
+      const jugador = [seg(0, 0, 0, 100, 0), seg(0, 100, 130, 100, 1)];
+      const kiro = [seg(0, 0, 0, 100, 0), seg(0, 100, 100, 100, 1)];
+
+      const oficial = validar(jugador, kiro, FIJA);
+      // Premisa: en fija el oficial no coincide (así la guarda de fija/fija es la
+      // que actúa, no la de coincidencia otorgada).
+      expect(oficial.coincide).toBe(false);
+      // Devuelve el MISMO objeto oficial, sin pasar por el desempate.
+      expect(veredictoParaMostrar(oficial, jugador, kiro, FIJA)).toBe(oficial);
+    });
+
+    // ------------------------------------------------------------------------
+    // 3.5 — Coincidencia otorgada / Caso 3: nunca se muestra como correcto un
+    // dibujo al que el oficial negó la precisión.
+    //
+    // Dos guardas de `veredictoParaMostrar` que el arreglo del Caso 2 NO toca,
+    // observadas hoy en normalización LIBRE:
+    //   (a) un dibujo que coincide (`coincide === true`) devuelve el oficial;
+    //   (b) sin estela del jugador (`motivo === 'sinEstelaDelJugador'`) devuelve
+    //       el oficial.
+    // El desempate ampliado solo puede PREFERIR la comparación real cuando su IoU
+    // está dentro del margen Y el oficial no coincide; nunca convierte en
+    // «correcto» un dibujo que el oficial negó.
+    // ------------------------------------------------------------------------
+    it('3.5 · un dibujo que coincide devuelve el oficial (no se degrada una coincidencia otorgada)', () => {
+      const oficial = validar(ZIGZAG, ZIGZAG, LIBRE);
+      // Premisa: el oficial otorgó la precisión (Caso 3: no se pinta diff).
+      expect(oficial.coincide).toBe(true);
+      // El veredicto a pintar es el oficial, sin tocarlo.
+      expect(veredictoParaMostrar(oficial, ZIGZAG, ZIGZAG, LIBRE)).toBe(oficial);
+    });
+
+    it('3.5 · sin estela del jugador devuelve el oficial (no hay nada que alinear ni rerrutar)', () => {
+      const oficial = validar([], ZIGZAG, LIBRE);
+      // Premisa: sin estela del jugador el oficial lo informa como tal.
+      expect(oficial.motivo).toBe('sinEstelaDelJugador');
+      // El desempate ni siquiera se evalúa: devuelve el oficial por su guarda.
+      expect(veredictoParaMostrar(oficial, [], ZIGZAG, LIBRE)).toBe(oficial);
+    });
+  });
+});
+
+// ============================================================================
+// Bugfix: diff-visual-coincidencia-exceso · Tarea 1
+// Test exploratorio de la condición del bug (Caso 1).
+//
+// CASO ESPECIAL DE BUGFIX: este test DEBE FALLAR sobre el código SIN arreglar.
+// El fallo confirma la causa raíz: la región de exceso que se pinta se deriva
+// sobre máscaras dilatadas (disco de radio 8px), de modo que la coincidencia
+// absorbe el excedente real del jugador y el exceso queda reducido a una puntita
+// (~170 celdas en el extremo). NO se arregla nada en esta fase.
+//
+// La salida NUEVA `excesoVisual` (Opción A del design) todavía NO existe en el
+// tipo `Veredicto` ni la produce `validar`: la añade la tarea 3.1. Por eso se
+// accede al campo de forma tolerante al tipo, para que el test COMPILE y falle
+// en tiempo de EJECUCIÓN con una aserción clara («excesoVisual indefinido / no
+// cubre el excedente») en vez de un error de compilación de TypeScript.
+//
+// Valida: Requisitos 1.1, 1.2, 2.1, 2.2.
+// ============================================================================
+
+describe('Bugfix Caso 1: el exceso visual cubre el excedente real del trazo', () => {
+  const seg = (a: number, b: number, c: number, d: number, paso: number): Segmento => ({
+    desde: { x: a, y: b },
+    hasta: { x: c, y: d },
+    paso,
+    linea: 1,
+  });
+  const LIBRE: NormalizacionNivel = { traslacion: 'libre', rotacion: 'libre', escala: 'exacta' };
+
+  it('Caso 1 — exceso oculto por la dilatación: la región de exceso para pintar cubre todo el excedente, no solo la puntita', () => {
+    // Objetivo: Kiro AVANZA 100 → línea vertical de 100.
+    const objetivo = [seg(0, 0, 0, 100, 0)];
+    // Jugador: AVANZA 110 → la misma línea pero de 110 (se pasó poco).
+    const jugador = [seg(0, 0, 0, 110, 0)];
+
+    const v = validar(jugador, objetivo, LIBRE);
+
+    // El bug vive cuando la estrella fue negada por exceso de trazo: lo confirmamos
+    // como premisa del Caso 1 (parte de la condición del bug, requisito 1.1).
+    expect(v.coincide).toBe(false);
+    expect(v.motivo).toBe('excesoDeTrazo');
+
+    // Hoy, el `exceso` dilatado deja casi todo el excedente dentro de la
+    // coincidencia y marca solo la puntita del extremo (contraejemplo medido en
+    // el bugfix: ~170 celdas concentradas en la punta). Requisitos 1.1 y 1.2.
+    const excesoDilatado = contar(v.exceso);
+
+    // La salida NUEVA que el design define en la Opción A. No existe todavía:
+    // acceso tolerante al tipo para que el RED sea en ejecución, no de compilación.
+    const ev = (v as { excesoVisual?: Mascara }).excesoVisual;
+
+    // (2.1/2.2) `excesoVisual` se mide en MARCO REAL: sin centrar ni girar,
+    // porque el excedente que el jugador VE vive en coordenadas reales. En ese
+    // marco el trazo del jugador está en la columna lógica x=0 (ix = aColumna(0)
+    // = 400) y el excedente va de y=100 a y=110 (filas aFila(110)=290 a
+    // aFila(100)=300). `aFila(y) = ⌊400 − y⌋`: y mayor ⇒ fila menor. Fijamos la
+    // ventana sobre esa franja real, NO sobre el marco centrado de la máscara del
+    // veredicto (su ventana anterior asumía el marco equivocado).
+    expect(ev).toBeDefined();
+    const excesoVisual = ev as Mascara;
+
+    // (a) Debe haber celdas de `excesoVisual` en la franja del excedente real
+    // (filas ~290..300, es decir y en [100, 110]). Hoy la dilatación lo absorbe
+    // como coincidencia y esto sería 0.
+    const filaExcedenteDesde = aFila(110); // y=110 → fila 290
+    const filaExcedenteHasta = aFila(100); // y=100 → fila 300
+    let celdasEnElExcedente = 0;
+    for (let iy = filaExcedenteDesde; iy <= filaExcedenteHasta; iy++) {
+      for (let ix = 0; ix < LADO; ix++) {
+        if (encendida(excesoVisual, ix, iy)) celdasEnElExcedente += 1;
+      }
+    }
+    expect(celdasEnElExcedente).toBeGreaterThan(0);
+
+    // (b) La gran mayoría del `excesoVisual` vive en el excedente (y>95), no en
+    // franjas laterales a lo largo del tramo coincidente (y de 0 a 100). Al restar
+    // Kiro DILATADO al mismo radio 8, el grosor lateral se cancela y solo queda el
+    // excedente longitudinal. Contamos las celdas con y<=95 (fila >= aFila(95)=305)
+    // y afirmamos que son una fracción pequeña del total: el excedente domina.
+    const filaUmbral = aFila(95); // y=95 → fila 305; filas > 305 ⇒ y < 95
+    let celdasFueraDelExcedente = 0;
+    for (let iy = filaUmbral; iy < LADO; iy++) {
+      for (let ix = 0; ix < LADO; ix++) {
+        if (encendida(excesoVisual, ix, iy)) celdasFueraDelExcedente += 1;
+      }
+    }
+    const total = contar(excesoVisual);
+    // Sin franjas laterales: lo que cae en y<=95 es una fracción pequeña (<10%).
+    expect(celdasFueraDelExcedente).toBeLessThan(total * 0.1);
+
+    // (c) El excedente se REPARTE a lo largo del trazo, no se concentra en la
+    // puntita. Con el enfoque confirmado (restar Kiro DILATADO al MISMO radio 8),
+    // el grosor lateral se cancela y el conteo total no se infla —queda ~igual que
+    // el `exceso` dilatado centrado (ambos son un casquete)—, así que NO afirmamos
+    // `total > excesoDilatado` (esa expectativa venía del enfoque descartado de
+    // restar Kiro sin dilatar, que dejaba franjas laterales). El discriminador
+    // real del arreglo es que el rojo llega a la PARTE BAJA del excedente (y de 100
+    // a 105), el tramo que el `exceso` dilatado centrado absorbe como coincidencia
+    // y deja en 0. Si solo fuera «la puntita» (~y>108), esta franja estaría vacía.
+    const filaBajaDesde = aFila(105); // y=105 → fila 295
+    const filaBajaHasta = aFila(100); // y=100 → fila 300
+    let celdasEnLaParteBaja = 0;
+    for (let iy = filaBajaDesde; iy <= filaBajaHasta; iy++) {
+      for (let ix = 0; ix < LADO; ix++) {
+        if (encendida(excesoVisual, ix, iy)) celdasEnLaParteBaja += 1;
+      }
+    }
+    expect(celdasEnLaParteBaja).toBeGreaterThan(0);
+    // `excesoDilatado` se conserva como referencia documental del contraejemplo
+    // medido (~170 celdas casi todas en la punta); el arreglo lo reubica al marco
+    // real repartido a lo largo del trazo sin inflar el conteo.
+    expect(excesoDilatado).toBeGreaterThan(0);
+  });
 });
