@@ -118,7 +118,7 @@ el camino `CUADRADO` → `FLOR` → `JARDÍN` del artículo del MIT.
 
 El 2.5 obliga a `SUBELAPIZ` / `BAJALAPIZ`: el traslado es horizontal para que las cajas de los dos polígonos no se superpongan (con una diagonal se montaban y, con traslación libre, la referencia sin `SL`/`BL` aún ganaba la precisión), y `d` crece lo necesario para que un conector olvidado supere el 10 % del perímetro, el doble de la tolerancia de exceso. El 2.6 exige la estrella de abstracción: solo se otorga si
 el programa define un procedimiento con `PARA`, y el `presupuestoEstrella` está calculado sobre una
-referencia que lo usa, así que copiar el panel seis veces no alcanza.
+referencia que lo usa dentro de un `REPITE filas [REPITE columnas [PANEL …] …]` (18 en las tres disposiciones). Copiar el panel a mano no alcanza el presupuesto; un `REPITE` anidado sin `PARA` cabe en él (17) pero no gana la abstracción: ningún atajo gana las dos estrellas a la vez.
 
 ## Mundo 3 · Rosetones — insignia *Simetría*
 

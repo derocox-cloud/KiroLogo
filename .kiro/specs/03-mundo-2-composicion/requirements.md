@@ -227,7 +227,7 @@ Términos nuevos o revisados en esta spec:
 2. CUANDO el jugador aprueba el nivel 2.6 con precisión y su AST contiene al menos un nodo de definición de procedimiento, EL sistema DEBERÁ otorgar la estrella de abstracción.
 3. SI el jugador aprueba el nivel 2.6 con precisión pero su AST no contiene ningún nodo de definición de procedimiento, ENTONCES EL sistema DEBERÁ otorgar la precisión y negar la estrella de abstracción.
 4. CUANDO se niega la estrella de abstracción del 2.6, EL sistema DEBERÁ mostrar el mensaje: *"Lo conseguiste, pero dibujaste cada panel por separado. Intenta enseñarme qué es un panel con PARA, y luego pídemelo una vez por cada casilla."*
-5. CUANDO el jugador resuelve el 2.6 repitiendo el panel una vez por casilla sin definir un procedimiento, EL Conteo del programa DEBERÁ ser estrictamente mayor que el `presupuestoEstrella`, de modo que no obtenga la estrella de economía.
+5. CUANDO el jugador resuelve el 2.6 repitiendo el panel una vez por casilla sin definir un procedimiento, EL Conteo del programa DEBERÁ ser estrictamente mayor que el `presupuestoEstrella`, de modo que no obtenga la estrella de economía. Un `REPITE` anidado sin `PARA` sí cabe en el presupuesto (la referencia anidada con `PARA` cuenta 18, el anidado sin `PARA` 17) pero no obtiene la estrella de abstracción: ningún atajo gana economía y abstracción a la vez.
 6. CUANDO EL Verificador decide si se cumple `defineProcedimiento`, EL Verificador DEBERÁ analizar el AST del jugador en busca de un nodo de definición de procedimiento, no el texto del programa.
 
 ### Requirement 11: Insignia Descomposición

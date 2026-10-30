@@ -458,7 +458,7 @@ Notas de cada generador:
 - **2.5 dos polígonos** — cada uno de 3 a 6 lados, separados por un traslado horizontal `SUBELAPIZ GD 90 AV d GI 90 BAJALAPIZ` con `d` múltiplo de 20 y mayor que el ancho del primero (así las cajas no se superponen y omitir SL/BL deja un conector que niega la precisión); el
   texto usa `SUBELAPIZ`/`BAJALAPIZ` para moverse entre los dos sin trazo (R9.3, R9.4).
 - **2.6 cuadrícula** — paneles 2×2, 3×2 o 3×3; la referencia **define** un procedimiento con `PARA` y
-  lo invoca una vez por panel (R9.5, R9.6). Su referencia obtiene, además de las tres estrellas, la de
+  lo invoca una sola vez dentro de `REPITE filas [REPITE columnas [PANEL …] …]` (R9.5, R9.6; presupuesto 18, el de la forma más compacta). Su referencia obtiene, además de las tres estrellas, la de
   abstracción `defineProcedimiento` por contener un nodo de definición (R10.2).
 
 ### 12. Catálogo — `src/niveles/catalogo.ts` (AMPLIAR)
@@ -608,7 +608,7 @@ for (let s = 0; s < 200; s++) {
 ```
 
 Para `cuadricula-m2` se añade que la referencia contiene un nodo `definicionProcedimiento` y lo
-invoca una vez por panel (R9.6), y que obtiene la estrella `defineProcedimiento` (R10.2). Para
+invoca una sola vez dentro de un `REPITE` anidado (R9.6), y que obtiene la estrella `defineProcedimiento` (R10.2). Para
 `dos-poligonos-m2` se verifica que la referencia usa `SUBELAPIZ`/`BAJALAPIZ` y que no hay trazo entre
 los dos polígonos (R9.4). En los cuatro, el presupuesto del nivel sale del Conteo aplicado a la
 referencia, nunca de un número escrito a mano (R9.7, R9.8).

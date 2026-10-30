@@ -8,7 +8,7 @@
 // A diferencia del mundo 1, aquí aparecen el lápiz (SUBELAPIZ/BAJALAPIZ) y los
 // procedimientos (PARA … FIN), que habilitan las dos figuras compuestas del
 // mundo: dos polígonos separados sin trazo entre ellos, y una cuadrícula hecha
-// de un panel nombrado e invocado una vez por casilla.
+// de un panel nombrado, invocado una sola vez dentro de REPITE anidados.
 
 import type { Programa } from "../lenguaje/ast.js";
 import { analizarLexico } from "../lenguaje/lexer.js";
@@ -233,23 +233,35 @@ export function generarDosPoligonos(semilla: number): ResultadoGenerador {
 // Generador 2.6 — cuadrícula de paneles con procedimiento
 // ============================================================================
 //
-// La referencia DEFINE un procedimiento PANEL con PARA … FIN y lo invoca una vez
-// por casilla (R9.6), de modo que su AST contiene un nodo definicionProcedimiento
-// (lo que otorga la estrella defineProcedimiento, R10.2). El panel es un cuadrado
-// de lado L; entre casillas la tortuga se reposiciona con el lápiz arriba
-// (SUBELAPIZ/BAJALAPIZ) para no dejar trazo de traslado, igual que en 2.5.
+// La referencia DEFINE un procedimiento PANEL con PARA … FIN y lo invoca UNA sola
+// vez, dentro de REPITE filas [REPITE columnas [PANEL …] …] (R9.6): su AST contiene
+// un nodo definicionProcedimiento (estrella defineProcedimiento, R10.2) y una
+// repetición anidada. Es la forma más compacta que permite la plantilla
+// (niveles-y-progresion.md): con la referencia desenrollada (una invocación por
+// casilla) el presupuesto salía en 25 / 40 / 58 y regalaba la estrella de economía
+// a quien ya usara REPITE. Con el anidado sale en 18 para las tres disposiciones (3 del panel + 15 del recorrido):
 //
-// Disposición: filas × columnas casillas con paso = L + separación entre ellas.
-// Para una fila dibujamos columnas paneles moviéndonos a la derecha; al terminar
-// una fila volvemos al inicio de la fila (lápiz arriba) y bajamos una fila. El
-// panel se dibuja desde la esquina y la tortuga vuelve a ella (el cuadrado cierra
-// en su origen), así que el reposicionamiento es un desplazamiento limpio.
+//   · REPITE anidado CON PARA: conteo = presupuesto → economía y abstracción.
+//   · REPITE anidado SIN PARA: conteo = presupuesto − 1 → economía, NO abstracción.
+//   · Copia literal sin PARA (cuadrados y traslados a mano): conteo muy superior
+//     (30 en 2×2, 73 en 3×3) → ni economía ni abstracción.
+//
+// Ningún atajo gana las dos estrellas a la vez: la abstracción exige PARA.
+//
+// El panel es un cuadrado de lado L que empieza y termina en su esquina con el mismo
+// rumbo (invocarlo no mueve la tortuga). Entre casillas la tortuga se reposiciona
+// con el lápiz arriba, sin dejar trazo. La tortuga arranca mirando arriba (rumbo 0):
+//   · siguiente casilla de la fila: SUBELAPIZ GD 90 AV paso GI 90 BAJALAPIZ;
+//   · fin de fila: la tortuga quedó columnas·paso a la derecha; vuelve al inicio y
+//     baja una fila con SUBELAPIZ GI 90 AV columnas·paso GI 90 AV paso GI 180
+//     BAJALAPIZ (tres giros, mirando de nuevo arriba al terminar).
+// El cuerpo es uniforme, así que la última fila también "regresa" con el lápiz
+// arriba; no deja trazo.
 //
 // La caja envolvente mide (columnas·paso − separacion)×(filas·paso − separacion),
-// que para las tres disposiciones permitidas y un L razonable cae holgadamente
-// dentro de [−400, 400] y por encima de 200. El lazo descarta cualquier
-// combinación que no cumpla, pero con estos rangos casi todas pasan al primer
-// intento.
+// que para las tres disposiciones permitidas y un L razonable cae dentro de
+// [−400, 400] y por encima de 200. Además se exige columnas·paso ≤ 400 para que la
+// tortuga no salga del lienzo al regresar de cada fila.
 const DISPOSICIONES_CUADRICULA: readonly (readonly [number, number])[] = [
   [2, 2],
   [3, 2],
@@ -257,44 +269,18 @@ const DISPOSICIONES_CUADRICULA: readonly (readonly [number, number])[] = [
 ];
 
 /**
- * Construye el texto de la cuadrícula. El panel es un cuadrado de lado L; las
- * casillas se separan `sep` px entre sí. El trazo de traslado nunca se dibuja
- * porque la tortuga se mueve con el lápiz arriba.
+ * Construye el texto de la cuadrícula: el panel se define una vez y se invoca una
+ * sola vez dentro de REPITE filas [REPITE columnas [PANEL …] …]. Las casillas se
+ * separan `sep` px entre sí.
  */
 function textoCuadricula(filas: number, columnas: number, L: number, sep: number): string {
   const paso = L + sep;
-  const partes: string[] = [];
-  // Definición del panel: un cuadrado que empieza y termina en la misma esquina,
-  // con el mismo rumbo, de modo que invocarlo no desplaza la tortuga.
-  partes.push(`PARA PANEL REPITE 4 [AV ${L} GD 90] FIN`);
-
-  // La tortuga arranca mirando arriba (rumbo 0). Para movernos "a la derecha"
-  // dentro de una fila giramos a la derecha (GD 90), avanzamos el paso y
-  // desgiramos (GI 90) para que el panel se dibuje siempre con el mismo rumbo.
-  // Para bajar de fila giramos atrás (GD 180), avanzamos y volvemos (GI 180).
-  for (let f = 0; f < filas; f++) {
-    for (let c = 0; c < columnas; c++) {
-      partes.push("PANEL");
-      if (c < columnas - 1) {
-        // Mover a la casilla siguiente de la fila, sin dibujar.
-        partes.push(`SUBELAPIZ GD 90 AV ${paso} GI 90 BAJALAPIZ`);
-      }
-    }
-    if (f < filas - 1) {
-      // Volver al inicio de la fila y bajar una fila, sin dibujar.
-      const regreso = paso * (columnas - 1);
-      partes.push("SUBELAPIZ");
-      if (regreso > 0) {
-        // Regresar a la primera columna: girar a la izquierda, avanzar, desgirar.
-        partes.push(`GI 90 AV ${regreso} GD 90`);
-      }
-      // Bajar una fila: dar media vuelta, avanzar el paso, volver al rumbo.
-      partes.push(`GD 180 AV ${paso} GI 180`);
-      partes.push("BAJALAPIZ");
-    }
-  }
-
-  return partes.join(" ");
+  return (
+    `PARA PANEL REPITE 4 [AV ${L} GD 90] FIN ` +
+    `REPITE ${filas} [` +
+    `REPITE ${columnas} [PANEL SUBELAPIZ GD 90 AV ${paso} GI 90 BAJALAPIZ] ` +
+    `SUBELAPIZ GI 90 AV ${columnas * paso} GI 90 AV ${paso} GI 180 BAJALAPIZ]`
+  );
 }
 
 export function generarCuadricula(semilla: number): ResultadoGenerador {
@@ -303,6 +289,8 @@ export function generarCuadricula(semilla: number): ResultadoGenerador {
     const [filas, columnas] = prng.elegir(DISPOSICIONES_CUADRICULA);
     const L = prng.multiplo(60, 100, 20);
     const sep = prng.multiplo(20, 40, 20);
+    // La tortuga recorre columnas·paso al regresar de cada fila: que no salga del lienzo.
+    if (columnas * (L + sep) > 400) continue;
     const texto = textoCuadricula(filas, columnas, L, sep);
     const programa = parsear(texto);
     if (programa !== null && encuadraYNoEsDegenerada(programa)) {
@@ -313,7 +301,6 @@ export function generarCuadricula(semilla: number): ResultadoGenerador {
   const texto = textoCuadricula(2, 2, 100, 20);
   return { programa: parsear(texto)!, texto, semillaUsada: semilla };
 }
-
 // ============================================================================
 // Registro de generadores por idGenerador
 // ============================================================================

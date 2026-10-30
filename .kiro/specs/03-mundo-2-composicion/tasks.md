@@ -263,7 +263,7 @@
 
   - [x] 10.4 Generador `cuadricula-m2` (nivel 2.6)
     - Cuadrícula de paneles 2×2, 3×2 o 3×3 (R9.5).
-    - La referencia DEFINE un procedimiento con `PARA` e invoca una vez por panel (R9.6), de modo
+    - La referencia DEFINE un procedimiento con `PARA` e invoca una sola vez dentro de `REPITE filas [REPITE columnas [PANEL …] …]` (R9.6), de modo
       que su AST contiene un nodo `definicionProcedimiento`.
 
   - [x] 10.5 Registro, encuadre y presupuesto

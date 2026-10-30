@@ -105,6 +105,62 @@ function programaDeTexto(texto: string): Programa {
   return programa;
 }
 
+// ---- Cuadrícula 2.6: parámetros y programas alternativos del jugador ----------
+
+interface ParametrosCuadricula {
+  readonly lado: number;
+  readonly filas: number;
+  readonly columnas: number;
+  readonly paso: number;
+}
+
+/** Extrae los parámetros de la referencia `PARA PANEL … FIN REPITE f [REPITE c [PANEL …] …]`. */
+function parametrosCuadricula(texto: string): ParametrosCuadricula {
+  const m =
+    /^PARA PANEL REPITE 4 \[AV (\d+) GD 90\] FIN REPITE (\d+) \[REPITE (\d+) \[PANEL SUBELAPIZ GD 90 AV (\d+) GI 90 BAJALAPIZ\] SUBELAPIZ GI 90 AV (\d+) GI 90 AV (\d+) GI 180 BAJALAPIZ\]$/.exec(
+      texto,
+    );
+  if (m === null) throw new Error(`la referencia 2.6 no tiene la forma compacta: ${texto}`);
+  const [lado, filas, columnas, paso, regreso, baja] = m.slice(1).map(Number) as [
+    number, number, number, number, number, number,
+  ];
+  // El regreso recorre todas las columnas y baja una fila.
+  if (regreso !== columnas * paso || baja !== paso) throw new Error(`regreso inconsistente: ${texto}`);
+  return { lado, filas, columnas, paso };
+}
+
+/** El mismo REPITE anidado, pero con el cuadrado escrito en línea (sin PARA). */
+function anidadoSinPara_(p: ParametrosCuadricula): string {
+  return (
+    `REPITE ${p.filas} [REPITE ${p.columnas} [REPITE 4 [AV ${p.lado} GD 90] SUBELAPIZ GD 90 AV ${p.paso} GI 90 BAJALAPIZ] ` +
+    `SUBELAPIZ GI 90 AV ${p.columnas * p.paso} GI 90 AV ${p.paso} GI 180 BAJALAPIZ]`
+  );
+}
+
+/** Copia literal: cada cuadrado y cada traslado escritos a mano, sin REPITE ni PARA. */
+function copiaLiteralSinPara(p: ParametrosCuadricula): string {
+  const partes: string[] = [];
+  for (let f = 0; f < p.filas; f++) {
+    for (let c = 0; c < p.columnas; c++) {
+      partes.push(`REPITE 4 [AV ${p.lado} GD 90]`);
+      if (c < p.columnas - 1) partes.push(`SUBELAPIZ GD 90 AV ${p.paso} GI 90 BAJALAPIZ`);
+    }
+    if (f < p.filas - 1) {
+      partes.push("SUBELAPIZ");
+      partes.push(`GI 90 AV ${p.paso * (p.columnas - 1)} GD 90`);
+      partes.push(`GD 180 AV ${p.paso} GI 180`);
+      partes.push("BAJALAPIZ");
+    }
+  }
+  return partes.join(" ");
+}
+
+/** Conteo de instrucciones (lanza si falla). */
+function contar(programa: Programa): number {
+  const r = contarInstrucciones(programa);
+  if (!r.exito) throw new Error("conteo fallido");
+  return r.instrucciones;
+}
 /** Muestra representativa de semillas para la validación geométrica costosa. */
 const MUESTRA = [0, 1, 7, 13, 42, 99, 150, 199] as const;
 
@@ -364,28 +420,82 @@ describe("generador 2.6 — cuadrícula", () => {
     }
   });
 
-  it("200 semillas: la referencia define un procedimiento y lo invoca una vez por panel", () => {
+  it("200 semillas: define PANEL una vez, lo invoca una sola vez dentro de REPITE filas [REPITE columnas [...]] y dibuja filas×columnas paneles", () => {
     for (let s = 0; s < 200; s++) {
       const { texto, programa } = generarCuadricula(s);
-      // Define PANEL una sola vez con PARA … FIN.
-      expect(texto).toContain("PARA PANEL");
-      expect(texto).toContain("FIN");
+      const p = parametrosCuadricula(texto);
 
-      // El AST contiene exactamente una definición de procedimiento, y la invoca
-      // una vez por casilla: el número de invocaciones de PANEL es filas×columnas.
-      const definiciones = programa.instrucciones.filter(
-        (n) => n.tipo === "definicionProcedimiento",
-      );
-      expect(definiciones).toHaveLength(1);
+      // Una única definición y una única invocación escrita de PANEL.
+      expect(programa.instrucciones.filter((n) => n.tipo === "definicionProcedimiento")).toHaveLength(1);
+      expect(texto.match(/\bPANEL\b/g), texto).toHaveLength(2); // definición + invocación
+      expect(p.filas * p.columnas, texto).toSatisfy((n: number) => [4, 6, 9].includes(n));
 
-      const invocaciones = programa.instrucciones.filter(
-        (n) => n.tipo === "invocacionProcedimiento" && n.nombre === "PANEL",
-      ).length;
-      // Las disposiciones permitidas: 2×2=4, 3×2=6, 3×3=9 paneles.
-      expect([4, 6, 9]).toContain(invocaciones);
+      // La repetición anidada es la forma compacta de la plantilla.
+      const analisis = analizarAbstraccion(programa, [
+        { clave: "defineProcedimiento" },
+        { clave: "usaRepiteAnidado" },
+      ]);
+      expect(analisis.sinConfirmar, texto).toHaveLength(0);
+
+      // Aun con una sola invocación, se dibujan filas×columnas cuadrados de 4 lados.
+      const { segmentos } = ejecutarYObtenerSegmentos(programa);
+      expect(segmentos, texto).toHaveLength(4 * p.filas * p.columnas);
     }
   });
 
+  it("200 semillas: la tortuga no se va del lienzo al regresar de cada fila (columnas × paso ≤ 400)", () => {
+    for (let s = 0; s < 200; s++) {
+      const p = parametrosCuadricula(generarCuadricula(s).texto);
+      expect(p.columnas * p.paso).toBeLessThanOrEqual(400);
+    }
+  });
+
+  it("200 semillas: la copia literal sin PARA nunca gana economía y el REPITE anidado sin PARA nunca gana abstracción", () => {
+    for (let s = 0; s < 200; s++) {
+      const { texto, programa } = generarCuadricula(s);
+      const p = parametrosCuadricula(texto);
+      const presupuesto = contar(programa);
+
+      const copia = programaDeTexto(copiaLiteralSinPara(p));
+      expect(contar(copia), texto).toBeGreaterThan(presupuesto);
+
+      const anidadoSinPara = programaDeTexto(anidadoSinPara_(p));
+      expect(contar(anidadoSinPara), texto).toBeLessThanOrEqual(presupuesto);
+      expect(analizarAbstraccion(anidadoSinPara, NIVEL_2_6.abstraccion).sinConfirmar, texto).toEqual([
+        "defineProcedimiento",
+      ]);
+    }
+  });
+
+  it("tabla del dueño (3×3, semilla 23770): con PARA gana economía y abstracción; REPITE anidado sin PARA solo economía; copia literal ninguna", () => {
+    const { texto, programa } = generarCuadricula(23770);
+    const p = parametrosCuadricula(texto);
+    // Es el reto que probó el dueño: 3×3, lado 80, paso 120.
+    expect([p.filas, p.columnas, p.lado, p.paso]).toEqual([3, 3, 80, 120]);
+
+    const { segmentos: objetivo } = ejecutarYObtenerSegmentos(programa);
+    const reto = retoDeReferencia(NIVEL_2_6, programa, objetivo);
+
+    const calificar_ = (fuente: string) => {
+      const jugador = programaDeTexto(fuente);
+      const { segmentos } = ejecutarYObtenerSegmentos(jugador);
+      const veredicto = validar(segmentos, objetivo, NIVEL_2_6.normalizacion);
+      return calificar(jugador, veredicto, reto);
+    };
+
+    const conPara = calificar_(texto);
+    const sinPara = calificar_(anidadoSinPara_(p));
+    const copia = calificar_(copiaLiteralSinPara(p));
+
+    // El presupuesto es el conteo de la referencia anidada, no el de la copia.
+    expect(reto.presupuestoEstrella).toBe(18);
+    expect([conPara.conteoJugador, sinPara.conteoJugador, copia.conteoJugador]).toEqual([18, 17, 73]);
+
+    // Los tres dibujan lo mismo: la precisión no distingue entre ellos.
+    expect([conPara, sinPara, copia].map((c) => c.precision.otorgada)).toEqual([true, true, true]);
+    expect([conPara, sinPara, copia].map((c) => c.economia.otorgada)).toEqual([true, true, false]);
+    expect([conPara, sinPara, copia].map((c) => c.abstraccion.otorgada)).toEqual([true, false, false]);
+  });
   it("200 semillas: gana la estrella defineProcedimiento (análisis del AST)", () => {
     // R10.2/R10.6: la exigencia se decide analizando el AST, no el texto.
     for (let s = 0; s < 200; s++) {

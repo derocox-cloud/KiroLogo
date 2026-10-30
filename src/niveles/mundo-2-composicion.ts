@@ -181,8 +181,8 @@ export const NIVEL_2_5: Nivel = {
   ],
 };
 
-// R10.1: el 2.6 exige `defineProcedimiento` para la estrella de abstracción;
-// copiar el panel una vez por casilla pasa la precisión pero no la abstracción.
+// R10.1: el 2.6 exige `defineProcedimiento` para la estrella de abstracción. Un`n// REPITE anidado con el cuadrado en línea cabe en el presupuesto (economía) pero no
+// gana la abstracción; la copia literal no gana ninguna de las dos.
 export const NIVEL_2_6: Nivel = {
   id: '2.6',
   mundo: 2,
