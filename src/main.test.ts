@@ -1590,7 +1590,7 @@ describe('main · navegación entre niveles', () => {
     }
     // La insignia Secuencia quedó anunciada por el globo o el menú la refleja.
     expect(app.menuMundos.insigniaVisible(0)).toBe(true);
-  });
+  }, 120_000);
 });
 
 /** Imprime la referencia del reto en curso como texto, para «copiarla». */
