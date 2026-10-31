@@ -58,7 +58,8 @@ interface Estado {
   readonly mundo: Mundo;
   readonly errores: ErrorKiroLogo[];
   pilaCorchetes: number[];   // líneas de los corchetes de apertura activos
-  readonly procedimientos: ReadonlySet<string>;  // nombres de PARA válidos (1ª pasada)
+  readonly procedimientos: Set<string>;  // nombres de PARA válidos (1ª pasada) más los de PARA anidados ya reportados
+  anidamiento: number;   // listas de REPITE y cuerpos de PARA abiertos en este punto
   readonly definidos: Set<string>;  // nombres ya definidos en ESTA 2ª pasada (para detectar redefinición)
 }
 
@@ -85,7 +86,8 @@ export function analizar(
     mundo: opciones.mundo,
     errores: [],
     pilaCorchetes: [],
-    procedimientos: recolectarProcedimientos(tokens),
+    procedimientos: new Set(recolectarProcedimientos(tokens)),
+    anidamiento: 0,
     definidos: new Set<string>(),
   };
 
@@ -225,6 +227,9 @@ function analizarComando(estado: Estado, token: Token): Instruccion | null {
   // PARA abre una definición de procedimiento; FIN fuera de una definición es un
   // cierre suelto. Ambos se tratan antes de la consumición genérica por aridad.
   if (entrada.nombre === 'PARA') {
+    // PARA solo se escribe en el nivel principal: dentro de un REPITE o de otro PARA
+    // es un error de sintaxis propio, no algo que falle al ejecutar.
+    if (estado.anidamiento > 0) return reportarParaAnidado(estado, token);
     return analizarDefinicion(estado, token);
   }
   if (entrada.nombre === 'FIN') {
@@ -512,6 +517,16 @@ function analizarRepite(
  * (en cuyo caso ya reportó el error correspondiente).
  */
 function analizarListaInstrucciones(estado: Estado): readonly Instruccion[] | null {
+  estado.anidamiento += 1;
+  try {
+    return analizarListaInstruccionesAbierta(estado);
+  } finally {
+    estado.anidamiento -= 1;
+  }
+}
+
+/** Cuerpo de analizarListaInstrucciones, con el anidamiento ya contado. */
+function analizarListaInstruccionesAbierta(estado: Estado): readonly Instruccion[] | null {
   const instrucciones: Instruccion[] = [];
 
   while (!finalizado(estado)) {
@@ -646,19 +661,24 @@ function analizarDefinicion(estado: Estado, tokenPara: Token): Instruccion | nul
     tokenNombre === undefined ||
     (tokenNombre.tipo !== 'identificador' && tokenNombre.tipo !== 'comando')
   ) {
-    // PARA sin un nombre válido tras él: no hay procedimiento que nombrar, así que
-    // no puede terminar bien. Se reporta como paraSinFin con la línea del PARA.
-    reportar(estado, crearError('paraSinFin', { nombre: 'PARA', linea: lineaPara }, posicion(tokenPara)));
+    // PARA sin un nombre válido tras él: no hay procedimiento que nombrar. Error
+    // propio (paraSinNombre); paraSinFin queda para un PARA con nombre sin su FIN.
+    reportar(estado, crearError('paraSinNombre', {}, posicion(tokenPara)));
     return null;
   }
   const nombre = tokenNombre.valor;
   const lineaNombre = tokenNombre.linea;
   estado.indice += 1;   // consumir el nombre
 
-  // Un `:param` entre el nombre y el cuerpo se ignora (el mundo 2 no tiene
-  // parámetros; llegan en el mundo 4). No es error.
+  // Un `:param` entre el nombre y el cuerpo: los parámetros llegan en el mundo 4.
+  // Antes se avisa una sola vez (en el primero) en vez de descartarlos en silencio; desde
+  // el mundo 4 se ignoran como antes, hasta que se implementen.
+  const primerParametro = actual(estado)?.tipo === 'parametro' ? actual(estado) : undefined;
   while (actual(estado)?.tipo === 'parametro') {
     estado.indice += 1;
+  }
+  if (primerParametro !== undefined && estado.mundo < 4) {
+    reportar(estado, crearError('paraConParametros', {}, posicion(primerParametro)));
   }
 
   // 2. Nombre que pisa el lenguaje: rechazar sin registrar. El token 'comando'
@@ -717,12 +737,49 @@ function analizarDefinicion(estado: Estado, tokenPara: Token): Instruccion | nul
 }
 
 /**
+ * Un PARA dentro de un REPITE o de otro PARA: reporta `paraAnidado` en el PARA y
+ * descarta su definición completa (hasta su FIN, contando los PARA que contenga) para
+ * no encadenar errores por su cuerpo. Se detiene sin consumir en un corchete de cierre,
+ * de modo que un PARA anidado sin FIN no se coma el FIN de un PARA posterior. Su nombre
+ * se registra como procedimiento conocido para que una llamada posterior no diga
+ * «No sé cómo hacer…»: el error que importa ya está dicho.
+ */
+function reportarParaAnidado(estado: Estado, tokenPara: Token): null {
+  reportar(estado, crearError('paraAnidado', {}, posicion(tokenPara)));
+  estado.indice += 1;   // consumir PARA
+
+  const tokenNombre = actual(estado);
+  if (tokenNombre?.tipo === 'identificador' && !buscarComando(tokenNombre.valor).hallada) {
+    estado.procedimientos.add(tokenNombre.valor);
+  }
+
+  let profundidad = 1;
+  while (!finalizado(estado) && profundidad > 0) {
+    const t = actual(estado)!;
+    if (t.tipo === 'corchete_cierra') break;
+    if (t.tipo === 'comando' && t.valor === 'PARA') profundidad += 1;
+    if (t.tipo === 'comando' && t.valor === 'FIN') profundidad -= 1;
+    estado.indice += 1;
+  }
+  return null;
+}
+/**
  * Analiza el cuerpo de una definición: instrucciones hasta el comando FIN o el fin
  * de la entrada. Reutiliza `analizarInstruccion` y la misma recuperación por
  * sincronización que el programa principal; termina en el FIN de comando (que deja
  * sin consumir, para que `analizarDefinicion` decida) en vez de en un corchete.
  */
 function analizarCuerpoDefinicion(estado: Estado): readonly Instruccion[] {
+  estado.anidamiento += 1;
+  try {
+    return analizarCuerpoDefinicionAbierto(estado);
+  } finally {
+    estado.anidamiento -= 1;
+  }
+}
+
+/** Cuerpo de analizarCuerpoDefinicion, con el anidamiento ya contado. */
+function analizarCuerpoDefinicionAbierto(estado: Estado): readonly Instruccion[] {
   const instrucciones: Instruccion[] = [];
 
   while (!finalizado(estado)) {

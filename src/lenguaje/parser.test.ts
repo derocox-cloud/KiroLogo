@@ -506,8 +506,14 @@ describe('parser', () => {
       expect(def.cuerpo).toHaveLength(0);
     });
 
-    it('ignora un :param entre el nombre y el cuerpo, sin error (mundo 2 sin parámetros)', () => {
+    it('un :param entre el nombre y el cuerpo avisa que los parámetros llegan en el mundo 4 (mundo 2)', () => {
       const { programa, errores } = analizarTexto('PARA CUADRADO :lado AV 100 FIN', 2);
+      expect(errores.map((e) => e.id)).toEqual(['paraConParametros']);
+      expect(programa).toBeNull();
+    });
+
+    it('desde el mundo 4 un :param se acepta y se ignora hasta que se implementen los parámetros', () => {
+      const { programa, errores } = analizarTexto('PARA CUADRADO :lado AV 100 FIN', 4);
       expect(errores).toHaveLength(0);
       const def = programa!.instrucciones[0] as DefinicionProcedimiento;
       expect(def.tipo).toBe('definicionProcedimiento');
@@ -890,5 +896,87 @@ describe('PONCOLOR — mensajes de argumento según el tipo (punto 8)', () => {
     for (const texto of ['PONCOLOR "naranja', 'PONCOLOR naranja', 'PONCOLOR [255 0 0]', 'PC rojo']) {
       expect(analizarTexto(texto, 2).errores, texto).toEqual([]);
     }
+  });
+});
+
+// ============================================================================
+// PARA: sin nombre, anidado y con parámetros (reseña del PR #24, punto 8)
+// ============================================================================
+
+describe('PARA — errores de sintaxis propios (punto 8)', () => {
+  const ids = (texto: string, mundo: Mundo = 2) => analizarTexto(texto, mundo).errores.map((e) => e.id);
+
+  describe('sin nombre', () => {
+    it('PARA solo reporta paraSinNombre, no paraSinFin, en la posición del PARA', () => {
+      const { errores } = analizarTexto('PARA', 2);
+      expect(errores.map((e) => e.id)).toEqual(['paraSinNombre']);
+      expect(errores[0]!.mensaje).toBe('A PARA le falta el nombre del procedimiento. Por ejemplo: PARA cuadrado');
+      expect([errores[0]!.linea, errores[0]!.columna]).toEqual([1, 1]);
+    });
+
+    it('PARA seguido de un número o un corchete también reporta paraSinNombre', () => {
+      expect(ids('PARA 5 AV 100 FIN')[0]).toBe('paraSinNombre');
+      expect(ids('PARA [')[0]).toBe('paraSinNombre');
+    });
+
+    it('un PARA con nombre pero sin FIN sigue siendo paraSinFin', () => {
+      expect(ids('PARA CUADRADO AV 100')).toEqual(['paraSinFin']);
+    });
+  });
+
+  describe('anidado', () => {
+    it('un PARA dentro de REPITE es paraAnidado (el ejemplo de la reseña), sin cascada', () => {
+      const { errores } = analizarTexto('REPITE 2 [PARA X AV 100 FIN] X', 2);
+      expect(errores.map((e) => e.id)).toEqual(['paraAnidado']);
+      // La posición es la del PARA anidado, no la de otro token.
+      expect([errores[0]!.linea, errores[0]!.columna]).toEqual([1, 11]);
+    });
+
+    it('un PARA dentro de otro PARA es paraAnidado, sin «No sé cómo hacer B» después', () => {
+      const { errores } = analizarTexto('PARA A PARA B AV 100 FIN FIN B', 2);
+      expect(errores.map((e) => e.id)).toEqual(['paraAnidado']);
+      expect(errores[0]!.mensaje).not.toMatch(/No sé cómo hacer/);
+    });
+
+    it('un PARA dentro de un REPITE dentro de un PARA también es paraAnidado', () => {
+      expect(ids('PARA A REPITE 2 [PARA B AV 10 FIN] FIN')).toEqual(['paraAnidado']);
+    });
+
+    it('un PARA anidado sin FIN no se come el FIN de un PARA posterior', () => {
+      const resultado = ids('REPITE 2 [PARA X AV 100] PARA Y AV 50 FIN Y');
+      expect(resultado[0]).toBe('paraAnidado');
+      expect(resultado).not.toContain('finSinPara');
+    });
+
+    it('los PARA de nivel principal bien formados siguen sin errores', () => {
+      expect(ids('PARA CUADRADO REPITE 4 [AV 100 GD 90] FIN CUADRADO')).toEqual([]);
+      expect(ids('PARA A AV 10 FIN PARA B A A FIN B')).toEqual([]);
+    });
+
+    it('en el mundo 1 PARA sigue bloqueado (no se convierte en paraAnidado)', () => {
+      expect(ids('REPITE 2 [PARA X AV 100 FIN]', 1)[0]).toBe('comandoBloqueado');
+    });
+  });
+
+  describe('con parámetros', () => {
+    it('PARA X :lado avisa que los parámetros se desbloquean en el mundo 4', () => {
+      const { errores } = analizarTexto('PARA X :lado AV 100 FIN X', 2);
+      expect(errores.map((e) => e.id)).toEqual(['paraConParametros']);
+      expect(errores[0]!.mensaje).toContain('mundo 4');
+      // La posición es la del primer parámetro.
+      expect([errores[0]!.linea, errores[0]!.columna]).toEqual([1, 8]);
+    });
+
+    it('con varios parámetros avisa una sola vez', () => {
+      expect(ids('PARA X :a :b AV 100 FIN X')).toEqual(['paraConParametros']);
+    });
+
+    it('el aviso es lo primero que ve el jugador aunque luego llame al procedimiento con un número', () => {
+      expect(ids('PARA X :lado AV 100 FIN X 50')[0]).toBe('paraConParametros');
+    });
+
+    it('desde el mundo 4 los parámetros se aceptan como antes (se ignoran hasta que se implementen)', () => {
+      expect(ids('PARA X :lado AV 100 FIN', 4)).toEqual([]);
+    });
   });
 });

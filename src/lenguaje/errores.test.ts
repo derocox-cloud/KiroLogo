@@ -1247,3 +1247,46 @@ describe('mensajes de argumento según el tipo del vocabulario (punto 8)', () =>
     });
   });
 });
+
+describe('mensajes de PARA: sin nombre, anidado y con parámetros (punto 8)', () => {
+  it('paraSinNombre dice que falta el nombre y da el ejemplo del vocabulario', () => {
+    const e = crearError('paraSinNombre', {}, { linea: 2, columna: 1 });
+    expect(e.id).toBe('paraSinNombre');
+    expect(e.severidad).toBe('jugador');
+    expect(e.mensaje).toBe('A PARA le falta el nombre del procedimiento. Por ejemplo: PARA cuadrado');
+    expect(e.linea).toBe(2);
+    expect(e.columna).toBe(1);
+  });
+
+  it('paraAnidado explica que PARA solo va en el nivel principal', () => {
+    const e = crearError('paraAnidado', {}, { linea: 1, columna: 11 });
+    expect(e.id).toBe('paraAnidado');
+    expect(e.severidad).toBe('jugador');
+    expect(e.mensaje).toBe(
+      'PARA solo se escribe en el nivel principal del programa, no dentro de REPITE ni de otro PARA. Defínelo afuera y llámalo desde aquí.',
+    );
+  });
+
+  it('paraConParametros avisa que los parámetros se desbloquean en el mundo 4', () => {
+    const e = crearError('paraConParametros', {}, { linea: 1, columna: 8 });
+    expect(e.id).toBe('paraConParametros');
+    expect(e.severidad).toBe('jugador');
+    expect(e.mensaje).toBe(
+      'Los parámetros de PARA (como :lado) se desbloquean en el mundo 4. Por ahora define el procedimiento sin ellos. Por ejemplo: PARA cuadrado',
+    );
+  });
+
+  it('los tres mensajes caben en 200 caracteres y no llevan líneas ni números fijos', () => {
+    for (const id of ['paraSinNombre', 'paraAnidado', 'paraConParametros'] as const) {
+      const { mensaje } = crearError(id, {});
+      expect(mensaje.length, id).toBeLessThanOrEqual(200);
+      expect(mensaje, id).not.toMatch(/línea \d|número 100/);
+    }
+  });
+
+  it('paraSinFin conserva su único significado: un PARA con nombre que no termina', () => {
+    expect(crearError('paraSinFin', { nombre: 'CUADRADO', linea: 3 }).mensaje).toBe(
+      'El comando CUADRADO que empezaste en la línea 3 nunca termina con FIN.',
+    );
+  });
+});

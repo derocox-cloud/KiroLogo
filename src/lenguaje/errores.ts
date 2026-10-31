@@ -22,6 +22,7 @@ export type IdError =
   | 'parametroInesperado' | 'palabraInesperada' | 'numeroInesperado'
   // procedimientos del mundo 2 (PARA...FIN)
   | 'finSinPara' | 'paraSinFin' | 'procedimientoRedefinido' | 'paraNombreQueEsLenguaje'
+  | 'paraSinNombre' | 'paraAnidado' | 'paraConParametros'
   // ejecución
   | 'comandoNoPermitido' | 'nodoNoImplementado' | 'nodoNoImprimible'
   | 'guardaPasos' | 'guardaRecursion' | 'guardaTiempo'
@@ -97,6 +98,9 @@ export interface ParametrosPorError {
   readonly paraSinFin: { readonly nombre: string; readonly linea: number };
   readonly procedimientoRedefinido: { readonly nombre: string; readonly linea: number };
   readonly paraNombreQueEsLenguaje: { readonly nombre: string };
+  readonly paraSinNombre: Record<string, never>;
+  readonly paraAnidado: Record<string, never>;
+  readonly paraConParametros: Record<string, never>;
   
   // ejecución
   readonly comandoNoPermitido: { readonly nombre: string };
@@ -303,6 +307,12 @@ const PLANTILLAS_ARGUMENTO: Readonly<Record<TipoArgumento, PlantillaArgumento>> 
   expresion: { sustantivo: 'una condición' },
 };
 
+/** Ejemplo del comando según el vocabulario (única fuente de los ejemplos de los mensajes). */
+function ejemploDe(comando: string): string {
+  const busqueda = buscarComando(comando);
+  return busqueda.hallada ? busqueda.entrada.ejemplo : comando;
+}
+
 /** Ejemplo de la terna RGB de un comando de color (el vocabulario tiene un solo ejemplo por comando). */
 function ejemploTerna(comando: string): string {
   return `${comando} [255 0 0]`;
@@ -450,6 +460,12 @@ function construirMensaje<K extends IdError>(
       const p = parametros as ParametrosPorError['paraNombreQueEsLenguaje'];
       return `${p.nombre} es una palabra de KiroLogo y no se puede volver a definir.`;
     }
+    case 'paraSinNombre':
+      return `A PARA le falta el nombre del procedimiento. Por ejemplo: ${ejemploDe('PARA')}`;
+    case 'paraAnidado':
+      return 'PARA solo se escribe en el nivel principal del programa, no dentro de REPITE ni de otro PARA. Defínelo afuera y llámalo desde aquí.';
+    case 'paraConParametros':
+      return `Los parámetros de PARA (como :lado) se desbloquean en el mundo 4. Por ahora define el procedimiento sin ellos. Por ejemplo: ${ejemploDe('PARA')}`;
     
     // ejecución
     case 'comandoNoPermitido': {

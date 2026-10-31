@@ -3614,3 +3614,28 @@ describe('main · un error de ejecución se explica en el globo y no se califica
     expect(app.textoGlobo()).toContain('Resultado');
   });
 });
+
+describe('main · los errores de PARA se explican en el globo (punto 8)', () => {
+  beforeEach(() => {
+    montarDom();
+  });
+
+  const CASOS: ReadonlyArray<{ programa: string; mensaje: string }> = [
+    { programa: 'REPITE 2 [PARA X AV 100 FIN] X', mensaje: 'PARA solo se escribe en el nivel principal' },
+    { programa: 'PARA A PARA B AV 100 FIN FIN B', mensaje: 'PARA solo se escribe en el nivel principal' },
+    { programa: 'PARA X :lado AV 100 FIN X', mensaje: 'se desbloquean en el mundo 4' },
+    { programa: 'PARA', mensaje: 'le falta el nombre del procedimiento' },
+    { programa: 'PONCOLOR 5', mensaje: 'PONCOLOR necesita un color, pero le diste un número: 5' },
+  ];
+
+  for (const { programa, mensaje } of CASOS) {
+    it(`«${programa}»: el globo dice «${mensaje}» y no se ejecuta nada`, () => {
+      const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+      escribir(app, programa);
+      app.ejecutar();
+      expect(app.textoGlobo()).toContain(mensaje);
+      expect(app.estado().calificacion).toBeNull();
+      expect(estrellas()).toEqual(['pendiente', 'pendiente', 'pendiente']);
+    });
+  }
+});
