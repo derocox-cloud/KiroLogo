@@ -537,6 +537,14 @@ function componerAnuncioFin(fin: FinDeSecuencia): string {
   return `${motivo}: ${fin.operacionesAplicadas} operación(es) aplicada(s); ${textoEstadoTortuga(fin.estadoFinal)}.`;
 }
 
+/**
+ * Anuncio del fin cuando un error de ejecución detuvo el programa: nombra el error,
+ * dice que el intento no se calificó y deja el estado de la tortuga donde quedó.
+ */
+function componerAnuncioError(fin: FinDeSecuencia): string {
+  return `Tu programa se detuvo por un error y no se calificó: ${fin.operacionesAplicadas} operación(es) aplicada(s); ${textoEstadoTortuga(fin.estadoFinal)}.`;
+}
+
 // ============================================================================
 // Elección del reto inicial
 // ============================================================================
@@ -1273,17 +1281,23 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   /**
    * Concluye un intento cuando el animador devolvió el fin de secuencia (diseño 12.5):
    * extrae los segmentos, valida UNA vez, califica, guarda el progreso y lo muestra.
-   * Si una guarda cortó la ejecución no hay veredicto ni estrellas: se muestra el
-   * mensaje de la guarda y no se guarda nada (requisito 24.9).
+   * Si una guarda cortó la ejecución, o el programa terminó con un error de
+   * ejecución (un color o un grosor inválido, por ejemplo), no hay veredicto ni
+   * estrellas: Kiro explica el error en el globo, no se guarda nada y no se
+   * compara (requisito 24.9; producto.md: cada error se explica).
    */
   function concluirIntento(actual: IntentoEnCurso, fin: FinDeSecuencia): void {
     if (actual.reto !== reto) return;
     const { programa, resultado } = actual;
     const operaciones = resultado.operaciones;
 
-    if (resultado.guardaActivada !== null) {
+    if (resultado.guardaActivada !== null || resultado.error !== null) {
       if (resultado.error !== null) globo.mostrarMensajes([resultado.error]);
-      anunciar(componerAnuncioFin({ ...fin, motivo: 'guarda', operacionesAplicadas: operaciones.length }));
+      anunciar(
+        resultado.guardaActivada !== null
+          ? componerAnuncioFin({ ...fin, motivo: 'guarda', operacionesAplicadas: operaciones.length })
+          : componerAnuncioError({ ...fin, operacionesAplicadas: operaciones.length }),
+      );
       return;
     }
 

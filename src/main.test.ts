@@ -3551,3 +3551,66 @@ describe('main · preservación: arrancar directo en un nivel (mundo del editor 
     expect(cal!.abstraccion.otorgada).toBe(true);
   });
 });
+
+// ============================================================================
+// Errores de ejecución en el mundo 2 (reseña del PR #24, punto 4)
+//
+// Un error que detiene el programa a medias (color o grosor inválido, por
+// ejemplo) se explica en el globo de Kiro y el intento NO se califica: sin
+// estrellas, sin guardar progreso y sin comparación, igual que con las guardas.
+// Antes solo se mostraba si había una guarda activada; cualquier otro error se
+// descartaba en silencio y lo dibujado hasta ahí se calificaba.
+// ============================================================================
+
+describe('main · un error de ejecución se explica en el globo y no se califica (punto 4)', () => {
+  beforeEach(() => {
+    montarDom();
+  });
+
+  const CLAVE_PROGRESO = 'kirologo.progreso.v2';
+
+  const CASOS: ReadonlyArray<{ programa: string; mensaje: string }> = [
+    { programa: 'PONCOLOR "red AV 100', mensaje: 'No conozco el color RED.' },
+    { programa: 'PG 0 AV 100', mensaje: 'El grosor debe ser un número entero entre 1 y 50.' },
+  ];
+
+  for (const { programa, mensaje } of CASOS) {
+    it(`«${programa}»: muestra el error en el globo, sin estrellas, sin veredicto y sin guardar nada`, () => {
+      const almacen = crearAlmacenMemoria();
+      const app = crearAppCon({ almacen, idNivel: '2.1' });
+      escribir(app, programa);
+      expect(app.editor.estadoContador().errores).toEqual([]); // es válido al analizar: falla al ejecutar
+
+      app.ejecutar();
+
+      // El error se explica en el globo, no se descarta.
+      expect(app.textoGlobo()).toContain(mensaje);
+      // Sin calificación, sin veredicto, sin estrellas reveladas.
+      expect(app.estado().calificacion).toBeNull();
+      expect(app.estado().veredicto).toBeNull();
+      expect(estrellas()).toEqual(['pendiente', 'pendiente', 'pendiente']);
+      expect(app.textoGlobo()).not.toContain('Resultado');
+      // No se guarda progreso del nivel.
+      const guardado = JSON.parse(almacen.getItem(CLAVE_PROGRESO) ?? '{"niveles":{}}') as {
+        niveles?: Record<string, unknown>;
+      };
+      expect(guardado.niveles?.['2.1']).toBeUndefined();
+      // El anuncio habla de un error, no de que terminó bien ni de «seguridad».
+      const anuncio = document.getElementById('anuncios')!.textContent ?? '';
+      expect(anuncio).toMatch(/error/i);
+      expect(anuncio).not.toMatch(/Terminó tu programa/);
+      expect(anuncio).not.toMatch(/por seguridad/);
+      // El programa del jugador no se toca y se puede volver a ejecutar.
+      expect(app.editor.texto()).toBe(programa);
+      expect(boton('ejecutar').disabled).toBe(false);
+    });
+  }
+
+  it('un programa correcto en el mismo nivel sigue calificándose (el error no apaga la calificación)', () => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+    escribir(app, 'PONCOLOR rojo REPITE 4 [AV 100 GD 90] AV 100 GD 30 REPITE 3 [AV 100 GD 120]');
+    app.ejecutar();
+    expect(app.estado().calificacion).not.toBeNull();
+    expect(app.textoGlobo()).toContain('Resultado');
+  });
+});
