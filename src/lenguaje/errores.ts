@@ -1,7 +1,7 @@
 // Catálogo de errores de KiroLogo
 // Fuente única de todos los mensajes de error visibles al jugador
 
-import { VOCABULARIO, buscarComando, normalizarPalabra, EntradaVocabulario, Mundo } from './vocabulario.js';
+import { VOCABULARIO, buscarComando, normalizarPalabra, EntradaVocabulario, Mundo, TipoArgumento } from './vocabulario.js';
 
 // ============================================================================
 // Tipos base
@@ -81,8 +81,8 @@ export interface ParametrosPorError {
   readonly comandoEnIngles: { readonly escrita: string };
   readonly comandoBloqueado: { readonly nombre: string; readonly mundo: number };
   readonly comandoBloqueadoCercano: { readonly escrita: string; readonly nombre: string; readonly mundo: number };
-  readonly argumentoFaltante: { readonly comando: string };
-  readonly argumentoDeTipoEquivocado: { readonly comando: string; readonly recibido: string };
+  readonly argumentoFaltante: { readonly comando: string; readonly parte?: ParteArgumento };
+  readonly argumentoDeTipoEquivocado: { readonly comando: string; readonly recibido: string; readonly parte?: ParteArgumento };
   readonly corcheteSinCerrar: Record<string, never>;
   readonly corcheteSinCerrarEnLinea: { readonly linea: number };
   readonly corcheteDeMas: Record<string, never>;
@@ -275,6 +275,90 @@ export function crearError<K extends IdError>(
 }
 
 // ============================================================================
+// Mensajes de argumento derivados del tipo (vocabulario.ts)
+// ============================================================================
+
+/**
+ * Parte del argumento a la que se refiere el error cuando el comando tiene un
+ * componente con forma propia. Hoy solo la terna RGB de `PONCOLOR`.
+ */
+export type ParteArgumento = 'terna';
+
+/**
+ * Plantilla de los mensajes de argumento de un tipo. `sustantivo` es lo que el
+ * comando espera. Que sea un `Record` completo hace que agregar un `TipoArgumento`
+ * al vocabulario sin su plantilla no compile: el texto nunca vuelve a quedar fijo
+ * en «necesita un número» por olvido.
+ */
+interface PlantillaArgumento {
+  readonly sustantivo: string;
+}
+
+const PLANTILLAS_ARGUMENTO: Readonly<Record<TipoArgumento, PlantillaArgumento>> = {
+  numero: { sustantivo: 'un número' },
+  color: { sustantivo: 'un color' },
+  nombre: { sustantivo: 'el nombre del procedimiento' },
+  palabra: { sustantivo: 'una palabra' },
+  lista: { sustantivo: 'una lista de instrucciones entre corchetes' },
+  expresion: { sustantivo: 'una condición' },
+};
+
+/** Ejemplo de la terna RGB de un comando de color (el vocabulario tiene un solo ejemplo por comando). */
+function ejemploTerna(comando: string): string {
+  return `${comando} [255 0 0]`;
+}
+
+/**
+ * Clase exacta de lo que escribió el jugador, para decirlo sin llamar «palabra» a
+ * un número o a un símbolo. Trabaja sobre el texto: no importa el lexer ni el parser.
+ */
+export function clasificarRecibido(recibido: string): string {
+  if (/^\d/.test(recibido)) return 'un número';
+  if (recibido.startsWith('[') || recibido.startsWith(']')) return 'un corchete';
+  if (recibido.startsWith(':')) return 'un parámetro';
+  return 'una palabra';
+}
+
+/**
+ * Tipo de argumento que el comando espera según el vocabulario. Un comando que no
+ * existe, sin argumentos declarados o cuyo primer argumento es un número usa el
+ * texto numérico de siempre (los comandos numéricos y REPITE no cambian).
+ */
+function tipoDelComando(comando: string): { readonly tipo: TipoArgumento; readonly ejemplo: string | null } {
+  const busqueda = buscarComando(comando);
+  if (!busqueda.hallada) return { tipo: 'numero', ejemplo: null };
+  const tipo = busqueda.entrada.tiposArgumento[0] ?? 'numero';
+  return { tipo, ejemplo: busqueda.entrada.ejemplo };
+}
+
+function mensajeArgumentoFaltante(comando: string, parte: ParteArgumento | undefined): string {
+  if (parte === 'terna') {
+    return `La terna de ${comando} necesita tres números entre corchetes. Por ejemplo: ${ejemploTerna(comando)}`;
+  }
+  const { tipo, ejemplo } = tipoDelComando(comando);
+  if (tipo === 'numero' || ejemplo === null) {
+    return `${comando} necesita un número. Por ejemplo: ${comando} 100`;
+  }
+  return `${comando} necesita ${PLANTILLAS_ARGUMENTO[tipo].sustantivo}. Por ejemplo: ${ejemplo}`;
+}
+
+function mensajeArgumentoEquivocado(comando: string, recibido: string, parte: ParteArgumento | undefined): string {
+  if (parte === 'terna') {
+    return (
+      `La terna de ${comando} necesita tres números entre corchetes, ` +
+      `pero encontré ${clasificarRecibido(recibido)}: ${recibido}. Por ejemplo: ${ejemploTerna(comando)}`
+    );
+  }
+  const { tipo, ejemplo } = tipoDelComando(comando);
+  if (tipo === 'numero' || ejemplo === null) {
+    return `${comando} necesita un número, pero le diste una palabra: ${recibido}`;
+  }
+  return (
+    `${comando} necesita ${PLANTILLAS_ARGUMENTO[tipo].sustantivo}, ` +
+    `pero le diste ${clasificarRecibido(recibido)}: ${recibido}. Por ejemplo: ${ejemplo}`
+  );
+}
+// ============================================================================
 // Construcción de mensajes
 // ============================================================================
 
@@ -320,11 +404,11 @@ function construirMensaje<K extends IdError>(
     }
     case 'argumentoFaltante': {
       const p = parametros as ParametrosPorError['argumentoFaltante'];
-      return `${p.comando} necesita un número. Por ejemplo: ${p.comando} 100`;
+      return mensajeArgumentoFaltante(p.comando, p.parte);
     }
     case 'argumentoDeTipoEquivocado': {
       const p = parametros as ParametrosPorError['argumentoDeTipoEquivocado'];
-      return `${p.comando} necesita un número, pero le diste una palabra: ${p.recibido}`;
+      return mensajeArgumentoEquivocado(p.comando, p.recibido, p.parte);
     }
     case 'corcheteSinCerrar':
       return 'Falta cerrar el corchete que abriste en la línea 2.';

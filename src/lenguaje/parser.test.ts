@@ -816,3 +816,79 @@ function generarTextoConErrores(semilla: number): string {
   }
   return piezas.join('\n');
 }
+
+// ============================================================================
+// PONCOLOR: los errores de argumento nombran un color (reseña del PR #24, punto 8)
+// ============================================================================
+
+describe('PONCOLOR — mensajes de argumento según el tipo (punto 8)', () => {
+  function primerError(texto: string) {
+    const { errores } = analizarTexto(texto, 2);
+    expect(errores.length).toBeGreaterThan(0);
+    return errores[0]!;
+  }
+
+  it('PONCOLOR sin argumento pide un color con un ejemplo válido', () => {
+    const e = primerError('PONCOLOR');
+    expect(e.id).toBe('argumentoFaltante');
+    expect(e.mensaje).toBe('PONCOLOR necesita un color. Por ejemplo: PONCOLOR "rojo');
+  });
+
+  it('PONCOLOR seguido de otro comando pide un color', () => {
+    const e = primerError('PONCOLOR BAJALAPIZ');
+    expect(e.id).toBe('argumentoFaltante');
+    expect(e.mensaje).toContain('necesita un color');
+  });
+
+  it('PONCOLOR 5 dice que le diste un número, no una palabra', () => {
+    const e = primerError('PONCOLOR 5');
+    expect(e.id).toBe('argumentoDeTipoEquivocado');
+    expect(e.mensaje).toBe('PONCOLOR necesita un color, pero le diste un número: 5. Por ejemplo: PONCOLOR "rojo');
+    expect(e.linea).toBe(1);
+    expect(e.columna).toBe(10);
+  });
+
+  it('PONCOLOR :largo dice que le diste un parámetro', () => {
+    const e = primerError('PONCOLOR :largo');
+    expect(e.id).toBe('argumentoDeTipoEquivocado');
+    expect(e.mensaje).toContain('le diste un parámetro: :largo');
+  });
+
+  it('PONCOLOR ] dice que le diste un corchete', () => {
+    const e = primerError('PONCOLOR ]');
+    expect(e.id).toBe('argumentoDeTipoEquivocado');
+    expect(e.mensaje).toContain('le diste un corchete: ]');
+  });
+
+  it('una terna con un elemento no numérico pide tres números entre corchetes', () => {
+    const e = primerError('PONCOLOR [255 "a 0]');
+    expect(e.id).toBe('argumentoDeTipoEquivocado');
+    expect(e.mensaje).toBe(
+      'La terna de PONCOLOR necesita tres números entre corchetes, pero encontré una palabra: "a. Por ejemplo: PONCOLOR [255 0 0]',
+    );
+  });
+
+  it('una terna sin cerrar pide tres números entre corchetes', () => {
+    const e = primerError('PONCOLOR [255 0');
+    expect(e.id).toBe('argumentoFaltante');
+    expect(e.mensaje).toBe(
+      'La terna de PONCOLOR necesita tres números entre corchetes. Por ejemplo: PONCOLOR [255 0 0]',
+    );
+  });
+
+  it('el ejemplo del mensaje se analiza sin errores', () => {
+    for (const ejemplo of ['PONCOLOR "rojo', 'PONCOLOR [255 0 0]']) {
+      expect(analizarTexto(ejemplo, 2).errores, ejemplo).toEqual([]);
+    }
+  });
+
+  it('PONGROSOR, comando numérico, conserva su mensaje', () => {
+    expect(primerError('PONGROSOR').mensaje).toBe('PONGROSOR necesita un número. Por ejemplo: PONGROSOR 100');
+  });
+
+  it('PONCOLOR válido (palabra, identificador y terna) sigue sin errores', () => {
+    for (const texto of ['PONCOLOR "naranja', 'PONCOLOR naranja', 'PONCOLOR [255 0 0]', 'PC rojo']) {
+      expect(analizarTexto(texto, 2).errores, texto).toEqual([]);
+    }
+  });
+});

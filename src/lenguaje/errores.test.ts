@@ -11,6 +11,9 @@ import {
   tienePosicion,
   resolverPalabraNoEjecutable,
 } from './errores.js';
+import { VOCABULARIO, buscarComando } from './vocabulario.js';
+import { analizarLexico } from './lexer.js';
+import { analizar } from './parser.js';
 
 describe('errores.ts', () => {
   // ==========================================================================
@@ -1107,5 +1110,140 @@ describe('resolverPalabraNoEjecutable con procedimientos definidos', () => {
     const error = resolverPalabraNoEjecutable('AVANSA', 0, undefined, []);
     expect(error.id).toBe('palabraDesconocidaConSugerencia');
     expect(error.mensaje).toBe('No sé cómo hacer AVANSA. ¿Querías decir AVANZA?');
+  });
+});
+
+// ============================================================================
+// Mensajes de argumento derivados del tipo de argumento (reseña del PR #24, punto 8)
+//
+// El texto de `argumentoFaltante` y `argumentoDeTipoEquivocado` sale del tipo que
+// declara `vocabulario.ts` (y de su ejemplo), no de un «necesita un número» fijo.
+// Los comandos numéricos conservan su texto byte a byte. El mensaje de REPITE no se
+// toca (fuera de alcance), ni los mensajes de texto fijo del catálogo.
+// ============================================================================
+
+describe('mensajes de argumento según el tipo del vocabulario (punto 8)', () => {
+  const NUMERICOS = ['AVANZA', 'RETROCEDE', 'GIRADERECHA', 'GIRAIZQUIERDA', 'PONGROSOR'] as const;
+
+  /** ¿El ejemplo se analiza sin errores en el mundo 2? (lo que el jugador copiaría) */
+  function ejemploSeAnaliza(ejemplo: string): boolean {
+    const { tokens, errores: errLex } = analizarLexico(ejemplo);
+    const { errores } = analizar(tokens, { mundo: 2 });
+    return errLex.length === 0 && errores.length === 0;
+  }
+
+  describe('PONCOLOR pide un color, no un número', () => {
+    it('sin argumento: nombra un color y da un ejemplo válido, sin hablar de números', () => {
+      const e = crearError('argumentoFaltante', { comando: 'PONCOLOR' });
+      expect(e.mensaje).toBe('PONCOLOR necesita un color. Por ejemplo: PONCOLOR "rojo');
+      expect(e.mensaje).not.toMatch(/número/);
+    });
+
+    it.each([
+      ['5', 'un número'],
+      ['100', 'un número'],
+      ['[', 'un corchete'],
+      [']', 'un corchete'],
+      [':largo', 'un parámetro'],
+      ['"hola', 'una palabra'],
+    ])('con «%s» dice que le diste %s', (recibido, clase) => {
+      const e = crearError('argumentoDeTipoEquivocado', { comando: 'PONCOLOR', recibido });
+      expect(e.mensaje).toBe(
+        `PONCOLOR necesita un color, pero le diste ${clase}: ${recibido}. Por ejemplo: PONCOLOR "rojo`,
+      );
+      expect(e.mensaje).not.toMatch(/necesita un número/);
+    });
+
+    it('la terna RGB pide tres números entre corchetes, con un ejemplo que se analiza', () => {
+      const falta = crearError('argumentoFaltante', { comando: 'PONCOLOR', parte: 'terna' });
+      expect(falta.mensaje).toBe(
+        'La terna de PONCOLOR necesita tres números entre corchetes. Por ejemplo: PONCOLOR [255 0 0]',
+      );
+      const mala = crearError('argumentoDeTipoEquivocado', {
+        comando: 'PONCOLOR',
+        recibido: '"a',
+        parte: 'terna',
+      });
+      expect(mala.mensaje).toBe(
+        'La terna de PONCOLOR necesita tres números entre corchetes, pero encontré una palabra: "a. Por ejemplo: PONCOLOR [255 0 0]',
+      );
+      expect(ejemploSeAnaliza('PONCOLOR [255 0 0]')).toBe(true);
+    });
+
+    it('el ejemplo del mensaje es el del vocabulario y el lexer y el parser lo aceptan', () => {
+      const ejemplo = buscarComando('PONCOLOR');
+      expect(ejemplo.hallada && ejemplo.entrada.ejemplo).toBe('PONCOLOR "rojo');
+      expect(ejemploSeAnaliza('PONCOLOR "rojo')).toBe(true);
+    });
+  });
+
+  describe('lo que no cambia', () => {
+    it.each(NUMERICOS)('%s conserva byte a byte sus dos mensajes numéricos', (comando) => {
+      expect(crearError('argumentoFaltante', { comando }).mensaje).toBe(
+        `${comando} necesita un número. Por ejemplo: ${comando} 100`,
+      );
+      expect(crearError('argumentoDeTipoEquivocado', { comando, recibido: '"hola' }).mensaje).toBe(
+        `${comando} necesita un número, pero le diste una palabra: "hola`,
+      );
+    });
+
+    it('REPITE no se toca: sigue con su mensaje actual (fuera de alcance)', () => {
+      expect(crearError('argumentoFaltante', { comando: 'REPITE' }).mensaje).toBe(
+        'REPITE necesita un número. Por ejemplo: REPITE 100',
+      );
+      expect(crearError('argumentoDeTipoEquivocado', { comando: 'REPITE', recibido: 'x' }).mensaje).toBe(
+        'REPITE necesita un número, pero le diste una palabra: x',
+      );
+    });
+
+    it('un nombre de comando desconocido cae al texto numérico', () => {
+      expect(crearError('argumentoFaltante', { comando: 'INVENTADO' }).mensaje).toBe(
+        'INVENTADO necesita un número. Por ejemplo: INVENTADO 100',
+      );
+    });
+  });
+
+  describe('el mensaje sale del tipo que declara el vocabulario (lo reutilizará RELLENA)', () => {
+    const conColor = VOCABULARIO.filter((e) => e.tiposArgumento[0] === 'color' && e.aridad === 1);
+
+    it('hay al menos un comando de color', () => {
+      expect(conColor.length).toBeGreaterThan(0);
+    });
+
+    it.each(conColor.map((e) => [e.nombre] as const))(
+      '%s: faltante y tipo equivocado nombran un color y usan el ejemplo del vocabulario',
+      (nombre) => {
+        const entrada = conColor.find((e) => e.nombre === nombre)!;
+        const faltante = crearError('argumentoFaltante', { comando: nombre }).mensaje;
+        const equivocado = crearError('argumentoDeTipoEquivocado', { comando: nombre, recibido: '5' }).mensaje;
+        for (const mensaje of [faltante, equivocado]) {
+          expect(mensaje).toContain(`${nombre} necesita un color`);
+          expect(mensaje.endsWith(`Por ejemplo: ${entrada.ejemplo}`)).toBe(true);
+          expect(mensaje).not.toMatch(/necesita un número/);
+        }
+        expect(ejemploSeAnaliza(entrada.ejemplo)).toBe(true);
+      },
+    );
+
+    it('todo comando de un solo argumento no numérico habla de su tipo, no de un número', () => {
+      const noNumericos = VOCABULARIO.filter(
+        (e) => e.aridad === 1 && e.tiposArgumento[0] !== undefined && e.tiposArgumento[0] !== 'numero',
+      );
+      for (const e of noNumericos) {
+        const mensaje = crearError('argumentoFaltante', { comando: e.nombre }).mensaje;
+        expect(mensaje, e.nombre).not.toMatch(/necesita un número/);
+        expect(mensaje, e.nombre).toContain(e.ejemplo);
+      }
+    });
+  });
+
+  describe('arquitectura: errores.ts sigue sin importar lexer, parser ni colores', () => {
+    it('no hay ciclos nuevos entre errores, vocabulario, lexer y parser', async () => {
+      const { readFileSync } = await import('node:fs');
+      const fuente = (nombre: string) => readFileSync(new URL(`./${nombre}`, import.meta.url), 'utf8');
+      const importes = (texto: string) => [...texto.matchAll(/from\s+'(\.[^']+)'/g)].map((m) => m[1]!);
+      expect(importes(fuente('errores.ts')).filter((i) => /lexer|parser|colores/.test(i))).toEqual([]);
+      expect(importes(fuente('vocabulario.ts')).filter((i) => /errores|lexer|parser/.test(i))).toEqual([]);
+    });
   });
 });

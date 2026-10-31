@@ -1,4 +1,4 @@
-export type TipoArgumento = 'numero' | 'palabra' | 'lista' | 'expresion';
+export type TipoArgumento = 'numero' | 'palabra' | 'lista' | 'expresion' | 'color' | 'nombre';
 export type Aridad = 0 | 1 | 2 | 3 | 'variable';
 export type Mundo = 0 | 1 | 2 | 3 | 4 | 5;
 
@@ -124,11 +124,11 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     nombre: 'PONCOLOR',
     abreviatura: 'PC',
     aridad: 1,
-    tiposArgumento: ['palabra'],
+    tiposArgumento: ['color'],
     mundo: 2,
     descripcion: 'Cambia el color del trazo.',
-    ejemplo: 'PONCOLOR "rojo"',
-    insercion: 'PONCOLOR "rojo"',
+    ejemplo: 'PONCOLOR "rojo',
+    insercion: 'PONCOLOR "rojo',
     ejecutable: false,
   },
   {
@@ -157,7 +157,7 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     nombre: 'PARA',
     abreviatura: null,
     aridad: 'variable',
-    tiposArgumento: ['palabra'],
+    tiposArgumento: ['nombre'],
     mundo: 2,
     descripcion: 'Le enseña a Kiro un comando nuevo con un nombre.',
     ejemplo: 'PARA cuadrado',

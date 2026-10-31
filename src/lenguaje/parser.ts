@@ -386,7 +386,7 @@ function analizarComandoColor(
         estado,
         crearError(
           'argumentoDeTipoEquivocado',
-          { comando: entrada.nombre, recibido: t.textoOriginal },
+          { comando: entrada.nombre, recibido: t.textoOriginal, parte: 'terna' },
           posicion(t),
         ),
       );
@@ -396,7 +396,7 @@ function analizarComandoColor(
     // formado, apuntando al comando.
     reportar(
       estado,
-      crearError('argumentoFaltante', { comando: entrada.nombre }, { linea: lineaComando, columna: columnaComando }),
+      crearError('argumentoFaltante', { comando: entrada.nombre, parte: 'terna' }, { linea: lineaComando, columna: columnaComando }),
     );
     return null;
   }

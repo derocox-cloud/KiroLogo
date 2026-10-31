@@ -390,3 +390,26 @@ describe('vocabulario.ts', () => {
     });
   });
 });
+
+describe('vocabulario.ts · tipos de argumento de PONCOLOR y PARA (punto 8)', () => {
+  it('TipoArgumento incluye color y nombre', () => {
+    const tipos: TipoArgumento[] = ['numero', 'palabra', 'lista', 'expresion', 'color', 'nombre'];
+    expect(tipos).toHaveLength(6);
+  });
+
+  it('PONCOLOR declara un argumento de color y su ejemplo e inserción son válidos (sin comilla de cierre)', () => {
+    const r = buscarComando('PONCOLOR');
+    expect(r.hallada).toBe(true);
+    if (!r.hallada) return;
+    expect(r.entrada.tiposArgumento).toEqual(['color']);
+    expect(r.entrada.ejemplo).toBe('PONCOLOR "rojo');
+    expect(r.entrada.insercion).toBe('PONCOLOR "rojo');
+    expect(r.entrada.ejemplo.endsWith('"')).toBe(false);
+  });
+
+  it('PARA declara un argumento de nombre', () => {
+    const r = buscarComando('PARA');
+    expect(r.hallada).toBe(true);
+    if (r.hallada) expect(r.entrada.tiposArgumento).toEqual(['nombre']);
+  });
+});
