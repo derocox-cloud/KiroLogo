@@ -1,4 +1,4 @@
-# Requirements Document
+﻿# Requirements Document
 
 **KiroLogo · Spec 03 · Mundo 2 · Composición**
 
