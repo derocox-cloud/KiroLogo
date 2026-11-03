@@ -379,16 +379,22 @@ que la implementación inicial dejó sin cubrir:
   cambio transversal del motor (modelo de `Segmento`, animador y lienzo) que debe preservar R4.8
   (el validador solo ve geometría, nunca color). Se aborda como fix dedicado y revisado, fuera de
   esta entrega.
-- **El error de color/grosor inválido no llega a la UI (PENDIENTE — fix dedicado).** El intérprete
-  genera `colorInvalido`/`grosorInvalido` (R4.3, R4.5) y conserva el valor anterior, pero
-  `concluirIntento` solo muestra el error de ejecución cuando hubo una guarda; sin guarda, el
-  comentario de calificación sobrescribe el globo y el mensaje nunca se ve. Mostrarlo requiere
-  decidir cómo conviven un error de ejecución y el comentario de calificación en el mismo globo
-  (decisión de UX), por lo que se aborda como fix dedicado y revisado.
+- **El error de color/grosor inválido no llega a la UI (RESUELTO en el PR #24, punto 4).** El
+  intérprete genera `colorInvalido`/`grosorInvalido` (R4.3, R4.5), pero `concluirIntento` solo
+  mostraba el error de ejecución cuando hubo una guarda. Decisión del dueño: todo error de ejecución
+  se explica en el globo y el intento no se califica, igual que con las guardas. Cubierto por
+  pruebas en `main.test.ts` (`PONCOLOR "red AV 100`, `PG 0 AV 100`).
 
-El mensaje de ayuda del panel y la redacción del error de comilla también se revisarán en esos
-fixes (hoy el ejemplo sugerido usa `PONCOLOR "rojo"` con comilla de cierre, que el lenguaje no
-acepta).
+El ejemplo e inserción de `PONCOLOR` del panel usaban `PONCOLOR "rojo"` con comilla de cierre, que el
+lenguaje no acepta (RESUELTO en el PR #24: ahora `PONCOLOR "rojo`, derivado al mensaje de error).
+
+- **La escalera (2.3) nunca sale con 5 peldaños de lado 40 (PENDIENTE — fix aparte del motor).**
+  Su caja envolvente mide exactamente 200 × 200, que `encuadre.ts` acepta («exactamente 200 no
+  cuenta»), pero el alto se calcula como 199,99999999999997 por el redondeo de coma flotante de los
+  giros y la figura se descarta como degenerada. Medido sobre 200 semillas: solo salen 4×60, 5×60,
+  6×40 y 6×60. Afecta a cualquier figura cuya caja mida justo 200; corregirlo (una tolerancia en
+  `encuadre.ts`) es un cambio del motor que toca a todos los niveles, así que se deja para un fix
+  aparte y revisado.
 
 ## Notes
 

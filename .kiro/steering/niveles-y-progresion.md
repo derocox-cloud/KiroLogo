@@ -111,12 +111,19 @@ el camino `CUADRADO` → `FLOR` → `JARDÍN` del artículo del MIT.
 |---|---|---|---|
 | 2.1 | autorado | Casa | `REPITE 4 [AV 100 GD 90]` `AV 100` `GD 30` `REPITE 3 [AV 100 GD 120]` |
 | 2.2 | generado | Estrella | puntas 5 o 9, largo 220–240 (5 puntas) o 140–240 (9 puntas), `REPITE p [AV L GD 720/p]` (`GD 144` y `GD 80`) |
-| 2.3 | generado | Escalera | 3 a 6 peldaños, huella y altura iguales, 20–60 |
+| 2.3 | generado | Escalera | 3 a 6 peldaños, huella y altura iguales, 20–60 (en la práctica 4–6 peldaños y 40–60; ver nota) |
 | 2.4 | autorado | Cruz | `REPITE 4 [AV 50 GI 90 AV 50 GD 90 AV 50 GI 90]` |
 | 2.5 | generado | Dos figuras separadas | dos polígonos 3–6 lados, `SL GD 90 AV d GI 90 BL` entre ellos con `d` múltiplo de 20 y mayor que el ancho del primero; exige `SL`/`BL` |
 | 2.6 | generado | Cuadrícula de paneles | 2×2 o 3×2 o 3×3; exige `defineProcedimiento` |
 
 > **Rangos del 2.2 (spec 03).** La estrella pasó de puntas 5, 7 o 9 con largo 100–180 a **puntas 5 o 9** con largo **220–240 / 140–240**. La de 7 puntas se quitó porque `720/7` no es entero (`GD 103` no cierra ni se puede derivar sin aritmética del mundo 4). Y con largo ≤ 180 la de 5 puntas mide ≈ 0,95·L de alto, nunca llegaba a la caja de 200 px y siempre se descartaba; hace falta L ≥ 220. Es una excepción al máximo de 200 de la regla general de longitudes: la lección aquí es el giro `720/p`, no medir el lado.
+
+> **Rangos efectivos del 2.3 (spec 03).** El generador sortea 3 a 6 peldaños y lado 20–60, pero la caja
+> envolvente de la escalera mide n·L de lado y tiene que llegar a 200 px, así que la escalera **nunca
+> sale con 3 peldaños** (como mucho 3×60 = 180) **ni con lado 20** (como mucho 6×20 = 120): el lazo
+> descarta esas semillas. Medido sobre 200 semillas, solo salen 4×60, 5×60, 6×40 y 6×60. La lección
+> (repetir un peldaño) no depende de esos valores, así que se aceptan los rangos efectivos en vez de
+> estrecharlos en el generador.
 
 El 2.5 obliga a `SUBELAPIZ` / `BAJALAPIZ`: el traslado es horizontal para que las cajas de los dos polígonos no se superpongan (con una diagonal se montaban y, con traslación libre, la referencia sin `SL`/`BL` aún ganaba la precisión), y `d` crece lo necesario para que un conector olvidado supere el 10 % del perímetro, el doble de la tolerancia de exceso. El 2.6 exige la estrella de abstracción: solo se otorga si
 el programa define un procedimiento con `PARA`, y el `presupuestoEstrella` está calculado sobre una
