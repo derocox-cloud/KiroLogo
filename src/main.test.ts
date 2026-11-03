@@ -3725,3 +3725,67 @@ describe('main · RELLENA lleva un color (punto 7a)', () => {
     expect(estrellas()).toEqual(['pendiente', 'pendiente', 'pendiente']);
   });
 });
+
+// ============================================================================
+// El relleno se ve al terminar el programa (reseña del PR #24, punto 7b)
+// ============================================================================
+
+describe('main · RELLENA como última instrucción deja el relleno en la figura del jugador', () => {
+  /** Doble que anota el color de cada `fill`; se reinicia con cada borrado de la capa. */
+  class DobleConRellenos extends DobleDibujo {
+    readonly rellenos: string[] = [];
+    override fill(): void {
+      this.rellenos.push(String(this.fillStyle));
+      super.fill();
+    }
+    override clearRect(x: number, y: number, ancho: number, alto: number): void {
+      this.rellenos.length = 0;
+      super.clearRect(x, y, ancho, alto);
+    }
+  }
+
+  const contextos = new Map<string, DobleConRellenos>();
+
+  beforeEach(() => {
+    montarDom();
+    contextos.clear();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (
+      this: HTMLCanvasElement,
+    ) {
+      let ctx = contextos.get(this.id);
+      if (!ctx) {
+        ctx = new DobleConRellenos();
+        contextos.set(this.id, ctx);
+      }
+      return ctx as unknown as CanvasRenderingContext2D;
+    } as never);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('la casa del 2.1 con RELLENA "azul al final gana la precisión y, al terminar, el lienzo del jugador tiene el relleno azul', () => {
+    const { reloj, avanzar } = relojManual();
+    const app = crearAplicacion({
+      documento: document,
+      almacen: crearAlmacenMemoria(),
+      reloj,
+      relojEspera: relojEsperaInerte(),
+      relojRebote: relojReboteInmediato,
+      movimiento: movimientoNormal,
+      idNivel: '2.1',
+    });
+    escribir(app, 'REPITE 4 [AV 100 GD 90] AV 100 GD 30 REPITE 3 [AV 100 GD 120] RELLENA "azul');
+    expect(app.editor.estadoContador().errores).toEqual([]);
+    app.ejecutar();
+    // Reproducción continua hasta el final.
+    avanzar(60_000);
+
+    // El relleno no cuenta para la precisión (R4.8): la casa se aprueba igual.
+    expect(app.estado().calificacion).not.toBeNull();
+    expect(app.estado().calificacion!.precision.otorgada).toBe(true);
+    // Y al terminar, el último dibujo de la capa del jugador incluye el relleno azul.
+    expect(contextos.get('lienzo-jugador')!.rellenos).toEqual(['#0000ff']);
+  });
+});

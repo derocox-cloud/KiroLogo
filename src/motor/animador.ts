@@ -188,6 +188,9 @@ export function crearAnimador(
   // Color y grosor vigentes según las operaciones ya aplicadas (PONCOLOR, PONGROSOR).
   // Arranca en el del tema en cada carga y cada reinicio.
   let estilo: EstiloPedido = SIN_ESTILO;
+  // Índice de la operación RELLENA cuyo relleno ya se pidió (al empezar su turno),
+  // para no pedirlo dos veces. −1: ninguna.
+  let rellenoAplicadoEn = -1;
 
   // Reproducción continua en curso.
   let idProgramado: number | null = null;
@@ -239,9 +242,9 @@ export function crearAnimador(
         lienzo.limpiarEstela(destino);
         break;
       case 'relleno':
-        // Rellena el área cerrada donde está la tortuga con el color de RELLENA,
-        // calculada con los trazos ya dibujados (R4.6). No toca el color del lápiz.
-        lienzo.rellenar?.(destino, op.color, op.estadoAntes.posicion);
+        // En la reproducción continua ya se aplicó al empezar su turno; aquí solo si
+        // no (paso a paso, modo inmediato o reducido).
+        aplicarRellenoAlEmpezar(op);
         break;
       case 'girar':
       case 'reubicar':
@@ -254,6 +257,21 @@ export function crearAnimador(
     estadoActual = op.estadoDespues;
     if (pintarFotograma) emitirFotograma({ estado: op.estadoDespues, tramo: null });
     emitirAplicar(op);
+  }
+
+  /**
+   * Rellena el área cerrada donde está la tortuga con el color de RELLENA,
+   * calculada con los trazos ya dibujados (R4.6); no toca el color del lápiz. Un
+   * relleno no tiene movimiento que animar, así que en la reproducción continua se
+   * aplica al EMPEZAR su turno (si no, no se vería nada durante el turno y, como
+   * última instrucción, aparecería recién al terminar el programa). La duración del
+   * turno y el orden de las demás operaciones no cambian. Se aplica una sola vez por
+   * operación: `aplicarCompleta` lo vuelve a pedir al cerrar el turno y aquí se omite.
+   */
+  function aplicarRellenoAlEmpezar(op: Operacion): void {
+    if (op.tipo !== 'relleno' || rellenoAplicadoEn === indice) return;
+    rellenoAplicadoEn = indice;
+    lienzo.rellenar?.(destino, op.color, op.estadoAntes.posicion);
   }
 
   /** Detiene la reproducción continua sin tocar el contador ni la estela. */
@@ -335,6 +353,8 @@ export function crearAnimador(
       }
       inicioOperacion = reloj.ahora();
     }
+    // Un RELLENA se ve desde el primer fotograma de su turno.
+    aplicarRellenoAlEmpezar(operaciones[indice]!);
     // Pinta la tortuga a medio camino de la operación en curso.
     emitirFotograma(
       fotogramaIntermedio(operaciones[indice]!, (reloj.ahora() - inicioOperacion) / Math.max(1, duracion), estilo),
@@ -350,6 +370,7 @@ export function crearAnimador(
       destino = capa;
       indice = 0;
       estilo = SIN_ESTILO;
+      rellenoAplicadoEn = -1;
       estadoActual = null;
       estadoInicial = ops[0]?.estadoAntes ?? estadoInicial;
     },
@@ -418,6 +439,7 @@ export function crearAnimador(
       detenerContinua();
       indice = 0;
       estilo = SIN_ESTILO;
+      rellenoAplicadoEn = -1;
       estadoInicial = nuevoInicial;
       estadoActual = nuevoInicial;
       // Borra SOLO la capa del jugador; conserva la secuencia recibida.

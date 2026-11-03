@@ -853,6 +853,41 @@ describe('animador · relleno (punto 7b)', () => {
     expect(pedido!.tramosAntes).toBe(4);
   });
 
+  it('en la reproducción continua el relleno se aplica al EMPEZAR su turno, no al terminarlo', () => {
+    const reloj = new RelojFalso();
+    const lienzo = new LienzoConRelleno();
+    const animador = crearAnimador(lienzo, reloj, SIN_REDUCIR);
+    let aplicadas = 0;
+    animador.alAplicar(() => (aplicadas += 1));
+    // Ocho operaciones antes de RELLENA: cuatro avances y cuatro giros.
+    animador.cargar(opsDe('REPITE 4 [AV 100 GD 90] RELLENA "azul AV 10'), 'jugador');
+    animador.reproducir();
+    // Fotograma a fotograma hasta que termina la octava operación: ese mismo
+    // fotograma abre el turno de RELLENA.
+    let guarda = 0;
+    while (aplicadas < 8 && guarda++ < 10_000) reloj.avanzar(16);
+    expect(aplicadas).toBe(8);
+    expect(lienzo.pedidos).toHaveLength(1);
+    expect(lienzo.pedidos[0]!.color).toBe('azul');
+    // La operación sigue en su turno (no se dio por aplicada) y no se rellena dos veces.
+    reloj.avanzar(DURACIONES.normal + 100);
+    expect(aplicadas).toBeGreaterThanOrEqual(9);
+    expect(lienzo.pedidos).toHaveLength(1);
+    // Ni el orden ni la cantidad de operaciones cambian.
+    reloj.avanzar(DURACIONES.normal * 3);
+    expect(aplicadas).toBe(10);
+    expect(lienzo.estelas.jugador).toHaveLength(5);
+  });
+
+  it('paso a paso, RELLENA se aplica una sola vez, al dar su paso', () => {
+    const lienzo = new LienzoConRelleno();
+    const animador = crearAnimador(lienzo, new RelojFalso(), SIN_REDUCIR);
+    animador.cargar(opsDe('REPITE 4 [AV 100 GD 90] RELLENA "azul'), 'jugador');
+    for (let i = 0; i < 8; i++) animador.paso();
+    expect(lienzo.pedidos).toHaveLength(0);
+    animador.paso();
+    expect(lienzo.pedidos).toHaveLength(1);
+  });
   it('un lienzo que no dibuja rellenos (sin rellenar) sigue funcionando', () => {
     const lienzo = new LienzoDoble();
     const animador = crearAnimador(lienzo, new RelojFalso(), () => true);
