@@ -8,6 +8,13 @@
 // usa coordenadas lógicas con `y` hacia arriba.
 
 import type { Segmento } from './segmentos.js';
+import {
+  SIN_ESTILO,
+  mismoEstilo,
+  trazoDeTramo,
+  type EstiloPedido,
+  type TramoDibujo,
+} from './tramos-dibujo.js';
 
 // ============================================================================
 // 7.2 · ContextoDibujo — la costura de dibujo
@@ -241,20 +248,77 @@ function dibujarLineasCuadricula(
  * recorte al cuadrado lógico: un tramo que se sale se recorta al borde y el dibujo
  * continúa sin excepción. Un segmento por trazo independiente, porque los
  * segmentos de una estela no son necesariamente contiguos.
+ *
+ * Con `conEstilo`, cada tramo se pinta con el color y el grosor que pidió el
+ * jugador (PONCOLOR, PONGROSOR); lo no pedido sale de `trazo`. Los tramos seguidos
+ * del mismo estilo van en un solo trazo. Sin nada pedido hay un único grupo con el
+ * trazo del tema, así que las llamadas son exactamente las de siempre.
  */
 export function dibujarEstela(
   ctx: ContextoDibujo,
-  segmentos: readonly Segmento[],
+  segmentos: readonly TramoDibujo[],
   trazo: TrazoTema,
+  conEstilo = true,
 ): void {
   ctx.save();
   recortarAlCuadrado(ctx);
-  aplicarTrazo(ctx, trazo);
-  ctx.beginPath();
-  for (const segmento of segmentos) {
-    ctx.moveTo(segmento.desde.x, segmento.desde.y);
-    ctx.lineTo(segmento.hasta.x, segmento.hasta.y);
+  for (const grupo of agruparPorEstilo(segmentos, trazo, conEstilo)) {
+    aplicarTrazo(ctx, grupo.trazo);
+    ctx.beginPath();
+    for (const segmento of grupo.tramos) {
+      ctx.moveTo(segmento.desde.x, segmento.desde.y);
+      ctx.lineTo(segmento.hasta.x, segmento.hasta.y);
+    }
+    ctx.stroke();
   }
+  ctx.restore();
+}
+
+/**
+ * Agrupa los tramos seguidos que piden el mismo estilo. Una estela vacía da un solo
+ * grupo vacío con el trazo del tema, para conservar las llamadas de siempre.
+ */
+function agruparPorEstilo(
+  tramos: readonly TramoDibujo[],
+  tema: TrazoTema,
+  conEstilo: boolean,
+): Array<{ trazo: TrazoTema; tramos: TramoDibujo[]; estilo: EstiloPedido }> {
+  const grupos: Array<{ trazo: TrazoTema; tramos: TramoDibujo[]; estilo: EstiloPedido }> = [];
+  for (const tramo of tramos) {
+    const estilo: EstiloPedido = conEstilo ? tramo : SIN_ESTILO;
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo !== undefined && mismoEstilo(ultimo.estilo, estilo)) {
+      ultimo.tramos.push(tramo);
+    } else {
+      grupos.push({ trazo: trazoDeTramo(estilo, tema), tramos: [tramo], estilo });
+    }
+  }
+  if (grupos.length === 0) grupos.push({ trazo: tema, tramos: [], estilo: SIN_ESTILO });
+  return grupos;
+}
+
+/**
+ * Pinta el tramo que la tortuga lleva recorrido en la operación en curso (en la
+ * capa de personajes, que se borra en cada fotograma). Con `conEstilo` lleva el
+ * color y el grosor que pidió el jugador; sin él (la tortuga de Kiro), el tema. El
+ * recorte es el mismo que el de la estela definitiva, para que el tramo no asome
+ * por fuera del cuadrado lógico y luego desaparezca. Línea siempre continua.
+ */
+export function dibujarTramoEnCurso(
+  ctx: ContextoDibujo,
+  tramo: TramoDibujo,
+  tema: TrazoTema,
+  conEstilo: boolean,
+): void {
+  const trazo = conEstilo ? trazoDeTramo(tramo, tema) : tema;
+  ctx.save();
+  recortarAlCuadrado(ctx);
+  ctx.strokeStyle = trazo.color;
+  ctx.lineWidth = trazo.grosor;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(tramo.desde.x, tramo.desde.y);
+  ctx.lineTo(tramo.hasta.x, tramo.hasta.y);
   ctx.stroke();
   ctx.restore();
 }
@@ -280,9 +344,9 @@ export interface Lienzo {
    * redibuja. Guarda los segmentos para poder redibujar al cambiar de tamaño sin
    * volver a invocar el intérprete.
    */
-  ponerEstela(capa: CapaEstela, segmentos: readonly Segmento[]): void;
+  ponerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void;
   /** Añade segmentos a la estela de una capa y redibuja esa capa. */
-  crecerEstela(capa: CapaEstela, segmentos: readonly Segmento[]): void;
+  crecerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void;
   /** Borra la estela de una capa sin tocar las otras tres. */
   limpiarEstela(capa: CapaEstela): void;
   /** Devuelve una copia de los segmentos guardados de una capa de estela. */
@@ -313,7 +377,8 @@ export function crearLienzo(
 
   // Cada capa de estela guarda las operaciones (segmentos) que recibió, para
   // redibujar al cambiar de tamaño o densidad sin volver a invocar el intérprete.
-  const estelas: Record<CapaEstela, Segmento[]> = {
+  // Los de la capa del jugador conservan el estilo que pidió (color y grosor).
+  const estelas: Record<CapaEstela, TramoDibujo[]> = {
     jugador: [],
     referencia: [],
   };
@@ -352,7 +417,8 @@ export function crearLienzo(
   function redibujarEstela(capa: CapaEstela, estilo: EstiloLienzo): void {
     const ctx = capa === 'jugador' ? capas.jugador : capas.referencia;
     borrarCapa(ctx);
-    dibujarEstela(ctx, estelas[capa], trazoDeCapa(capa, estilo));
+    // Solo la figura del jugador lleva su color y grosor; la de Kiro, siempre el tema.
+    dibujarEstela(ctx, estelas[capa], trazoDeCapa(capa, estilo), capa === 'jugador');
   }
 
   function redibujar(): void {
@@ -378,12 +444,12 @@ export function crearLienzo(
       return escalado;
     },
 
-    ponerEstela(capa: CapaEstela, segmentos: readonly Segmento[]): void {
+    ponerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void {
       estelas[capa] = segmentos.map((s) => ({ ...s }));
       redibujarEstela(capa, leerTema());
     },
 
-    crecerEstela(capa: CapaEstela, segmentos: readonly Segmento[]): void {
+    crecerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void {
       for (const s of segmentos) estelas[capa].push({ ...s });
       redibujarEstela(capa, leerTema());
     },

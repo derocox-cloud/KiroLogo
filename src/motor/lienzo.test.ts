@@ -391,3 +391,144 @@ describe('Property 14B: redibujado desde las operaciones', () => {
     );
   });
 });
+
+// ============================================================================
+// Color y grosor del jugador (reseña del PR #24, punto 5)
+//
+// El lienzo pinta cada tramo de la estela del jugador con el color y el grosor que
+// pidió con PONCOLOR/PONGROSOR; lo que no pidió sale del tema, exactamente como
+// antes. La estela de Kiro (capa referencia) conserva siempre el tema.
+// ============================================================================
+
+import { analizarLexico } from '../lenguaje/lexer.js';
+import { analizar } from '../lenguaje/parser.js';
+import { ejecutar, type Operacion } from '../lenguaje/interprete.js';
+import { comandosDelMundo } from '../lenguaje/vocabulario.js';
+import { ESTADO_INICIAL } from './tortuga.js';
+import { extraerSegmentos } from './segmentos.js';
+import { extraerTramosDibujo } from './tramos-dibujo.js';
+import { dibujarTramoEnCurso } from './lienzo.js';
+
+/** Doble que, además de las llamadas, anota el estilo vigente en cada `stroke`. */
+class DobleConEstilo extends DobleDibujo {
+  readonly trazos: Array<{ color: unknown; grosor: number }> = [];
+  override stroke(): void {
+    this.trazos.push({ color: this.strokeStyle, grosor: this.lineWidth });
+    super.stroke();
+  }
+}
+
+function capasConEstilo(): Record<NombreCapa, DobleConEstilo> {
+  return {
+    fondo: new DobleConEstilo(),
+    referencia: new DobleConEstilo(),
+    jugador: new DobleConEstilo(),
+    personajes: new DobleConEstilo(),
+  };
+}
+
+function operacionesDe(texto: string, mundo: 0 | 2 = 2): readonly Operacion[] {
+  const { programa, errores } = analizar(analizarLexico(texto).tokens, { mundo });
+  expect(errores).toEqual([]);
+  const g = ejecutar(programa!, { estadoInicial: ESTADO_INICIAL, comandosPermitidos: comandosDelMundo(mundo), semilla: 0 });
+  let p = g.next();
+  while (!p.done) p = g.next();
+  return p.value.operaciones;
+}
+
+describe('lienzo · color y grosor del jugador (punto 5)', () => {
+  it('un programa del mundo 0 se dibuja con exactamente las mismas llamadas y estilos que antes', () => {
+    const ops = operacionesDe('AVANZA 100 GIRADERECHA 90 AVANZA 100 GIRAIZQUIERDA 45 RETROCEDE 60', 0);
+    const antes = capasConEstilo();
+    crearLienzo(antes, estiloCompleto, TAMANO_BASE).ponerEstela('jugador', extraerSegmentos(ops));
+    const ahora = capasConEstilo();
+    crearLienzo(ahora, estiloCompleto, TAMANO_BASE).ponerEstela('jugador', extraerTramosDibujo(ops));
+
+    expect(ahora.jugador.llamadas).toEqual(antes.jugador.llamadas);
+    expect(ahora.jugador.trazos).toEqual(antes.jugador.trazos);
+    // Y ese estilo es el del tema.
+    expect(ahora.jugador.trazos.at(-1)).toEqual({ color: '#0d6efd', grosor: 3 });
+  });
+
+  it('una estela vacía se borra con las mismas llamadas que antes', () => {
+    const antes = capasConEstilo();
+    crearLienzo(antes, estiloCompleto, TAMANO_BASE).ponerEstela('jugador', []);
+    const ahora = capasConEstilo();
+    crearLienzo(ahora, estiloCompleto, TAMANO_BASE).ponerEstela('jugador', extraerTramosDibujo([]));
+    expect(ahora.jugador.llamadas).toEqual(antes.jugador.llamadas);
+  });
+
+  it('PONCOLOR rojo AV 100 PG 6 AV 100: el primer tramo va en rojo con el grosor del tema y el segundo en rojo con grosor 6', () => {
+    const capas = capasConEstilo();
+    const lienzo = crearLienzo(capas, estiloCompleto, TAMANO_BASE);
+    capas.jugador.trazos.length = 0;
+    lienzo.ponerEstela('jugador', extraerTramosDibujo(operacionesDe('PONCOLOR rojo AV 100 PG 6 AV 100')));
+    expect(capas.jugador.trazos).toEqual([
+      { color: '#ff0000', grosor: 3 },
+      { color: '#ff0000', grosor: 6 },
+    ]);
+  });
+
+  it('agrupa los tramos seguidos del mismo estilo en un solo trazo', () => {
+    const capas = capasConEstilo();
+    const lienzo = crearLienzo(capas, estiloCompleto, TAMANO_BASE);
+    capas.jugador.trazos.length = 0;
+    lienzo.ponerEstela('jugador', extraerTramosDibujo(operacionesDe('AV 10 PONCOLOR rojo REPITE 4 [AV 50 GD 90] PONCOLOR verde AV 20')));
+    // Tema (1 tramo), rojo (4 tramos) y verde (1 tramo): tres trazos.
+    expect(capas.jugador.trazos.map((t) => t.color)).toEqual(['#0d6efd', '#ff0000', '#008000']);
+  });
+
+  it('crecerEstela conserva el estilo de cada tramo y lo repinta igual al redimensionar', () => {
+    const capas = capasConEstilo();
+    const lienzo = crearLienzo(capas, estiloCompleto, TAMANO_BASE);
+    for (const tramo of extraerTramosDibujo(operacionesDe('PONCOLOR rojo AV 100'))) lienzo.crecerEstela('jugador', [tramo]);
+    capas.jugador.trazos.length = 0;
+    lienzo.redimensionar({ anchoCss: 600, altoCss: 600, devicePixelRatio: 2 });
+    expect(capas.jugador.trazos).toEqual([{ color: '#ff0000', grosor: 3 }]);
+  });
+
+  it('la estela de Kiro (capa referencia) ignora cualquier estilo y usa siempre el tema', () => {
+    const capas = capasConEstilo();
+    const lienzo = crearLienzo(capas, estiloCompleto, TAMANO_BASE);
+    capas.referencia.trazos.length = 0;
+    lienzo.ponerEstela('referencia', extraerTramosDibujo(operacionesDe('PONCOLOR rojo PG 9 AV 100')));
+    expect(capas.referencia.trazos).toEqual([{ color: '#6c757d', grosor: 2 }]);
+  });
+});
+
+describe('lienzo · tramo en curso de la animación (punto 5)', () => {
+  const TEMA = estiloCompleto().estelaJugador;
+
+  it('el tramo que se va dibujando lleva el color y el grosor del jugador', () => {
+    const [tramo] = extraerTramosDibujo(operacionesDe('PONCOLOR rojo PG 6 AV 100'));
+    const ctx = new DobleConEstilo();
+    dibujarTramoEnCurso(ctx, tramo!, TEMA, true);
+    expect(ctx.trazos).toEqual([{ color: '#ff0000', grosor: 6 }]);
+  });
+
+  it('sin estilo pedido, el tramo en curso usa el tema', () => {
+    const [tramo] = extraerTramosDibujo(operacionesDe('AV 100'));
+    const ctx = new DobleConEstilo();
+    dibujarTramoEnCurso(ctx, tramo!, TEMA, true);
+    expect(ctx.trazos).toEqual([{ color: '#0d6efd', grosor: 3 }]);
+  });
+
+  it('con el estilo desactivado (la tortuga de Kiro) usa el tema aunque el tramo traiga color', () => {
+    const [tramo] = extraerTramosDibujo(operacionesDe('PONCOLOR rojo PG 6 AV 100'));
+    const ctx = new DobleConEstilo();
+    dibujarTramoEnCurso(ctx, tramo!, TEMA, false);
+    expect(ctx.trazos).toEqual([{ color: '#0d6efd', grosor: 3 }]);
+  });
+
+  it('recorta al cuadrado lógico, como la estela definitiva', () => {
+    const [tramo] = extraerTramosDibujo(operacionesDe('AV 100'));
+    const ctx = new DobleConEstilo();
+    dibujarTramoEnCurso(ctx, tramo!, TEMA, true);
+    const metodos = ctx.llamadas.map((l) => l.metodo);
+    expect(metodos[0]).toBe('save');
+    expect(metodos.at(-1)).toBe('restore');
+    expect(metodos.indexOf('rect')).toBeLessThan(metodos.indexOf('clip'));
+    expect(metodos.indexOf('clip')).toBeLessThan(metodos.indexOf('stroke'));
+    expect(metodos.filter((m) => m === 'stroke')).toHaveLength(1);
+  });
+});

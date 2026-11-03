@@ -9,7 +9,14 @@
 
 import type { Operacion } from '../lenguaje/interprete.js';
 import type { EstadoTortuga } from './tortuga.js';
-import type { Segmento } from './segmentos.js';
+import {
+  SIN_ESTILO,
+  avanzarEstilo,
+  tramoConEstilo,
+  tramoDeMover,
+  type EstiloPedido,
+  type TramoDibujo,
+} from './tramos-dibujo.js';
 import type { CapaEstela } from './lienzo.js';
 
 // ============================================================================
@@ -61,13 +68,13 @@ export interface FinDeSecuencia {
  * Lo que hay que pintar en un instante: la tortuga en su posición y rumbo
  * interpolados y, si la operación en curso es un `mover` con el lápiz abajo, el
  * tramo recorrido hasta ahora. El tramo es provisional: no entra en la estela del
- * lienzo hasta que la operación termina (así la estela final sigue siendo
- * exactamente la de `extraerSegmentos`), y quien pinta lo dibuja en la capa de
- * personajes, que se borra en cada fotograma.
+ * lienzo hasta que la operación termina (así la geometría de la estela final sigue
+ * siendo exactamente la de `extraerSegmentos`), y quien pinta lo dibuja en la capa
+ * de personajes, que se borra en cada fotograma. Lleva el color y el grosor vigentes.
  */
 export interface Fotograma {
   readonly estado: EstadoTortuga;
-  readonly tramo: Segmento | null;
+  readonly tramo: TramoDibujo | null;
 }
 
 // ============================================================================
@@ -80,7 +87,7 @@ export interface Fotograma {
  * lienzo real se pasa tal cual; en pruebas se pasa un doble.
  */
 export interface LienzoAnimador {
-  crecerEstela(capa: CapaEstela, segmentos: readonly Segmento[]): void;
+  crecerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void;
   limpiarEstela(capa: CapaEstela): void;
 }
 
@@ -113,23 +120,6 @@ export interface Animador {
   alFotograma(escucha: (fotograma: Fotograma) => void): void;
 }
 
-/**
- * Deriva el segmento que aporta una operación `mover` con el lápiz abajo, o null si
- * no aporta estela. Coincide con el criterio de `extraerSegmentos`: longitud ≥ 1e−4.
- */
-function segmentoDeMover(op: Operacion): Segmento | null {
-  if (op.tipo !== 'mover' || !op.lapizAbajo) return null;
-  const dx = op.hasta.x - op.desde.x;
-  const dy = op.hasta.y - op.desde.y;
-  if (Math.hypot(dx, dy) < 0.0001) return null;
-  return {
-    desde: { x: op.desde.x, y: op.desde.y },
-    hasta: { x: op.hasta.x, y: op.hasta.y },
-    paso: op.paso,
-    linea: op.linea,
-  };
-}
-
 /** Suaviza el arranque y la llegada sin salirse de [0, 1] ni dejar de crecer. */
 function suavizar(t: number): number {
   return t * t * (3 - 2 * t);
@@ -142,7 +132,7 @@ function suavizar(t: number): number {
  * tortuga: el giro avanza en el sentido que pidió el jugador, no por el camino
  * más corto, para que un `GIRADERECHA 270` se vea como tres cuartos de vuelta.
  */
-function fotogramaIntermedio(op: Operacion, t: number): Fotograma {
+function fotogramaIntermedio(op: Operacion, t: number, estilo: EstiloPedido): Fotograma {
   const e = suavizar(Math.min(1, Math.max(0, t)));
   switch (op.tipo) {
     case 'mover': {
@@ -152,10 +142,9 @@ function fotogramaIntermedio(op: Operacion, t: number): Fotograma {
       };
       const estado: EstadoTortuga = { ...op.estadoAntes, posicion };
       const largo = Math.hypot(posicion.x - op.desde.x, posicion.y - op.desde.y);
+      // El tramo a medio dibujar lleva el mismo color y grosor que tendrá al terminar.
       const tramo =
-        op.lapizAbajo && largo >= 0.0001
-          ? { desde: { x: op.desde.x, y: op.desde.y }, hasta: posicion, paso: op.paso, linea: op.linea }
-          : null;
+        op.lapizAbajo && largo >= 0.0001 ? tramoConEstilo(op.desde, posicion, op.paso, op.linea, estilo) : null;
       return { estado, tramo };
     }
     case 'girar': {
@@ -190,6 +179,9 @@ export function crearAnimador(
   let velocidad: Velocidad = 'normal';
   let estadoActual: EstadoTortuga | null = null;
   let estadoInicial: EstadoTortuga | null = null;
+  // Color y grosor vigentes según las operaciones ya aplicadas (PONCOLOR, PONGROSOR).
+  // Arranca en el del tema en cada carga y cada reinicio.
+  let estilo: EstiloPedido = SIN_ESTILO;
 
   // Reproducción continua en curso.
   let idProgramado: number | null = null;
@@ -232,8 +224,8 @@ export function crearAnimador(
   function aplicarCompleta(op: Operacion, pintarFotograma = true): void {
     switch (op.tipo) {
       case 'mover': {
-        const seg = segmentoDeMover(op);
-        if (seg) lienzo.crecerEstela(destino, [seg]);
+        const tramo = tramoDeMover(op, estilo);
+        if (tramo) lienzo.crecerEstela(destino, [tramo]);
         break;
       }
       case 'limpiar':
@@ -247,6 +239,7 @@ export function crearAnimador(
         // No aportan estela; solo actualizan el estado dibujado.
         break;
     }
+    estilo = avanzarEstilo(estilo, op);
     estadoActual = op.estadoDespues;
     if (pintarFotograma) emitirFotograma({ estado: op.estadoDespues, tramo: null });
     emitirAplicar(op);
@@ -333,7 +326,7 @@ export function crearAnimador(
     }
     // Pinta la tortuga a medio camino de la operación en curso.
     emitirFotograma(
-      fotogramaIntermedio(operaciones[indice]!, (reloj.ahora() - inicioOperacion) / Math.max(1, duracion)),
+      fotogramaIntermedio(operaciones[indice]!, (reloj.ahora() - inicioOperacion) / Math.max(1, duracion), estilo),
     );
     // Programa el próximo fotograma (haya avanzado o no).
     idProgramado = reloj.programar(fotograma);
@@ -345,6 +338,7 @@ export function crearAnimador(
       operaciones = ops;
       destino = capa;
       indice = 0;
+      estilo = SIN_ESTILO;
       estadoActual = null;
       estadoInicial = ops[0]?.estadoAntes ?? estadoInicial;
     },
@@ -412,6 +406,7 @@ export function crearAnimador(
     reiniciar(nuevoInicial: EstadoTortuga): void {
       detenerContinua();
       indice = 0;
+      estilo = SIN_ESTILO;
       estadoInicial = nuevoInicial;
       estadoActual = nuevoInicial;
       // Borra SOLO la capa del jugador; conserva la secuencia recibida.

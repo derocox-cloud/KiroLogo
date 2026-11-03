@@ -750,3 +750,75 @@ describe('animador · detener termina el tramo en curso', () => {
     expect(lienzo.estelas.jugador).toEqual([]);
   });
 });
+
+// ============================================================================
+// Color y grosor del jugador en la animación (reseña del PR #24, punto 5)
+// ============================================================================
+
+import { analizarLexico } from '../lenguaje/lexer.js';
+import { analizar } from '../lenguaje/parser.js';
+import { ejecutar } from '../lenguaje/interprete.js';
+import { comandosDelMundo } from '../lenguaje/vocabulario.js';
+import { extraerTramosDibujo, type TramoDibujo } from './tramos-dibujo.js';
+
+describe('animador · color y grosor del jugador (punto 5)', () => {
+  function opsDe(texto: string): readonly Operacion[] {
+    const { programa } = analizar(analizarLexico(texto).tokens, { mundo: 2 });
+    const g = ejecutar(programa!, { estadoInicial: ESTADO_INICIAL, comandosPermitidos: comandosDelMundo(2), semilla: 0 });
+    let p = g.next();
+    while (!p.done) p = g.next();
+    return p.value.operaciones;
+  }
+
+  const TEXTO = 'AV 10 PONCOLOR rojo PG 6 AV 20 BORRAPANTALLA AV 30';
+
+  it('de golpe (movimiento reducido), la estela que crece es la del extractor de dibujo, con su estilo', () => {
+    const lienzo = new LienzoDoble();
+    const animador = crearAnimador(lienzo, new RelojFalso(), () => true);
+    const ops = opsDe(TEXTO);
+    animador.cargar(ops, 'jugador');
+    animador.reproducir();
+    expect(lienzo.estelas.jugador).toEqual(extraerTramosDibujo(ops));
+    const ultimo = lienzo.estelas.jugador.at(-1) as TramoDibujo;
+    expect(ultimo.color?.nombre).toBe('rojo');
+    expect(ultimo.grosor).toBe(6);
+  });
+
+  it('paso a paso, cada tramo llega con el estilo vigente en ese momento', () => {
+    const lienzo = new LienzoDoble();
+    const animador = crearAnimador(lienzo, new RelojFalso(), () => false);
+    animador.cargar(opsDe('AV 10 PONCOLOR rojo AV 20'), 'jugador');
+    for (let i = 0; i < 3; i++) animador.paso();
+    const [primero, segundo] = lienzo.estelas.jugador as TramoDibujo[];
+    expect(primero!.color).toBeUndefined();
+    expect(segundo!.color?.nombre).toBe('rojo');
+  });
+
+  it('el tramo de un fotograma intermedio lleva el color y el grosor del jugador', () => {
+    const reloj = new RelojFalso();
+    const animador = crearAnimador(new LienzoDoble(), reloj, () => false);
+    const fotogramas: Fotograma[] = [];
+    animador.alFotograma((f) => fotogramas.push(f));
+    animador.cargar(opsDe('PONCOLOR azul PG 4 AV 100'), 'jugador');
+    animador.reproducir();
+    reloj.avanzar(DURACIONES.normal * 2 + 200);
+    const conTramo = fotogramas.filter((f) => f.tramo !== null);
+    expect(conTramo.length).toBeGreaterThan(0);
+    for (const f of conTramo) {
+      const tramo = f.tramo as TramoDibujo;
+      expect(tramo.color?.nombre).toBe('azul');
+      expect(tramo.grosor).toBe(4);
+    }
+  });
+
+  it('reiniciar y cargar otra secuencia vuelve al estilo del tema', () => {
+    const lienzo = new LienzoDoble();
+    const animador = crearAnimador(lienzo, new RelojFalso(), () => true);
+    animador.cargar(opsDe('PONCOLOR rojo AV 10'), 'jugador');
+    animador.reproducir();
+    animador.reiniciar(ESTADO_INICIAL);
+    animador.cargar(opsDe('AV 10'), 'jugador');
+    animador.reproducir();
+    expect(lienzo.estelas.jugador).toEqual(extraerSegmentos(opsDe('AV 10')));
+  });
+});

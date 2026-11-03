@@ -39,6 +39,7 @@ import {
   aplicarTransformacion,
   dibujarCuadricula,
   dibujarEstela,
+  dibujarTramoEnCurso,
   LADO_LOGICO,
   SEMILADO_LOGICO,
   type ContextoDibujo,
@@ -709,22 +710,9 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   ): void {
     lienzo.limpiarPersonajes();
     const ctx = lienzo.capaPersonajes();
-    if (f.tramo !== null) {
-      ctx.save();
-      // Mismo recorte que la estela definitiva, para que el tramo no asome por
-      // fuera del cuadrado lógico y luego desaparezca.
-      ctx.beginPath();
-      ctx.rect(-SEMILADO_LOGICO, -SEMILADO_LOGICO, LADO_LOGICO, LADO_LOGICO);
-      ctx.clip();
-      ctx.strokeStyle = trazo.color;
-      ctx.lineWidth = trazo.grosor;
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.moveTo(f.tramo.desde.x, f.tramo.desde.y);
-      ctx.lineTo(f.tramo.hasta.x, f.tramo.hasta.y);
-      ctx.stroke();
-      ctx.restore();
-    }
+    // Solo la tortuga del jugador pinta su tramo con el color y grosor que pidió;
+    // la de Kiro conserva el tema.
+    if (f.tramo !== null) dibujarTramoEnCurso(ctx, f.tramo, trazo, identidad === 'jugador');
     dibujarPersonajes(
       ctx,
       {
