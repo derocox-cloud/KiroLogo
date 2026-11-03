@@ -20,7 +20,6 @@ import type {
   InvocacionProcedimiento,
 } from './ast.js';
 import { comandosDelMundo, VOCABULARIO, type EntradaVocabulario } from './vocabulario.js';
-import { extraerSegmentos } from '../motor/segmentos.js';
 import { ESTADO_INICIAL, type EstadoTortuga } from '../motor/tortuga.js';
 import { crearPrng } from '../azar/prng.js';
 import { analizarLexico } from './lexer.js';
@@ -537,7 +536,19 @@ describe('mundo 2: procedimientos', () => {
   });
 });
 
-describe('mundo 2: lápiz y segmentos', () => {
+// Estas pruebas se quedan en la capa del lenguaje (estructura.md: lenguaje/ no
+// importa de motor/). Afirman lo que emite el intérprete —el estado del lápiz en
+// cada `mover`, qué tipos de operación salen— y no los segmentos: que un mover con
+// el lápiz arriba, una decoración o una visibilidad no aporten segmentos lo prueba
+// motor/segmentos.test.ts, y la frontera decorativa de punta a punta (R4.8), el
+// describe «validador · frontera decorativa (R4.8)» de motor/validador.test.ts.
+
+/** Estado del lápiz en cada `mover` emitido, en orden. */
+function lapizDeCadaMover(operaciones: ResultadoEjecucion['operaciones']): boolean[] {
+  return operaciones.flatMap((o) => (o.tipo === 'mover' ? [o.lapizAbajo] : []));
+}
+
+describe('mundo 2: lápiz', () => {
   const PERMITIDOS_MUNDO_2 = comandosDelMundo(2);
 
   function correr2(texto: string): ResultadoEjecucion {
@@ -547,21 +558,21 @@ describe('mundo 2: lápiz y segmentos', () => {
     return correr(programa!, { comandosPermitidos: PERMITIDOS_MUNDO_2 });
   }
 
-  it('SUBELAPIZ antes de AVANZA no produce ningún segmento; BAJALAPIZ lo reanuda (R3.2, R3.4)', () => {
+  it('SUBELAPIZ antes de AVANZA mueve con el lápiz arriba; BAJALAPIZ lo reanuda (R3.2, R3.4)', () => {
     const conLapizArriba = correr2('SUBELAPIZ AVANZA 100');
     expect(conLapizArriba.error).toBeNull();
-    expect(extraerSegmentos(conLapizArriba.operaciones)).toHaveLength(0);
+    expect(lapizDeCadaMover(conLapizArriba.operaciones)).toEqual([false]);
 
     const reanudado = correr2('SUBELAPIZ AVANZA 100 BAJALAPIZ AVANZA 100');
     expect(reanudado.error).toBeNull();
     // Solo el segundo AVANZA (con el lápiz abajo) deja trazo.
-    expect(extraerSegmentos(reanudado.operaciones)).toHaveLength(1);
+    expect(lapizDeCadaMover(reanudado.operaciones)).toEqual([false, true]);
   });
 
   it('SUBELAPIZ repetido es idempotente y no da error (R3.7)', () => {
     const r = correr2('SUBELAPIZ SUBELAPIZ AVANZA 100');
     expect(r.error).toBeNull();
-    expect(extraerSegmentos(r.operaciones)).toHaveLength(0);
+    expect(lapizDeCadaMover(r.operaciones)).toEqual([false]);
     // Todas las operaciones de lápiz dejan lapizAbajo en false.
     for (const op of r.operaciones) {
       if (op.tipo === 'lapiz') expect(op.lapizAbajo).toBe(false);
@@ -579,11 +590,11 @@ describe('mundo 2: canal decorativo', () => {
     return correr(programa!, { comandosPermitidos: PERMITIDOS_MUNDO_2 });
   }
 
-  it('PONCOLOR, PONGROSOR y RELLENA no producen segmentos ni cambian posición ni rumbo', () => {
+  it('PONCOLOR, PONGROSOR y RELLENA no emiten movimientos ni cambian posición ni rumbo', () => {
     const r = correr2('PONCOLOR rojo PONGROSOR 5 RELLENA');
     expect(r.error).toBeNull();
+    // Solo operaciones decorativas: ningún `mover` que pudiera dejar trazo.
     expect(r.operaciones.map((o) => o.tipo)).toEqual(['color', 'grosor', 'relleno']);
-    expect(extraerSegmentos(r.operaciones)).toHaveLength(0);
     // Ninguna movió la tortuga: estadoDespues conserva posición y rumbo.
     for (const op of r.operaciones) {
       expect(op.estadoDespues.posicion).toEqual(op.estadoAntes.posicion);
@@ -659,8 +670,8 @@ describe('mundo 2: visibilidad', () => {
     const muestra = r.operaciones[1]!;
     if (oculta.tipo === 'visibilidad') expect(oculta.visible).toBe(false);
     if (muestra.tipo === 'visibilidad') expect(muestra.visible).toBe(true);
-    // Ninguna produce segmentos.
-    expect(extraerSegmentos(r.operaciones)).toHaveLength(0);
+    // Ninguna emite un movimiento.
+    expect(lapizDeCadaMover(r.operaciones)).toEqual([]);
   });
 
   it('OCULTATORTUGA repetido es idempotente y sin error (R5.4, R5.5)', () => {
