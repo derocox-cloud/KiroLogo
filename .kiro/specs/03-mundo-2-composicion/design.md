@@ -99,6 +99,14 @@ dibujo se vea como el jugador quiere, pero `extraerSegmentos` ya ignora todo lo 
 con el lápiz abajo, así que **nunca** entran en la máscara que compara el validador. Color, grosor
 y relleno no pueden aprobar ni reprobar un nivel (R4.8).
 
+El renderizador no reutiliza `extraerSegmentos`: tiene su propio extractor, `motor/tramos-dibujo.ts`,
+que da los mismos tramos (misma geometría, probada contra `extraerSegmentos`) con el color y el
+grosor vigentes, y `motor/relleno.ts`, que calcula el área de cada `RELLENA` sobre una máscara de los
+trazos de ese momento (inundación 4-conexa desde la tortuga; si llega al borde, no hay área cerrada y
+no se rellena, R4.7; si la tortuga está sobre la línea, se prueban las celdas libres vecinas). Así
+`Segmento` y el validador no cambian. Solo la capa del jugador usa el estilo y el relleno; la estela de
+Kiro, la superposición y el diff se pintan siempre con el tema.
+
 ### Las dos pasadas del parser
 
 ```

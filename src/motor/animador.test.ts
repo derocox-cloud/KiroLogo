@@ -822,3 +822,42 @@ describe('animador · color y grosor del jugador (punto 5)', () => {
     expect(lienzo.estelas.jugador).toEqual(extraerSegmentos(opsDe('AV 10')));
   });
 });
+
+describe('animador · relleno (punto 7b)', () => {
+  function opsDe(texto: string): readonly Operacion[] {
+    const { programa } = analizar(analizarLexico(texto).tokens, { mundo: 2 });
+    const g = ejecutar(programa!, { estadoInicial: ESTADO_INICIAL, comandosPermitidos: comandosDelMundo(2), semilla: 0 });
+    let p = g.next();
+    while (!p.done) p = g.next();
+    return p.value.operaciones;
+  }
+
+  class LienzoConRelleno extends LienzoDoble {
+    readonly pedidos: Array<{ capa: string; color: string | null; punto: { x: number; y: number }; tramosAntes: number }> = [];
+    rellenar(capa: 'jugador' | 'referencia', color: { nombre: string | null }, punto: { x: number; y: number }): void {
+      this.pedidos.push({ capa, color: color.nombre, punto, tramosAntes: this.estelas[capa].length });
+    }
+  }
+
+  it('al aplicar RELLENA pide el relleno en la posición de la tortuga, con su color, después de los trazos previos', () => {
+    const lienzo = new LienzoConRelleno();
+    const animador = crearAnimador(lienzo, new RelojFalso(), () => true);
+    animador.cargar(opsDe('REPITE 4 [AV 100 GD 90] GD 45 SL AV 20 BL RELLENA "azul AV 10'), 'jugador');
+    animador.reproducir();
+    expect(lienzo.pedidos).toHaveLength(1);
+    const [pedido] = lienzo.pedidos;
+    expect(pedido!.capa).toBe('jugador');
+    expect(pedido!.color).toBe('azul');
+    expect(pedido!.punto.x).toBeCloseTo(14.142, 2);
+    expect(pedido!.punto.y).toBeCloseTo(14.142, 2);
+    expect(pedido!.tramosAntes).toBe(4);
+  });
+
+  it('un lienzo que no dibuja rellenos (sin rellenar) sigue funcionando', () => {
+    const lienzo = new LienzoDoble();
+    const animador = crearAnimador(lienzo, new RelojFalso(), () => true);
+    animador.cargar(opsDe('REPITE 4 [AV 100 GD 90] RELLENA "azul'), 'jugador');
+    expect(() => animador.reproducir()).not.toThrow();
+    expect(lienzo.estelas.jugador).toHaveLength(4);
+  });
+});

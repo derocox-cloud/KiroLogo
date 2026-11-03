@@ -8,8 +8,12 @@
 // usa coordenadas lógicas con `y` hacia arriba.
 
 import type { Segmento } from './segmentos.js';
+import type { Color } from '../lenguaje/colores.js';
+import type { Punto } from './tortuga.js';
+import { calcularRelleno, type Corrida } from './relleno.js';
 import {
   SIN_ESTILO,
+  cssDeColor,
   mismoEstilo,
   trazoDeTramo,
   type EstiloPedido,
@@ -324,6 +328,34 @@ export function dibujarTramoEnCurso(
 }
 
 // ============================================================================
+// Rellenos (R4.6, R4.7)
+// ============================================================================
+
+/** Un relleno ya calculado: su color y las corridas del área cerrada. */
+export interface RellenoDibujado {
+  readonly color: Color;
+  readonly corridas: readonly Corrida[];
+}
+
+/**
+ * Pinta los rellenos, cada uno como un solo `fill` de sus corridas (rectángulos de
+ * una unidad de alto que no se solapan, así que no quedan costuras). Sin rellenos
+ * no hace ninguna llamada: un dibujo sin RELLENA es exactamente el de siempre.
+ */
+export function dibujarRellenos(ctx: ContextoDibujo, rellenos: readonly RellenoDibujado[]): void {
+  if (rellenos.length === 0) return;
+  ctx.save();
+  recortarAlCuadrado(ctx);
+  for (const relleno of rellenos) {
+    ctx.fillStyle = cssDeColor(relleno.color);
+    ctx.beginPath();
+    for (const c of relleno.corridas) ctx.rect(c.x0, c.y, c.x1 - c.x0, 1);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// ============================================================================
 // Lienzo: cuatro capas y las operaciones que las gobiernan
 // ============================================================================
 
@@ -347,6 +379,12 @@ export interface Lienzo {
   ponerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void;
   /** Añade segmentos a la estela de una capa y redibuja esa capa. */
   crecerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void;
+  /**
+   * Rellena con un color el área cerrada donde está la tortuga, calculada con los
+   * trazos que la capa tiene en este momento (R4.6). Sin área cerrada no cambia nada
+   * (R4.7). Solo la capa del jugador se rellena; en la de Kiro no hace nada.
+   */
+  rellenar(capa: CapaEstela, color: Color, punto: Punto): void;
   /** Borra la estela de una capa sin tocar las otras tres. */
   limpiarEstela(capa: CapaEstela): void;
   /** Devuelve una copia de los segmentos guardados de una capa de estela. */
@@ -383,6 +421,10 @@ export function crearLienzo(
     referencia: [],
   };
 
+  // Rellenos de la figura del jugador, en el orden en que se pidieron. Se pintan
+  // debajo de su estela; BORRAPANTALLA y reiniciar los descartan con ella.
+  let rellenosJugador: RellenoDibujado[] = [];
+
   function fijarTransformaciones(): void {
     for (const nombre of ORDEN_CAPAS) {
       aplicarTransformacion(capas[nombre], escalado);
@@ -417,6 +459,8 @@ export function crearLienzo(
   function redibujarEstela(capa: CapaEstela, estilo: EstiloLienzo): void {
     const ctx = capa === 'jugador' ? capas.jugador : capas.referencia;
     borrarCapa(ctx);
+    // Los rellenos van debajo de los trazos de la figura del jugador.
+    if (capa === 'jugador') dibujarRellenos(ctx, rellenosJugador);
     // Solo la figura del jugador lleva su color y grosor; la de Kiro, siempre el tema.
     dibujarEstela(ctx, estelas[capa], trazoDeCapa(capa, estilo), capa === 'jugador');
   }
@@ -446,6 +490,7 @@ export function crearLienzo(
 
     ponerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void {
       estelas[capa] = segmentos.map((s) => ({ ...s }));
+      if (capa === 'jugador') rellenosJugador = [];
       redibujarEstela(capa, leerTema());
     },
 
@@ -454,8 +499,17 @@ export function crearLienzo(
       redibujarEstela(capa, leerTema());
     },
 
+    rellenar(capa: CapaEstela, color: Color, punto: Punto): void {
+      if (capa !== 'jugador') return;
+      const corridas = calcularRelleno(estelas.jugador, punto);
+      if (corridas === null) return;
+      rellenosJugador.push({ color, corridas });
+      redibujarEstela('jugador', leerTema());
+    },
+
     limpiarEstela(capa: CapaEstela): void {
       estelas[capa] = [];
+      if (capa === 'jugador') rellenosJugador = [];
       redibujarEstela(capa, leerTema());
     },
 

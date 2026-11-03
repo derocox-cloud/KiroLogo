@@ -374,13 +374,15 @@ que la implementación inicial dejó sin cubrir:
 - **Medalla de insignia (RESUELTO).** El menú de mundos solo pintaba la medalla del mundo 0; la
   insignia *Descomposición* (R11.3, R11.4) y la de *Iteración* no se mostraban. Corregido para que
   cada mundo muestre su medalla. Cubierto por pruebas en `menu-mundos.test.ts`.
-- **El color no se pinta en el lienzo (PENDIENTE — fix dedicado).** `PONCOLOR`/`PONGROSOR` fijan el
-  estado decorativo y el intérprete emite `OperacionColor`/`OperacionGrosor`, pero el `Segmento` no
-  transporta color ni grosor y `dibujarEstela` pinta con el color único del tema, así que el trazo
-  del jugador no cambia de color (R4.1, R4.4 incompletos en la capa de dibujo). Arreglarlo es un
-  cambio transversal del motor (modelo de `Segmento`, animador y lienzo) que debe preservar R4.8
-  (el validador solo ve geometría, nunca color). Se aborda como fix dedicado y revisado, fuera de
-  esta entrega.
+- **El color, el grosor y el relleno no se pintaban en el lienzo (RESUELTO en el PR #24, puntos 5 y
+  7b).** El intérprete emitía `OperacionColor`/`OperacionGrosor`/`OperacionRelleno`, pero nadie las
+  dibujaba. Se resolvió sin tocar `Segmento` ni `extraerSegmentos`, para que R4.8 se cumpla por
+  construcción: `motor/tramos-dibujo.ts` es un extractor aparte, solo para dibujar, que da cada tramo
+  con el color y el grosor vigentes; y `motor/relleno.ts` calcula el área cerrada sobre una máscara
+  hecha desde los trazos (inundación 4-conexa; si llega al borde, no hay relleno, R4.7), que el
+  lienzo pinta debajo de los trazos. Sin PONCOLOR/PONGROSOR/RELLENA el dibujo es exactamente el de
+  siempre; solo la figura del jugador cambia (la estela de Kiro, la superposición y el diff
+  conservan el tema). La prueba de la frontera decorativa (R4.8) pasa sin cambios.
 - **El error de color/grosor inválido no llega a la UI (RESUELTO en el PR #24, punto 4).** El
   intérprete genera `colorInvalido`/`grosorInvalido` (R4.3, R4.5), pero `concluirIntento` solo
   mostraba el error de ejecución cuando hubo una guarda. Decisión del dueño: todo error de ejecución

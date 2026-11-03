@@ -412,9 +412,21 @@ import { dibujarTramoEnCurso } from './lienzo.js';
 /** Doble que, además de las llamadas, anota el estilo vigente en cada `stroke`. */
 class DobleConEstilo extends DobleDibujo {
   readonly trazos: Array<{ color: unknown; grosor: number }> = [];
+  /** Trazos y rellenos en orden, con su color: «stroke:#ff0000», «fill:#0000ff». */
+  readonly eventos: string[] = [];
   override stroke(): void {
     this.trazos.push({ color: this.strokeStyle, grosor: this.lineWidth });
+    this.eventos.push(`stroke:${String(this.strokeStyle)}`);
     super.stroke();
+  }
+  override fill(): void {
+    this.eventos.push(`fill:${String(this.fillStyle)}`);
+    super.fill();
+  }
+  override clearRect(x: number, y: number, ancho: number, alto: number): void {
+    // Cada redibujado empieza borrando la capa: los eventos son los del último dibujo.
+    this.eventos.length = 0;
+    super.clearRect(x, y, ancho, alto);
   }
 }
 
@@ -532,3 +544,96 @@ describe('lienzo · tramo en curso de la animación (punto 5)', () => {
     expect(metodos.filter((m) => m === 'stroke')).toHaveLength(1);
   });
 });
+
+// ============================================================================
+// Relleno (reseña del PR #24, punto 7b; R4.6, R4.7)
+// ============================================================================
+
+import { crearAnimador, type Reloj } from './animador.js';
+
+/** Reloj que no avanza: con movimiento reducido el animador aplica todo de golpe. */
+const RELOJ_QUIETO: Reloj = { programar: () => 1, cancelar: () => {}, ahora: () => 0 };
+
+/** Ejecuta un programa en un lienzo real (capas dobles) a través del animador, de golpe. */
+function dibujarConAnimador(texto: string) {
+  const capas = capasConEstilo();
+  const lienzo = crearLienzo(capas, estiloCompleto, TAMANO_BASE);
+  const animador = crearAnimador(lienzo, RELOJ_QUIETO, () => true);
+  animador.cargar(operacionesDe(texto), 'jugador');
+  animador.reproducir();
+  return { capas, lienzo };
+}
+
+const rellenos = (eventos: readonly string[]) => eventos.filter((e) => e.startsWith('fill:'));
+
+describe('lienzo · relleno (punto 7b)', () => {
+  it('PONCOLOR rojo REPITE 4 [AV 100 GD 90] RELLENA "azul AV 100: rellena en azul debajo de los trazos y el último tramo sigue en rojo', () => {
+    const { capas } = dibujarConAnimador('PONCOLOR rojo REPITE 4 [AV 100 GD 90] RELLENA "azul AV 100');
+    const eventos = capas.jugador.eventos;
+    // Un relleno azul, y va antes (debajo) de los trazos.
+    expect(rellenos(eventos)).toEqual(['fill:#0000ff']);
+    expect(eventos[0]).toBe('fill:#0000ff');
+    // Todos los trazos, incluido el AV 100 posterior al relleno, en rojo: RELLENA no cambia el lápiz.
+    expect(eventos.filter((e) => e.startsWith('stroke:'))).toEqual(['stroke:#ff0000']);
+    expect(capas.jugador.trazos.at(-1)).toEqual({ color: '#ff0000', grosor: 3 });
+  });
+
+  it('el ejemplo de la reseña, REPITE 4 [AV 100 GD 90] RELLENA "azul, rellena el cuadrado y lo traza con el tema', () => {
+    const { capas } = dibujarConAnimador('REPITE 4 [AV 100 GD 90] RELLENA "azul');
+    expect(capas.jugador.eventos).toEqual(['fill:#0000ff', 'stroke:#0d6efd']);
+  });
+
+  it('sin área cerrada (figura abierta) RELLENA no pinta nada (R4.7)', () => {
+    const { capas } = dibujarConAnimador('REPITE 3 [AV 100 GD 90] RELLENA "azul');
+    expect(rellenos(capas.jugador.eventos)).toEqual([]);
+  });
+
+  it('con la tortuga fuera de la figura RELLENA no pinta nada (R4.7)', () => {
+    const { capas } = dibujarConAnimador('REPITE 4 [AV 100 GD 90] SL RE 50 BL RELLENA "azul');
+    expect(rellenos(capas.jugador.eventos)).toEqual([]);
+  });
+
+  it('el relleno se calcula con los trazos de ese momento: un trazo posterior no lo cambia', () => {
+    const { capas } = dibujarConAnimador('REPITE 4 [AV 100 GD 90] RELLENA "azul GD 45 AV 140');
+    expect(rellenos(capas.jugador.eventos)).toEqual(['fill:#0000ff']);
+  });
+
+  it('dos RELLENA en dos figuras pintan cada una con su color', () => {
+    const { capas } = dibujarConAnimador(
+      'REPITE 4 [AV 100 GD 90] RELLENA "azul SL GD 90 AV 200 GI 90 BL REPITE 4 [AV 100 GD 90] RELLENA verde',
+    );
+    expect(rellenos(capas.jugador.eventos)).toEqual(['fill:#0000ff', 'fill:#008000']);
+  });
+
+  it('BORRAPANTALLA descarta el relleno junto con la estela', () => {
+    const { capas } = dibujarConAnimador('REPITE 4 [AV 100 GD 90] RELLENA "azul BORRAPANTALLA AV 50');
+    expect(rellenos(capas.jugador.eventos)).toEqual([]);
+  });
+
+  it('el relleno se conserva al redimensionar', () => {
+    const { capas, lienzo } = dibujarConAnimador('REPITE 4 [AV 100 GD 90] RELLENA "azul');
+    lienzo.redimensionar({ anchoCss: 600, altoCss: 600, devicePixelRatio: 2 });
+    expect(rellenos(capas.jugador.eventos)).toEqual(['fill:#0000ff']);
+  });
+
+  it('reiniciar la capa del jugador borra el relleno', () => {
+    const { capas, lienzo } = dibujarConAnimador('REPITE 4 [AV 100 GD 90] RELLENA "azul');
+    lienzo.limpiarEstela('jugador');
+    expect(rellenos(capas.jugador.eventos)).toEqual([]);
+  });
+
+  it('la capa de Kiro (referencia) nunca se rellena', () => {
+    const capas = capasConEstilo();
+    const lienzo = crearLienzo(capas, estiloCompleto, TAMANO_BASE);
+    lienzo.ponerEstela('referencia', extraerTramosDibujo(operacionesDe(CUADRADO_REF)));
+    lienzo.rellenar('referencia', { r: 0, g: 0, b: 255, nombre: 'azul' }, { x: 50, y: 50 });
+    expect(rellenos(capas.referencia.eventos)).toEqual([]);
+  });
+
+  it('un programa del mundo 0 sigue dibujándose sin ningún relleno', () => {
+    const { capas } = dibujarConAnimador('AV 100 GD 90 AV 100 GD 90 AV 100 GD 90 AV 100');
+    expect(rellenos(capas.jugador.eventos)).toEqual([]);
+  });
+});
+
+const CUADRADO_REF = 'REPITE 4 [AV 100 GD 90]';

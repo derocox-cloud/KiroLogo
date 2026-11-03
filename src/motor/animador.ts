@@ -8,7 +8,8 @@
 // campos `estadoAntes` y `estadoDespues` de cada operación.
 
 import type { Operacion } from '../lenguaje/interprete.js';
-import type { EstadoTortuga } from './tortuga.js';
+import type { EstadoTortuga, Punto } from './tortuga.js';
+import type { Color } from '../lenguaje/colores.js';
 import {
   SIN_ESTILO,
   avanzarEstilo,
@@ -89,6 +90,11 @@ export interface Fotograma {
 export interface LienzoAnimador {
   crecerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void;
   limpiarEstela(capa: CapaEstela): void;
+  /**
+   * Rellena el área cerrada donde está la tortuga (RELLENA). Opcional: un lienzo
+   * que no dibuja rellenos (un doble de prueba, por ejemplo) puede omitirlo.
+   */
+  rellenar?(capa: CapaEstela, color: Color, punto: Punto): void;
 }
 
 // ============================================================================
@@ -231,6 +237,11 @@ export function crearAnimador(
       case 'limpiar':
         // Borra la capa de destino: descarta la estela acumulada.
         lienzo.limpiarEstela(destino);
+        break;
+      case 'relleno':
+        // Rellena el área cerrada donde está la tortuga con el color de RELLENA,
+        // calculada con los trazos ya dibujados (R4.6). No toca el color del lápiz.
+        lienzo.rellenar?.(destino, op.color, op.estadoAntes.posicion);
         break;
       case 'girar':
       case 'reubicar':
