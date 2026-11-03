@@ -408,3 +408,18 @@ describe('vocabulario.ts · tipos de argumento de PONCOLOR y PARA (punto 8)', ()
     if (r.hallada) expect(r.entrada.tiposArgumento).toEqual(['nombre']);
   });
 });
+
+describe('vocabulario.ts · RELLENA lleva un argumento de color (punto 7a)', () => {
+  it('RELLENA y RL: aridad 1, tipo color, ejemplo e inserción RELLENA "azul (sin comilla de cierre)', () => {
+    for (const palabra of ['RELLENA', 'RL']) {
+      const r = buscarComando(palabra);
+      expect(r.hallada, palabra).toBe(true);
+      if (!r.hallada) continue;
+      expect(r.entrada.nombre).toBe('RELLENA');
+      expect(r.entrada.aridad).toBe(1);
+      expect(r.entrada.tiposArgumento).toEqual(['color']);
+      expect(r.entrada.ejemplo).toBe('RELLENA "azul');
+      expect(r.entrada.insercion).toBe('RELLENA "azul');
+    }
+  });
+});

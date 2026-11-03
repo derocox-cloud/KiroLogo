@@ -591,7 +591,7 @@ describe('mundo 2: canal decorativo', () => {
   }
 
   it('PONCOLOR, PONGROSOR y RELLENA no emiten movimientos ni cambian posición ni rumbo', () => {
-    const r = correr2('PONCOLOR rojo PONGROSOR 5 RELLENA');
+    const r = correr2('PONCOLOR rojo PONGROSOR 5 RELLENA "azul');
     expect(r.error).toBeNull();
     // Solo operaciones decorativas: ningún `mover` que pudiera dejar trazo.
     expect(r.operaciones.map((o) => o.tipo)).toEqual(['color', 'grosor', 'relleno']);
@@ -602,15 +602,53 @@ describe('mundo 2: canal decorativo', () => {
     }
   });
 
-  it('PONCOLOR resuelve el nombre y RELLENA usa el color vigente', () => {
-    const r = correr2('PONCOLOR azul RELLENA');
+  it('PONCOLOR resuelve el nombre del color del trazo', () => {
+    const r = correr2('PONCOLOR azul');
     expect(r.error).toBeNull();
     const color = r.operaciones[0]!;
-    const relleno = r.operaciones[1]!;
     expect(color.tipo).toBe('color');
-    expect(relleno.tipo).toBe('relleno');
     if (color.tipo === 'color') expect(color.color.nombre).toBe('azul');
+  });
+
+  // RELLENA lleva su propio color (lenguaje-kirologo.md: `RELLENA "azul`; R4.6): no
+  // usa el color vigente del trazo.
+  it('RELLENA "azul emite OperacionRelleno con azul aunque el trazo sea rojo (R4.6)', () => {
+    const r = correr2('PONCOLOR rojo RELLENA "azul');
+    expect(r.error).toBeNull();
+    expect(r.operaciones.map((o) => o.tipo)).toEqual(['color', 'relleno']);
+    const relleno = r.operaciones[1]!;
     if (relleno.tipo === 'relleno') expect(relleno.color.nombre).toBe('azul');
+  });
+
+  it('RELLENA sin PONCOLOR previo usa el color que se le indica, no el negro por omisión', () => {
+    const r = correr2('RELLENA verde');
+    expect(r.error).toBeNull();
+    const relleno = r.operaciones[0]!;
+    expect(relleno.tipo).toBe('relleno');
+    if (relleno.tipo === 'relleno') expect(relleno.color.nombre).toBe('verde');
+  });
+
+  it('RELLENA [0 0 255] resuelve una terna RGB', () => {
+    const r = correr2('RELLENA [0 0 255]');
+    expect(r.error).toBeNull();
+    const relleno = r.operaciones[0]!;
+    if (relleno.tipo === 'relleno') {
+      expect({ r: relleno.color.r, g: relleno.color.g, b: relleno.color.b }).toEqual({ r: 0, g: 0, b: 255 });
+      expect(relleno.color.nombre).toBeNull();
+    }
+  });
+
+  it('RELLENA con un color fuera del catálogo detiene con colorInvalido sin emitir relleno', () => {
+    const r = correr2('PONCOLOR rojo RELLENA turquesa');
+    expect(r.error!.id).toBe('colorInvalido');
+    expect(r.error!.mensaje).toContain('TURQUESA');
+    expect(r.operaciones.map((o) => o.tipo)).toEqual(['color']);
+  });
+
+  it('RELLENA con una terna fuera de 0..255 detiene con colorInvalido', () => {
+    const r = correr2('RELLENA [300 0 0]');
+    expect(r.error!.id).toBe('colorInvalido');
+    expect(r.operaciones).toHaveLength(0);
   });
 
   it('PONCOLOR [255 0 0] resuelve una terna RGB', () => {
@@ -626,7 +664,7 @@ describe('mundo 2: canal decorativo', () => {
 
   it('color inválido detiene con colorInvalido y conserva el color vigente (R4.3)', () => {
     // PONCOLOR verde válido, luego turquesa inválido: el segundo detiene sin emitir.
-    const r = correr2('PONCOLOR verde PONCOLOR turquesa RELLENA');
+    const r = correr2('PONCOLOR verde PONCOLOR turquesa RELLENA "azul');
     expect(r.error).not.toBeNull();
     expect(r.error!.id).toBe('colorInvalido');
     // Solo se emitió el primer PONCOLOR (verde); el inválido no emite operación.
@@ -646,7 +684,7 @@ describe('mundo 2: canal decorativo', () => {
   });
 
   it('las abreviaturas PC, PG y RL se reconocen', () => {
-    const r = correr2('PC rojo PG 3 RL');
+    const r = correr2('PC rojo PG 3 RL "azul');
     expect(r.error).toBeNull();
     expect(r.operaciones.map((o) => o.tipo)).toEqual(['color', 'grosor', 'relleno']);
   });

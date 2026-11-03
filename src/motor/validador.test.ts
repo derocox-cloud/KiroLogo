@@ -1312,10 +1312,10 @@ describe('validador · frontera decorativa (R4.8)', () => {
   //  - PONCOLOR y PONGROSOR antes de dibujar,
   //  - un par SUBELAPIZ/BAJALAPIZ que NO mueve la tortuga (no añade ni quita
   //    trazo: sube el lápiz y lo baja en el mismo punto),
-  //  - RELLENA al final.
+  //  - RELLENA "azul al final (con su argumento de color, como define el lenguaje).
   // Los trazos con el lápiz abajo son idénticos a los del cuadrado pelado.
   const CUADRADO_DECORADO =
-    'PONCOLOR rojo PONGROSOR 5 SUBELAPIZ BAJALAPIZ REPITE 4 [AV 100 GD 90] RELLENA';
+    'PONCOLOR rojo PONGROSOR 5 SUBELAPIZ BAJALAPIZ REPITE 4 [AV 100 GD 90] RELLENA "azul';
 
   it('el programa decorado deja exactamente los mismos segmentos que el pelado', () => {
     const pelado = segmentosDe(CUADRADO_PELADO);

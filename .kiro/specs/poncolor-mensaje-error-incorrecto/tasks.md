@@ -88,7 +88,7 @@ verde antes de cada commit:
     - `src/lenguaje` y `src/main.test.ts` en verde; `PARA … FIN` bien formado sin cambios
     - _Requirements: 2.5, 2.7, 2.8, 3.4, 3.5_
 
-- [ ] 5. `RELLENA` con argumento de color (se cierra al implementar el punto 7 de la reseña)
+- [x] 5. `RELLENA` con argumento de color (cerrada con el punto 7a de la reseña)
   - `vocabulario.ts`: `RELLENA` pasa a `aridad: 1` y `tiposArgumento: ['color']`, con `ejemplo` e `insercion` = `RELLENA "azul`
   - El mensaje de argumento faltante o equivocado sale de la plantilla de color sin código nuevo: `RELLENA necesita un color. Por ejemplo: RELLENA "azul`
   - Ya está cubierto por la prueba "para todo comando de color del vocabulario" de la tarea 1

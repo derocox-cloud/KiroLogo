@@ -784,14 +784,66 @@ describe('parser', () => {
     });
   });
 
-  describe('RELLENA — abreviatura RL (R4.9)', () => {
-    it('RL se reconoce como RELLENA, aridad 0 sin argumento', () => {
-      const { programa, errores } = analizarTexto('RL', 2);
+  // RELLENA lleva un argumento de color, igual que PONCOLOR (lenguaje-kirologo.md:
+  // `RELLENA "azul`; R4.6). Reutiliza el mismo análisis: palabra con o sin comilla,
+  // o terna RGB, transportada sin resolver.
+  describe('RELLENA — argumento de color y abreviatura RL (R4.6, R4.9)', () => {
+    it('RL "azul se reconoce como RELLENA con argumentoColor palabra «AZUL»', () => {
+      const { programa, errores } = analizarTexto('RL "azul', 2);
       expect(errores).toHaveLength(0);
       const inv = programa!.instrucciones[0] as InvocacionComando;
       expect(inv.nombre).toBe('RELLENA');
       expect(inv.argumentos).toHaveLength(0);
-      expect(inv.argumentoColor).toBeUndefined();
+      expect(inv.argumentoColor).toEqual<ArgumentoColor>({ clase: 'palabra', valor: 'AZUL' });
+    });
+
+    it('RELLENA azul (sin comilla) y RELLENA "azul dan el mismo argumento', () => {
+      const desnuda = analizarTexto('RELLENA azul', 2).programa!.instrucciones[0] as InvocacionComando;
+      const conComilla = analizarTexto('RELLENA "azul', 2).programa!.instrucciones[0] as InvocacionComando;
+      expect(desnuda.argumentoColor).toEqual(conComilla.argumentoColor);
+    });
+
+    it('RELLENA [0 0 255] lleva una terna RGB', () => {
+      const { programa, errores } = analizarTexto('RELLENA [0 0 255]', 2);
+      expect(errores).toHaveLength(0);
+      const inv = programa!.instrucciones[0] as InvocacionComando;
+      expect(inv.argumentoColor).toEqual<ArgumentoColor>({ clase: 'listaRGB', valores: [0, 0, 255] });
+    });
+
+    it('el ejemplo de la reseña, REPITE 4 [AV 100 GD 90] RELLENA "azul, se analiza sin errores', () => {
+      expect(analizarTexto('REPITE 4 [AV 100 GD 90] RELLENA "azul', 2).errores).toEqual([]);
+    });
+
+    it('un nombre fuera del catálogo no es error de parseo (lo resuelve el intérprete)', () => {
+      expect(analizarTexto('RELLENA turquesa', 2).errores).toEqual([]);
+    });
+
+    it('RELLENA sin argumento pide un color con su ejemplo', () => {
+      const { programa, errores } = analizarTexto('RELLENA', 2);
+      expect(programa).toBeNull();
+      expect(errores[0]!.id).toBe('argumentoFaltante');
+      expect(errores[0]!.mensaje).toBe('RELLENA necesita un color. Por ejemplo: RELLENA "azul');
+    });
+
+    it('RELLENA seguido de otro comando pide un color', () => {
+      const { errores } = analizarTexto('RELLENA AV 100', 2);
+      expect(errores[0]!.id).toBe('argumentoFaltante');
+      expect(errores[0]!.mensaje).toContain('RELLENA necesita un color');
+    });
+
+    it('RELLENA 5 dice que le diste un número', () => {
+      const { errores } = analizarTexto('RELLENA 5', 2);
+      expect(errores[0]!.id).toBe('argumentoDeTipoEquivocado');
+      expect(errores[0]!.mensaje).toBe(
+        'RELLENA necesita un color, pero le diste un número: 5. Por ejemplo: RELLENA "azul',
+      );
+    });
+
+    it('una terna mal formada de RELLENA pide tres números entre corchetes', () => {
+      const { errores } = analizarTexto('RELLENA [0 "a 255]', 2);
+      expect(errores[0]!.id).toBe('argumentoDeTipoEquivocado');
+      expect(errores[0]!.mensaje).toContain('La terna de RELLENA necesita tres números entre corchetes');
+      expect(errores[0]!.mensaje).toContain('RELLENA [255 0 0]');
     });
   });
 });

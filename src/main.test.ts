@@ -3686,3 +3686,42 @@ describe('main · el panel no muestra procedimientos antes del mundo 2', () => {
     expect(procedimientosDelPanel()).toEqual([]);
   });
 });
+
+// ============================================================================
+// RELLENA con argumento de color de punta a punta (reseña del PR #24, punto 7a)
+// ============================================================================
+
+describe('main · RELLENA lleva un color (punto 7a)', () => {
+  beforeEach(() => {
+    montarDom();
+  });
+
+  it('el ejemplo de la reseña, REPITE 4 [AV 100 GD 90] RELLENA "azul, se analiza y se ejecuta sin error', () => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+    escribir(app, 'REPITE 4 [AV 100 GD 90] RELLENA "azul');
+    expect(app.editor.estadoContador().errores).toEqual([]);
+    app.ejecutar();
+    // Corre entero y se califica (el cuadrado no es la casa: no importa la nota, sí que no hubo error).
+    expect(app.estado().calificacion).not.toBeNull();
+    expect(app.textoGlobo()).toContain('Resultado');
+    const ops = app.estado().operacionesJugador;
+    expect(ops[ops.length - 1]!.tipo).toBe('relleno');
+  });
+
+  it('RELLENA sin color muestra en el globo que necesita un color y no ejecuta', () => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+    escribir(app, 'REPITE 4 [AV 100 GD 90] RELLENA');
+    app.ejecutar();
+    expect(app.textoGlobo()).toContain('RELLENA necesita un color. Por ejemplo: RELLENA "azul');
+    expect(app.estado().calificacion).toBeNull();
+  });
+
+  it('RELLENA con un color fuera del catálogo explica colorInvalido en el globo y no califica', () => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+    escribir(app, 'REPITE 4 [AV 100 GD 90] RELLENA turquesa');
+    app.ejecutar();
+    expect(app.textoGlobo()).toContain('No conozco el color TURQUESA.');
+    expect(app.estado().calificacion).toBeNull();
+    expect(estrellas()).toEqual(['pendiente', 'pendiente', 'pendiente']);
+  });
+});

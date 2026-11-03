@@ -186,8 +186,10 @@
       reportar `colorInvalido` (R4.1, R4.3).
     - `PONGROSOR`/`PG`: si es entero entre 1 y 50, actualizar `EstadoDecorativo.grosor` y emitir
       `OperacionGrosor`; si no, conservar el grosor vigente y reportar `grosorInvalido` (R4.4, R4.5).
-    - `RELLENA`/`RL`: emitir `OperacionRelleno` con el color indicado (R4.6); sin área cerrada no
-      cambia el lienzo (R4.7).
+    - `RELLENA`/`RL`: lleva argumento de color (aridad 1, tipo `color`, como `PONCOLOR`); emitir
+      `OperacionRelleno` con el color indicado, sin cambiar el color del trazo (R4.6); color
+      inválido → `colorInvalido`; sin área cerrada no cambia el lienzo (R4.7, lo resuelve el
+      renderizador).
     - Ninguno de estos comandos mueve la tortuga: `estadoDespues` conserva posición y rumbo.
 
   - [x]* 7.4 Tests del intérprete en `src/lenguaje/interprete.test.ts`

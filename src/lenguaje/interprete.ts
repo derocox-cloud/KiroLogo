@@ -226,7 +226,7 @@ export function* ejecutar(
   let paso = 0;
   let estado: EstadoTortuga = opciones.estadoInicial ?? ESTADO_INICIAL;
   // El estado decorativo arranca en los valores por omisión (negro, grosor 1) y
-  // se actualiza al ejecutar PONCOLOR/PONGROSOR. RELLENA lee el color vigente.
+  // se actualiza al ejecutar PONCOLOR/PONGROSOR. RELLENA lleva su propio color y no lo cambia.
   let decorativo: EstadoDecorativo = { color: COLOR_NEGRO, grosor: 1 };
   const inicioTiempo = ahora();
 
@@ -416,7 +416,7 @@ function describirListaRGB(valores: readonly number[]): string {
 /**
  * Ejecuta un comando de los mundos 0, 1 y 2 y produce su `ResultadoComando`.
  * Recibe la instrucción completa para leer el argumento sin resolver de color, y
- * el estado decorativo vigente para arrastrarlo y, en RELLENA, leer el color.
+ * el estado decorativo vigente para arrastrarlo entre operaciones.
  */
 function ejecutarComando(
   nombre: string,
@@ -497,14 +497,8 @@ function ejecutarComando(
       return ejecutarPonColor(instruccion, base, decorativo, estadoAntes);
     case 'PONGROSOR':
       return ejecutarPonGrosor(instruccion, base, decorativo, estadoAntes);
-    case 'RELLENA': {
-      // RELLENA no toma argumento de color (aridad 0 en el vocabulario): rellena
-      // con el color vigente del estado decorativo. La detección del área cerrada
-      // (R4.7: sin área, no cambia el lienzo) es tarea del renderizador; aquí solo
-      // se emite la operación con el color actual.
-      const operacion: OperacionRelleno = { ...base, tipo: 'relleno', color: decorativo.color, estadoDespues: estadoAntes };
-      return { clase: 'operacion', operacion, decorativo };
-    }
+    case 'RELLENA':
+      return ejecutarRellena(instruccion, base, decorativo, estadoAntes);
 
     default:
       return { clase: 'noEjecutable' };
@@ -528,32 +522,58 @@ function ejecutarPonColor(
   decorativo: EstadoDecorativo,
   estadoAntes: EstadoTortuga,
 ): ResultadoComando {
+  const r = resolverArgumentoColor(instruccion, base.linea);
+  if (!r.ok) return r.error;
+  const operacion: OperacionColor = { ...base, tipo: 'color', color: r.color, estadoDespues: estadoAntes };
+  return { clase: 'operacion', operacion, decorativo: { ...decorativo, color: r.color } };
+}
+
+/**
+ * RELLENA: resuelve su propio argumento de color igual que PONCOLOR (palabra del
+ * catálogo o terna RGB) y emite `OperacionRelleno` con ese color (R4.6). No cambia
+ * el color vigente del trazo: el relleno lleva su color, el lápiz conserva el suyo.
+ * Un color inválido detiene con `colorInvalido` sin emitir nada. Detectar el área
+ * cerrada (R4.7: sin área, no cambia el lienzo) es tarea del renderizador.
+ */
+function ejecutarRellena(
+  instruccion: Instruccion & { tipo: 'invocacionComando' },
+  base: BaseSinDespues,
+  decorativo: EstadoDecorativo,
+  estadoAntes: EstadoTortuga,
+): ResultadoComando {
+  const r = resolverArgumentoColor(instruccion, base.linea);
+  if (!r.ok) return r.error;
+  const operacion: OperacionRelleno = { ...base, tipo: 'relleno', color: r.color, estadoDespues: estadoAntes };
+  return { clase: 'operacion', operacion, decorativo };
+}
+
+/**
+ * Resuelve el argumento de color sin resolver de un comando de color contra
+ * `colores.ts`: un nombre del catálogo o una terna de exactamente tres enteros
+ * 0..255. Ante un argumento inválido devuelve el resultado de error `colorInvalido`.
+ */
+function resolverArgumentoColor(
+  instruccion: Instruccion & { tipo: 'invocacionComando' },
+  linea: number,
+): { readonly ok: true; readonly color: Color } | { readonly ok: false; readonly error: ResultadoComando } {
   const arg = instruccion.argumentoColor;
   if (arg === undefined) {
     // El parser no armó el argumento de color; se trata como color inválido.
-    return errorColor('', base.linea);
+    return { ok: false, error: errorColor('', linea) };
   }
 
   if (arg.clase === 'palabra') {
     const r = resolverColorPorNombre(arg.valor);
-    if (!r.ok) {
-      return errorColor(arg.valor, base.linea);
-    }
-    const operacion: OperacionColor = { ...base, tipo: 'color', color: r.color, estadoDespues: estadoAntes };
-    return { clase: 'operacion', operacion, decorativo: { ...decorativo, color: r.color } };
+    return r.ok ? { ok: true, color: r.color } : { ok: false, error: errorColor(arg.valor, linea) };
   }
 
   // listaRGB: exige exactamente tres enteros 0..255 (lo valida resolverColorRGB).
   const [rojo, verde, azul] = arg.valores;
   if (arg.valores.length !== 3 || rojo === undefined || verde === undefined || azul === undefined) {
-    return errorColor(describirListaRGB(arg.valores), base.linea);
+    return { ok: false, error: errorColor(describirListaRGB(arg.valores), linea) };
   }
   const r = resolverColorRGB(rojo, verde, azul);
-  if (!r.ok) {
-    return errorColor(describirListaRGB(arg.valores), base.linea);
-  }
-  const operacion: OperacionColor = { ...base, tipo: 'color', color: r.color, estadoDespues: estadoAntes };
-  return { clase: 'operacion', operacion, decorativo: { ...decorativo, color: r.color } };
+  return r.ok ? { ok: true, color: r.color } : { ok: false, error: errorColor(describirListaRGB(arg.valores), linea) };
 }
 
 /**

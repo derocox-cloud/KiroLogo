@@ -133,12 +133,12 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
   {
     nombre: 'RELLENA',
     abreviatura: 'RL',
-    aridad: 0,
-    tiposArgumento: [],
+    aridad: 1,
+    tiposArgumento: ['color'],
     mundo: 2,
-    descripcion: 'Rellena la figura cerrada donde está la tortuga.',
-    ejemplo: 'RELLENA',
-    insercion: 'RELLENA',
+    descripcion: 'Rellena con un color la figura cerrada donde está la tortuga.',
+    ejemplo: 'RELLENA "azul',
+    insercion: 'RELLENA "azul',
   },
   {
     nombre: 'PARA',

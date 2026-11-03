@@ -310,7 +310,7 @@ case 'MUESTRATORTUGA': {
 }
 case 'PONCOLOR':   // argumento palabra o terna RGB (ver §7)
 case 'PONGROSOR':  // argumento entero 1..50
-case 'RELLENA':    // sin argumento geométrico; opcional color
+case 'RELLENA':    // argumento de color, igual que PONCOLOR (`RELLENA "azul`, R4.6); no cambia el color del trazo
   // Emiten OperacionColor / OperacionGrosor / OperacionRelleno. No tocan posición
   // ni rumbo: estadoDespues === estadoAntes salvo el canal decorativo.
 ```
@@ -320,8 +320,10 @@ emiten `mover`, no hay trazo. La idempotencia de R3.7 (SUBELAPIZ con el lápiz y
 `conLapiz` devuelve un estado equivalente sin error; igual para OT/MT ya oculta/visible (R5.4, R5.5).
 
 **Argumento no numérico.** `argumento(instruccion)` hoy extrae solo un `numeroLiteral`. Para
-`PONCOLOR` el argumento es una palabra (`naranja`, `"naranja`) o una lista RGB (`[255 0 0]`); el
-parser lo representa y el intérprete lo resuelve contra el `Catalogo_Colores` (§7). Un color inválido
+`PONCOLOR` y `RELLENA` el argumento es una palabra (`naranja`, `"naranja`) o una lista RGB (`[255 0 0]`); el
+parser lo representa (los dos comandos declaran el tipo `color` en el vocabulario y comparten el mismo
+análisis) y el intérprete lo resuelve contra el `Catalogo_Colores` (§7). `RELLENA` emite
+`OperacionRelleno` con su propio color y no cambia el color vigente del trazo. Un color inválido
 detiene la instrucción, conserva el color vigente y reporta `colorInvalido` (R4.3, R6.7). Un grosor
 fuera de 1..50 conserva el grosor vigente y reporta `grosorInvalido` (R4.5).
 

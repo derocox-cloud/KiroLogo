@@ -261,9 +261,10 @@ function analizarComando(estado: Estado, token: Token): Instruccion | null {
     return analizarRepite(estado, entrada, lineaComando, columnaComando);
   }
 
-  // PONCOLOR (mundo 2) toma un argumento de color: palabra o terna RGB, no un
-  // literal numérico. Se analiza por su propia ruta y se transporta sin resolver.
-  if (entrada.nombre === 'PONCOLOR') {
+  // Los comandos de color (PONCOLOR y RELLENA, mundo 2) toman un argumento de color:
+  // palabra o terna RGB, no un literal numérico. Se decide por el tipo que declara el
+  // vocabulario, no por el nombre, y se transporta sin resolver.
+  if (entrada.tiposArgumento[0] === 'color') {
     return analizarComandoColor(estado, entrada, lineaComando, columnaComando);
   }
 
@@ -340,7 +341,8 @@ function analizarComandoConArgumento(
 }
 
 /**
- * Analiza el argumento de `PONCOLOR`, que admite tres formas (R4.2):
+ * Analiza el argumento de un comando de color (`PONCOLOR` y `RELLENA`, R4.2, R4.6),
+ * que admite tres formas (se muestran con PONCOLOR; RELLENA es igual):
  *   - palabra con comilla inicial: `PONCOLOR "naranja`  → token 'palabra';
  *   - palabra desnuda: `PONCOLOR naranja`               → token 'identificador';
  *   - terna RGB en lista: `PONCOLOR [255 0 0]`          → `[` numero* `]`.
@@ -429,7 +431,7 @@ function analizarComandoColor(
   return null;
 }
 
-/** Construye la invocación de PONCOLOR con su argumento de color sin resolver. */
+/** Construye la invocación de un comando de color con su argumento sin resolver. */
 function crearInvocacionColor(
   entrada: EntradaVocabulario,
   argumentoColor: ArgumentoColor,
