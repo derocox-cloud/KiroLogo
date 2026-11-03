@@ -55,9 +55,9 @@ export function generarPrograma(prng: Prng, maximoInstrucciones: number): Progra
   
   const instrucciones: Instruccion[] = [];
   
-  // Filtrar comandos del mundo 0 que son ejecutables
+  // Filtrar los comandos del mundo 0
   const comandosMundo0 = VOCABULARIO.filter(
-    entrada => entrada.mundo === 0 && entrada.ejecutable
+    entrada => entrada.mundo === 0
   );
   
   for (let i = 0; i < cantidad; i++) {

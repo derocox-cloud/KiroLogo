@@ -31,7 +31,7 @@ import { generarPrograma } from '../azar/generadores-prueba.test.js';
 // Ayudas
 // ============================================================================
 
-const PERMITIDOS_MUNDO_0 = comandosDelMundo(0).filter((e) => e.ejecutable);
+const PERMITIDOS_MUNDO_0 = comandosDelMundo(0).filter((e) => e.mundo === 0);
 
 /** Ejecuta un programa hasta el final y devuelve el resultado del generador. */
 function correr(programa: Programa, opciones?: Partial<OpcionesEjecucion>): ResultadoEjecucion {
@@ -189,7 +189,7 @@ describe('interprete', () => {
       const { tokens } = analizarLexico('REPITE 4 [AV 100 GD 90]');
       const { programa: prog4 } = analizar(tokens, { mundo: 1 });
       expect(prog4).not.toBeNull();
-      const permitidos1 = comandosDelMundo(1).filter((e) => e.ejecutable);
+      const permitidos1 = comandosDelMundo(1).filter((e) => e.mundo === 0);
       const r = correr(prog4!, { comandosPermitidos: permitidos1 });
       expect(r.error).toBeNull();
       expect(r.operaciones).toHaveLength(8);
@@ -204,7 +204,7 @@ describe('interprete', () => {
       const { tokens } = analizarLexico('REPITE 0 [AV 100]');
       const { programa: prog0 } = analizar(tokens, { mundo: 1 });
       expect(prog0).not.toBeNull();
-      const permitidos1 = comandosDelMundo(1).filter((e) => e.ejecutable);
+      const permitidos1 = comandosDelMundo(1).filter((e) => e.mundo === 0);
       const r = correr(prog0!, { comandosPermitidos: permitidos1 });
       expect(r.error).toBeNull();
       expect(r.operaciones).toHaveLength(0);
@@ -214,7 +214,7 @@ describe('interprete', () => {
       const { tokens } = analizarLexico('REPITE 2 [REPITE 3 [AV 50 GD 60]]');
       const { programa: prog2 } = analizar(tokens, { mundo: 1 });
       expect(prog2).not.toBeNull();
-      const permitidos1 = comandosDelMundo(1).filter((e) => e.ejecutable);
+      const permitidos1 = comandosDelMundo(1).filter((e) => e.mundo === 0);
       const r = correr(prog2!, { comandosPermitidos: permitidos1 });
       expect(r.error).toBeNull();
       expect(r.operaciones).toHaveLength(12);
@@ -484,9 +484,8 @@ describe('interprete', () => {
 // ============================================================================
 
 describe('mundo 2: procedimientos', () => {
-  // Permitimos todos los comandos de mundo ≤ 2. No filtramos por `ejecutable`
-  // (los del mundo 2 lo tienen en false a nivel de vocabulario) porque aquí se
-  // prueba la semántica del intérprete, que resuelve por nombre canónico.
+  // Permitimos todos los comandos de mundo ≤ 2: aquí se prueba la semántica del
+  // intérprete, que resuelve por nombre canónico.
   const PERMITIDOS_MUNDO_2 = comandosDelMundo(2);
 
   function correr2(texto: string): ResultadoEjecucion {

@@ -33,8 +33,8 @@ describe('vocabulario.ts', () => {
       expect(VOCABULARIO).toHaveLength(28);
     });
 
-    describe('Tabla del mundo 0 (ejecutable: true)', () => {
-      const mundo0 = VOCABULARIO.filter(e => e.mundo === 0 && e.ejecutable);
+    describe('Tabla del mundo 0', () => {
+      const mundo0 = VOCABULARIO.filter(e => e.mundo === 0);
       
       it('tiene 6 comandos ejecutables', () => {
         expect(mundo0).toHaveLength(6);
@@ -107,12 +107,11 @@ describe('vocabulario.ts', () => {
       });
     });
 
-    describe('Entradas bloqueadas (ejecutable: false)', () => {
+    describe('Entradas de mundos posteriores', () => {
       it('REPITE está en mundo 1 y bloqueado', () => {
         const repite = VOCABULARIO.find(e => e.nombre === 'REPITE');
         expect(repite).toBeDefined();
         expect(repite!.mundo).toBe(1);
-        expect(repite!.ejecutable).toBe(false);
         expect(repite!.abreviatura).toBe('RP');
         expect(repite!.aridad).toBe(2);
         expect(repite!.tiposArgumento).toEqual(['numero', 'lista']);
@@ -121,7 +120,6 @@ describe('vocabulario.ts', () => {
       it('Mundo 2 tiene 9 comandos bloqueados', () => {
         const mundo2 = VOCABULARIO.filter(e => e.mundo === 2);
         expect(mundo2).toHaveLength(9);
-        expect(mundo2.every(e => !e.ejecutable)).toBe(true);
       });
 
       it('Mundo 3 no agrega vocabulario', () => {
@@ -132,13 +130,11 @@ describe('vocabulario.ts', () => {
       it('Mundo 4 tiene 8 comandos bloqueados', () => {
         const mundo4 = VOCABULARIO.filter(e => e.mundo === 4);
         expect(mundo4).toHaveLength(8);
-        expect(mundo4.every(e => !e.ejecutable)).toBe(true);
       });
 
       it('Mundo 5 tiene 4 comandos bloqueados', () => {
         const mundo5 = VOCABULARIO.filter(e => e.mundo === 5);
         expect(mundo5).toHaveLength(4);
-        expect(mundo5.every(e => !e.ejecutable)).toBe(true);
       });
 
       it('PARA tiene aridad "variable"', () => {
@@ -214,7 +210,6 @@ describe('vocabulario.ts', () => {
       const resultado = buscarComando('REPITE');
       expect(resultado.hallada).toBe(true);
       expect(resultado.hallada && resultado.entrada.nombre).toBe('REPITE');
-      expect(resultado.hallada && resultado.entrada.ejecutable).toBe(false);
     });
 
     it('devuelve hallada: false para palabra no declarada', () => {
