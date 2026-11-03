@@ -796,10 +796,12 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   // renombres (R7.3, R7.4). Se usa la primera pasada del parser por los tokens, no
   // el AST completo: así los procedimientos bien formados aparecen aunque el resto
   // del programa todavía tenga errores mientras el jugador escribe. El panel ignora
-  // una lista igual a la vigente, así que esto no reconstruye en cada tecla.
+  // una lista igual a la vigente, así que esto no reconstruye en cada tecla. Se pasa
+  // el mundo del nivel en curso (no el del arranque): antes del mundo de PARA no hay
+  // procedimientos que mostrar.
   editor.alCambiar((texto: string) => {
     const lexico = analizarLexico(texto);
-    panel.fijarProcedimientos(nombresDeProcedimientos(lexico.tokens));
+    panel.fijarProcedimientos(nombresDeProcedimientos(lexico.tokens, reto.nivel.mundo));
   });
 
   // El panel de comandos se crea ANTES que los controles: va junto al editor (a su
@@ -1086,6 +1088,9 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     // queda siempre al día; en el primer montaje es un no-op porque ya coincide.
     editor.fijarMundo(reto.nivel.mundo);
     panel.fijarMundo(reto.nivel.mundo);
+    // Los procedimientos del panel dependen del mundo (antes del de PARA no hay):
+    // al cambiar de nivel se recalculan con el texto vigente, sin esperar otra tecla.
+    panel.fijarProcedimientos(nombresDeProcedimientos(analizarLexico(editor.texto()).tokens, reto.nivel.mundo));
 
     // Panel de semilla: el código y si el nivel admite otro reto.
     panelSemilla.presentarReto({

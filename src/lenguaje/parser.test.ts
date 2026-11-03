@@ -3,7 +3,7 @@
 
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { analizar } from './parser.js';
+import { analizar, nombresDeProcedimientos } from './parser.js';
 import { analizarLexico } from './lexer.js';
 import type {
   InvocacionComando, NumeroLiteral, Repeticion,
@@ -978,5 +978,25 @@ describe('PARA — errores de sintaxis propios (punto 8)', () => {
     it('desde el mundo 4 los parámetros se aceptan como antes (se ignoran hasta que se implementen)', () => {
       expect(ids('PARA X :lado AV 100 FIN', 4)).toEqual([]);
     });
+  });
+});
+
+// ============================================================================
+// nombresDeProcedimientos filtra por mundo (reseña del PR #24, menor)
+//
+// PARA se desbloquea en el mundo 2. Antes, en los mundos 0 y 1 el panel mostraba
+// los procedimientos de un PARA … FIN bien formado aunque PARA estuviera bloqueado.
+// ============================================================================
+
+describe('nombresDeProcedimientos — filtro por mundo', () => {
+  const PROGRAMA = 'PARA CUADRADO REPITE 4 [AV 100 GD 90] FIN PARA FLOR CUADRADO FIN';
+  const tokens = () => analizarLexico(PROGRAMA).tokens;
+
+  it.each([0, 1] as const)('en el mundo %i (PARA bloqueado) no devuelve ningún procedimiento', (mundo) => {
+    expect(nombresDeProcedimientos(tokens(), mundo)).toEqual([]);
+  });
+
+  it.each([2, 3, 4, 5] as const)('desde el mundo %i devuelve los procedimientos en orden de definición', (mundo) => {
+    expect(nombresDeProcedimientos(tokens(), mundo)).toEqual(['CUADRADO', 'FLOR']);
   });
 });

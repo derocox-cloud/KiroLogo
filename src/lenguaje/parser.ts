@@ -43,8 +43,18 @@ const MAXIMO_ERRORES = 20;
  *
  * El orden es el de definición porque `recolectarProcedimientos` recorre los tokens
  * de izquierda a derecha y un `Set` conserva el orden de inserción.
+ *
+ * En un mundo donde `PARA` todavía está bloqueado no hay procedimientos que
+ * mostrar: el parser rechaza ese `PARA` con `comandoBloqueado`, así que el panel
+ * no debe ofrecer un botón para algo que no se puede definir. El mundo en que se
+ * desbloquea sale del vocabulario, no de un número escrito aquí.
+ *
+ * @param tokens Tokens producidos por el lexer
+ * @param mundo Mundo del nivel en curso
  */
-export function nombresDeProcedimientos(tokens: readonly Token[]): readonly string[] {
+export function nombresDeProcedimientos(tokens: readonly Token[], mundo: Mundo): readonly string[] {
+  const para = buscarComando('PARA');
+  if (!para.hallada || para.entrada.mundo > mundo) return [];
   return [...recolectarProcedimientos(tokens)];
 }
 

@@ -3639,3 +3639,50 @@ describe('main · los errores de PARA se explican en el globo (punto 8)', () => 
     });
   }
 });
+
+// ============================================================================
+// El panel solo muestra procedimientos donde PARA está desbloqueado (menor del PR #24)
+// ============================================================================
+
+describe('main · el panel no muestra procedimientos antes del mundo 2', () => {
+  beforeEach(() => {
+    montarDom();
+  });
+
+  const PROGRAMA = 'PARA CUADRADO REPITE 4 [AV 100 GD 90] FIN CUADRADO';
+
+  /** Nombres de los botones de procedimiento que el panel presenta ahora. */
+  const procedimientosDelPanel = (): string[] =>
+    [...document.querySelectorAll<HTMLElement>('.kl-procedimiento')].map(
+      (b) => b.getAttribute('data-procedimiento') ?? '',
+    );
+
+  it.each(['0.1', '1.1'])('en el nivel %s (PARA bloqueado) el panel no lista CUADRADO', (idNivel) => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel });
+    escribir(app, PROGRAMA);
+    expect(procedimientosDelPanel()).toEqual([]);
+  });
+
+  it('en el nivel 2.1 el panel lista CUADRADO', () => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+    escribir(app, PROGRAMA);
+    expect(procedimientosDelPanel()).toEqual(['CUADRADO']);
+  });
+
+  it('al navegar del mundo 2 al mundo 1 el panel retira el procedimiento sin esperar otra tecla', () => {
+    // Progreso con el mundo 0 aprobado, para que el 1.1 esté desbloqueado.
+    const almacen = crearAlmacenMemoria();
+    const estrellas = { precision: true, economia: true, abstraccion: true };
+    const niveles: Record<string, unknown> = {};
+    for (let n = 1; n <= 5; n++) niveles[`0.${n}`] = { estrellas, mejorConteo: 1, ultimaSemilla: 0 };
+    almacen.setItem('kirologo.progreso.v2', JSON.stringify({ version: 2, niveles, guiaVista: true }));
+
+    const app = crearAppCon({ almacen, idNivel: '2.1' });
+    escribir(app, PROGRAMA);
+    expect(procedimientosDelPanel()).toEqual(['CUADRADO']);
+
+    app.irANivel('1.1');
+    expect(app.nivelEnCurso()).toBe('1.1');
+    expect(procedimientosDelPanel()).toEqual([]);
+  });
+});
