@@ -45,13 +45,14 @@ describe('errores.ts', () => {
         'parametroInesperado',
         'palabraInesperada',
         'numeroInesperado',
-        // ejecución (6)
+        // ejecución (7)
         'comandoNoPermitido',
         'nodoNoImplementado',
         'nodoNoImprimible',
         'guardaPasos',
         'guardaRecursion',
         'guardaTiempo',
+        'guardaRellenos',
         // interfaz y persistencia (3)
         'limiteLineasEditor',
         'limiteCaracteresEditor',
@@ -81,7 +82,7 @@ describe('errores.ts', () => {
         'divergenciaExcesoFinal',
       ];
       
-      expect(todosIds).toHaveLength(47);
+      expect(todosIds).toHaveLength(48);
     });
     
     it('SeveridadError es "jugador" o "programacion"', () => {
@@ -318,6 +319,17 @@ describe('errores.ts', () => {
         expect(error.id).toBe('guardaTiempo');
         expect(error.severidad).toBe('jugador');
         expect(error.mensaje).toBe('Detuve la ejecución: tu programa llevaba más de 5 segundos dibujando. ¿Hay una repetición que nunca termina?');
+      });
+      
+      it('guardaRellenos', () => {
+        const error = crearError('guardaRellenos', { maximo: 100 });
+        expect(error.id).toBe('guardaRellenos');
+        expect(error.severidad).toBe('jugador');
+        expect(error.mensaje).toBe('Detuve la ejecución: tu programa pidió más de 100 rellenos. ¿Hay un RELLENA dentro de una repetición que no lo necesita?');
+      });
+
+      it('guardaRellenos con un máximo inválido cae en solicitudDeErrorInvalida', () => {
+        expect(crearError('guardaRellenos', { maximo: 0 }).id).toBe('solicitudDeErrorInvalida');
       });
     });
     

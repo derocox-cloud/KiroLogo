@@ -690,6 +690,55 @@ describe('mundo 2: canal decorativo', () => {
   });
 });
 
+describe('mundo 2: guarda de rellenos', () => {
+  const PERMITIDOS_MUNDO_2 = comandosDelMundo(2);
+
+  function correr2(texto: string, opciones?: Partial<OpcionesEjecucion>): ResultadoEjecucion {
+    const { tokens } = analizarLexico(texto);
+    const { programa } = analizar(tokens, { mundo: 2 });
+    expect(programa).not.toBeNull();
+    return correr(programa!, { comandosPermitidos: PERMITIDOS_MUNDO_2, ...opciones });
+  }
+
+  // El intérprete cuenta un RELLENA como una operación barata, pero el lienzo
+  // calcula su área con una inundación sobre 800×800 celdas. Sin esta guarda,
+  // `REPITE N [RELLENA]` con N grande pasa las guardas de pasos y de tiempo
+  // (emitir la operación es instantáneo) y cuelga la pestaña al dibujar. La guarda
+  // corta en el intérprete, antes de que ningún consumidor reciba el relleno de más.
+  it('más de maximoRellenos activa la guarda y corta antes de emitir el que sobra', () => {
+    const limites = { ...LIMITES_PREDETERMINADOS, maximoRellenos: 5 };
+    const r = correr2('REPITE 100 [RELLENA "azul]', { limites });
+    expect(r.guardaActivada).toBe('rellenos');
+    expect(r.error!.id).toBe('guardaRellenos');
+    expect(r.error!.mensaje).toContain('5');
+    // Se emitieron exactamente maximoRellenos, ni uno más.
+    expect(r.operaciones.filter((o) => o.tipo === 'relleno')).toHaveLength(5);
+  });
+
+  it('justo maximoRellenos rellenos no activa la guarda', () => {
+    const limites = { ...LIMITES_PREDETERMINADOS, maximoRellenos: 3 };
+    const r = correr2('REPITE 3 [RELLENA "azul]', { limites });
+    expect(r.guardaActivada).toBeNull();
+    expect(r.error).toBeNull();
+    expect(r.operaciones.filter((o) => o.tipo === 'relleno')).toHaveLength(3);
+  });
+
+  it('el límite por omisión (100) deja pasar los rellenos de cualquier figura del juego', () => {
+    // La cuadrícula más grande del mundo 2 tiene 9 paneles; 100 sobra de lejos.
+    const r = correr2('REPITE 9 [RELLENA "azul SUBELAPIZ AVANZA 1 BAJALAPIZ]');
+    expect(r.guardaActivada).toBeNull();
+    expect(r.operaciones.filter((o) => o.tipo === 'relleno')).toHaveLength(9);
+  });
+
+  it('los rellenos de distintas ejecuciones no se arrastran', () => {
+    const limites = { ...LIMITES_PREDETERMINADOS, maximoRellenos: 2 };
+    const a = correr2('RELLENA "azul RELLENA "rojo', { limites });
+    const b = correr2('RELLENA "azul RELLENA "rojo', { limites });
+    expect(a.guardaActivada).toBeNull();
+    expect(b.guardaActivada).toBeNull();
+  });
+});
+
 describe('mundo 2: visibilidad', () => {
   const PERMITIDOS_MUNDO_2 = comandosDelMundo(2);
 

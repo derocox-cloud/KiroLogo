@@ -25,7 +25,7 @@ export type IdError =
   | 'paraSinNombre' | 'paraAnidado' | 'paraConParametros'
   // ejecución
   | 'comandoNoPermitido' | 'nodoNoImplementado' | 'nodoNoImprimible'
-  | 'guardaPasos' | 'guardaRecursion' | 'guardaTiempo'
+  | 'guardaPasos' | 'guardaRecursion' | 'guardaTiempo' | 'guardaRellenos'
   // decorado del mundo 2 (color y grosor)
   | 'colorInvalido' | 'grosorInvalido'
   // interfaz y persistencia
@@ -109,6 +109,7 @@ export interface ParametrosPorError {
   readonly guardaPasos: Record<string, never>;
   readonly guardaRecursion: { readonly nombre: string } | { readonly linea: number };
   readonly guardaTiempo: Record<string, never>;
+  readonly guardaRellenos: { readonly maximo: number };
   
   // decorado del mundo 2 (color y grosor)
   readonly colorInvalido: { readonly escrita: string };
@@ -246,6 +247,12 @@ export function crearError<K extends IdError>(
     case 'colorInvalido':
       const params12 = parametros as ParametrosPorError['colorInvalido'];
       if (!params12.escrita?.trim()) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    case 'guardaRellenos':
+      const params13 = parametros as ParametrosPorError['guardaRellenos'];
+      if (!Number.isInteger(params13.maximo) || params13.maximo < 1) {
         return crearError('solicitudDeErrorInvalida', {}, posicion);
       }
       break;
@@ -488,6 +495,10 @@ function construirMensaje<K extends IdError>(
     }
     case 'guardaTiempo':
       return 'Detuve la ejecución: tu programa llevaba más de 5 segundos dibujando. ¿Hay una repetición que nunca termina?';
+    case 'guardaRellenos': {
+      const p = parametros as ParametrosPorError['guardaRellenos'];
+      return `Detuve la ejecución: tu programa pidió más de ${p.maximo} rellenos. ¿Hay un RELLENA dentro de una repetición que no lo necesita?`;
+    }
     
     // decorado del mundo 2 (color y grosor)
     // La lista de colores es un literal fijo: su orden replica NOMBRES_COLOR

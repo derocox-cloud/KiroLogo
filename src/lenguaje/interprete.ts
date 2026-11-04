@@ -117,21 +117,36 @@ export type Operacion =
 // Guardas y límites
 // ============================================================================
 
-export type TipoGuarda = 'pasos' | 'recursion' | 'tiempo';
+export type TipoGuarda = 'pasos' | 'recursion' | 'tiempo' | 'rellenos';
 
 export interface LimitesEjecucion {
   readonly maximoPasos: number;
   readonly maximaProfundidad: number;
   readonly maximoTiempoMs: number;
   readonly pasosEntreMediciones: number;
+  /**
+   * Operaciones RELLENA por ejecución. Las otras guardas no la cubren: para el
+   * intérprete un RELLENA es una operación barata, pero el lienzo calcula su área
+   * con una inundación sobre 800 × 800 celdas, y el modo inmediato y el de
+   * movimiento reducido aplican todas las operaciones en un solo bucle sincrónico.
+   * Sin este tope, `REPITE 50000 [RELLENA "azul]` pasa las guardas de pasos y de
+   * tiempo y cuelga la pestaña en el lienzo.
+   */
+  readonly maximoRellenos: number;
 }
 
-/** Límites por omisión: 200 000 pasos, 100 niveles, 5 000 ms, 1 000 pasos entre mediciones. */
+/**
+ * Límites por omisión: 200 000 pasos, 100 niveles, 5 000 ms, 1 000 pasos entre
+ * mediciones y 100 rellenos. Cien rellenos sobran para cualquier figura del juego
+ * (la cuadrícula más grande del mundo 2 tiene 9 paneles) y acotan el costo del
+ * lienzo en el peor caso.
+ */
 export const LIMITES_PREDETERMINADOS: LimitesEjecucion = {
   maximoPasos: 200_000,
   maximaProfundidad: 100,
   maximoTiempoMs: 5_000,
   pasosEntreMediciones: 1_000,
+  maximoRellenos: 100,
 };
 
 export interface OpcionesEjecucion {
@@ -224,6 +239,7 @@ export function* ejecutar(
 
   // Estado que se pone en cero al comenzar cada ejecución, sin arrastrar nada.
   let paso = 0;
+  let rellenos = 0;
   let estado: EstadoTortuga = opciones.estadoInicial ?? ESTADO_INICIAL;
   // El estado decorativo arranca en los valores por omisión (negro, grosor 1) y
   // se actualiza al ejecutar PONCOLOR/PONGROSOR. RELLENA lleva su propio color y no lo cambia.
@@ -276,6 +292,8 @@ export function* ejecutar(
       }
       case 'tiempo':
         return crearError('guardaTiempo', {});
+      case 'rellenos':
+        return crearError('guardaRellenos', { maximo: limites.maximoRellenos });
     }
   }
 
@@ -357,6 +375,12 @@ export function* ejecutar(
       return terminar(guardaPasos, errorDeGuarda(guardaPasos, null));
     }
 
+    // Guarda de rellenos: se corta ANTES de emitir el que pasaría el tope, igual
+    // que la de pasos, para que ningún consumidor reciba más de maximoRellenos.
+    if (nombreCanonico === 'RELLENA' && rellenos >= limites.maximoRellenos) {
+      return terminar('rellenos', errorDeGuarda('rellenos', null));
+    }
+
     // Producir la operación según la semántica del comando (por nombre canónico).
     const resultado = ejecutarComando(nombreCanonico, instruccion, estado, decorativo, paso, instruccion.linea, profundidadActual());
     if (resultado.clase === 'noEjecutable') {
@@ -375,6 +399,7 @@ export function* ejecutar(
     estado = operacion.estadoDespues;
     decorativo = resultado.decorativo;
     paso += 1;
+    if (operacion.tipo === 'relleno') rellenos += 1;
 
     // Medición de tiempo periódica.
     desdeUltimaMedicion += 1;
