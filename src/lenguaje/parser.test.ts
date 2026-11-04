@@ -976,12 +976,24 @@ describe('PARA — errores de sintaxis propios (punto 8)', () => {
     });
   });
 
+  describe('nombre reservado', () => {
+    it('descarta el cuerpo de PARA cuando el nombre es una palabra del lenguaje', () => {
+      const { errores } = analizarTexto('PARA AV 100 FIN', 2);
+      expect(errores.map((e) => e.id)).toEqual(['paraNombreQueEsLenguaje']);
+    });
+  });
+
   describe('anidado', () => {
     it('un PARA dentro de REPITE es paraAnidado (el ejemplo de la reseña), sin cascada', () => {
       const { errores } = analizarTexto('REPITE 2 [PARA X AV 100 FIN] X', 2);
       expect(errores.map((e) => e.id)).toEqual(['paraAnidado']);
       // La posición es la del PARA anidado, no la de otro token.
       expect([errores[0]!.linea, errores[0]!.columna]).toEqual([1, 11]);
+    });
+
+    it('ignora corchetes de REPITE anidados al descartar un PARA mal puesto', () => {
+      const { errores } = analizarTexto('REPITE 2 [PARA X REPITE 4 [AV 10 GD 90] FIN] X', 2);
+      expect(errores.map((e) => e.id)).toEqual(['paraAnidado']);
     });
 
     it('un PARA dentro de otro PARA es paraAnidado, sin «No sé cómo hacer B» después', () => {
