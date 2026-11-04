@@ -392,6 +392,18 @@ que la implementación inicial dejó sin cubrir:
 El ejemplo e inserción de `PONCOLOR` del panel usaban `PONCOLOR "rojo"` con comilla de cierre, que el
 lenguaje no acepta (RESUELTO en el PR #24: ahora `PONCOLOR "rojo`, derivado al mensaje de error).
 
+- **`RELLENA` podía colgar la pestaña (RESUELTO en el PR #24, 2ª ronda de revisión).** Para el
+  intérprete un RELLENA es una operación barata, pero el lienzo calcula su área con una inundación
+  sobre 800×800 celdas, y los modos inmediato y de movimiento reducido aplican todas las operaciones
+  en un solo bucle sincrónico. Así, `REPITE 50000 [RELLENA "azul]` pasaba las guardas de pasos y de
+  tiempo (≈ 384 ms) pero dejaba ≈ 23 min de cálculo en el lienzo. Dos arreglos: (a) una cuarta guarda
+  de ejecución, `maximoRellenos` (100 por omisión, con el error `guardaRellenos`), que corta en el
+  intérprete antes de emitir el relleno que sobra; y (b) `relleno.ts` reutiliza sus tres búferes de
+  640 000 celdas entre llamadas (antes reservaba ≈ 5,7 MB por RELLENA), corta la inundación en cuanto
+  toca el borde (una región abierta ya no se recorre entera) y acota el barrido de corridas a la caja
+  de la región. Cubierto por pruebas en `interprete.test.ts` (guarda), `errores.test.ts` (mensaje) y
+  `relleno.test.ts` (reutilización de búferes sin arrastre).
+
 - **La escalera (2.3) nunca sale con 5 peldaños de lado 40 (PENDIENTE — fix aparte del motor).**
   Su caja envolvente mide exactamente 200 × 200, que `encuadre.ts` acepta («exactamente 200 no
   cuenta»), pero el alto se calcula como 199,99999999999997 por el redondeo de coma flotante de los
