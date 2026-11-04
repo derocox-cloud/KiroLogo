@@ -13,7 +13,6 @@ import { crearError, type ErrorKiroLogo, type IdError } from '../lenguaje/errore
 const IDS_SIMPLES: readonly IdError[] = [
   'caracterNoValido',
   'numeroMalFormado',
-  'comillaSinPalabra',
   'corcheteSinCerrar',
   'corcheteDeMas',
   'guardaPasos',
@@ -22,13 +21,17 @@ const IDS_SIMPLES: readonly IdError[] = [
   'limiteCaracteresEditor',
 ];
 
+/** Errores que necesitan la línea del programa para construir su texto. */
+const IDS_CON_LINEA: readonly IdError[] = ['comillaSinPalabra'];
+
 function erroresAlAzar(semilla: number): ErrorKiroLogo[] {
   const prng = crearPrng(semilla);
   const cantidad = prng.entero(1, 25); // puede exceder el máximo de 20
+  const todos: readonly IdError[] = [...IDS_SIMPLES, ...IDS_CON_LINEA];
   const errores: ErrorKiroLogo[] = [];
   for (let i = 0; i < cantidad; i++) {
-    const id = IDS_SIMPLES[prng.entero(0, IDS_SIMPLES.length - 1)]!;
-    errores.push(crearError(id, {}));
+    const id = todos[prng.entero(0, todos.length - 1)]!;
+    errores.push(crearError(id, id === 'comillaSinPalabra' ? { linea: prng.entero(1, 40) } : {}));
   }
   return errores;
 }

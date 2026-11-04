@@ -260,7 +260,7 @@ function leerConPrefijo(cursor: Cursor, tipo: 'palabra' | 'parametro'): Resultad
     // Prefijo suelto: descartar solo el prefijo y continuar.
     avanzar(cursor);
     const id = tipo === 'palabra' ? 'comillaSinPalabra' : 'parametroSinNombre';
-    return { ok: false, error: crearError(id, {}, { linea, columna }) };
+    return { ok: false, error: crearError(id, { linea }, { linea, columna }) };
   }
 
   // Consumir el prefijo y el cuerpo.

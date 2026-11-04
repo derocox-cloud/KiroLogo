@@ -154,15 +154,15 @@ function analizarInstruccion(estado: Estado): Instruccion | null {
       estado.indice += 1;
       return null;
     case 'parametro':
-      reportar(estado, crearError('parametroInesperado', {}, posicion(token)));
+      reportar(estado, crearError('parametroInesperado', { valor: token.textoOriginal, linea: token.linea }, posicion(token)));
       estado.indice += 1;
       return null;
     case 'palabra':
-      reportar(estado, crearError('palabraInesperada', {}, posicion(token)));
+      reportar(estado, crearError('palabraInesperada', { valor: token.textoOriginal.slice(1), linea: token.linea }, posicion(token)));
       estado.indice += 1;
       return null;
     case 'numero':
-      reportar(estado, crearError('numeroInesperado', {}, posicion(token)));
+      reportar(estado, crearError('numeroInesperado', { valor: token.textoOriginal, linea: token.linea }, posicion(token)));
       estado.indice += 1;
       return null;
     case 'identificador': {

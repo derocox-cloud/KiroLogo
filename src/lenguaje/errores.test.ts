@@ -125,14 +125,14 @@ describe('errores.ts', () => {
       });
       
       it('comillaSinPalabra', () => {
-        const error = crearError('comillaSinPalabra', {});
+        const error = crearError('comillaSinPalabra', { linea: 4 });
         expect(error.id).toBe('comillaSinPalabra');
         expect(error.severidad).toBe('jugador');
         expect(error.mensaje).toBe('Hay una comilla sola en la línea 4. Después de la comilla va una palabra, así: "naranja"');
       });
       
       it('parametroSinNombre', () => {
-        const error = crearError('parametroSinNombre', {});
+        const error = crearError('parametroSinNombre', { linea: 5 });
         expect(error.id).toBe('parametroSinNombre');
         expect(error.severidad).toBe('jugador');
         expect(error.mensaje).toBe('Hay dos puntos sin nombre en la línea 5. Un parámetro se escribe así: :largo');
@@ -244,31 +244,40 @@ describe('errores.ts', () => {
       });
       
       it('parametroInesperado', () => {
-        const error = crearError('parametroInesperado', {});
+        const error = crearError('parametroInesperado', { valor: ':largo', linea: 3 });
         expect(error.id).toBe('parametroInesperado');
         expect(error.severidad).toBe('jugador');
         expect(error.mensaje).toBe('Encontré :largo en la línea 3 sin un comando que lo reciba.');
       });
       
       it('palabraInesperada', () => {
-        const error = crearError('palabraInesperada', {});
+        const error = crearError('palabraInesperada', { valor: 'hola', linea: 3 });
         expect(error.id).toBe('palabraInesperada');
         expect(error.severidad).toBe('jugador');
         expect(error.mensaje).toBe('Encontré la palabra "hola" en la línea 3 sin un comando que la reciba.');
       });
       
       it('numeroInesperado', () => {
-        const error = crearError('numeroInesperado', {});
+        const error = crearError('numeroInesperado', { valor: '100', linea: 3 });
         expect(error.id).toBe('numeroInesperado');
         expect(error.severidad).toBe('jugador');
         expect(error.mensaje).toBe('Encontré el número 100 en la línea 3 sin un comando que lo reciba.');
       });
     });
     
+    it('la línea y el valor del mensaje los pone el llamador, no el texto fijo', () => {
+      expect(crearError('comillaSinPalabra', { linea: 9 }).mensaje).toContain('línea 9.');
+      expect(crearError('parametroInesperado', { valor: ':ancho', linea: 12 }).mensaje)
+        .toBe('Encontré :ancho en la línea 12 sin un comando que lo reciba.');
+      expect(crearError('comandoNoPermitido', { nombre: 'AVANZA', linea: 7 }).mensaje)
+        .toBe('No puedo ejecutar AVANZA en la línea 7: todavía no está disponible.');
+    });
+    
     describe('Errores de ejecución', () => {
       it('comandoNoPermitido', () => {
         const error = crearError('comandoNoPermitido', {
           nombre: 'OCULTATORTUGA',
+          linea: 2,
         });
         expect(error.id).toBe('comandoNoPermitido');
         expect(error.severidad).toBe('jugador');
@@ -276,7 +285,7 @@ describe('errores.ts', () => {
       });
       
       it('nodoNoImplementado', () => {
-        const error = crearError('nodoNoImplementado', {});
+        const error = crearError('nodoNoImplementado', { linea: 4 });
         expect(error.id).toBe('nodoNoImplementado');
         expect(error.severidad).toBe('jugador');
         expect(error.mensaje).toBe('Todavía no sé ejecutar la repetición de la línea 4.');
@@ -958,8 +967,8 @@ describe('Property 11: forma de los mensajes del catálogo', () => {
     const opciones: Array<() => ErrorKiroLogo> = [
       () => crearError('caracterNoValido', {}),
       () => crearError('numeroMalFormado', {}),
-      () => crearError('comillaSinPalabra', {}),
-      () => crearError('parametroSinNombre', {}),
+      () => crearError('comillaSinPalabra', { linea: prng.entero(1, 40) }),
+      () => crearError('parametroSinNombre', { linea: prng.entero(1, 40) }),
       () => crearError('palabraDesconocidaConSugerencia', { escrita: prng.elegir(palabras), sugerencia: prng.elegir(nombres) }),
       () => crearError('palabraDesconocidaSinSugerencia', { escrita: prng.elegir(palabras) }),
       () => crearError('comandoEnIngles', { escrita: prng.elegir(['FD', 'RT', 'BK', 'LT', 'HOME']) }),
@@ -970,10 +979,10 @@ describe('Property 11: forma de los mensajes del catálogo', () => {
       () => crearError('corcheteSinCerrar', {}),
       () => crearError('corcheteDeMas', {}),
       () => crearError('corcheteInesperado', { linea: prng.entero(1, 40) }),
-      () => crearError('parametroInesperado', {}),
-      () => crearError('palabraInesperada', {}),
-      () => crearError('numeroInesperado', {}),
-      () => crearError('comandoNoPermitido', { nombre: prng.elegir(nombres) }),
+      () => crearError('parametroInesperado', { valor: ':largo', linea: prng.entero(1, 40) }),
+      () => crearError('palabraInesperada', { valor: 'hola', linea: prng.entero(1, 40) }),
+      () => crearError('numeroInesperado', { valor: '100', linea: prng.entero(1, 40) }),
+      () => crearError('comandoNoPermitido', { nombre: prng.elegir(nombres), linea: prng.entero(1, 40) }),
       () => crearError('guardaPasos', {}),
       () => crearError('guardaRecursion', { nombre: prng.elegir(nombres) }),
       () => crearError('guardaTiempo', {}),

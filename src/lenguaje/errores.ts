@@ -73,8 +73,8 @@ export interface ParametrosPorError {
   // léxicos (sin parámetros)
   readonly caracterNoValido: Record<string, never>;
   readonly numeroMalFormado: Record<string, never>;
-  readonly comillaSinPalabra: Record<string, never>;
-  readonly parametroSinNombre: Record<string, never>;
+  readonly comillaSinPalabra: { readonly linea: number };
+  readonly parametroSinNombre: { readonly linea: number };
   
   // sintácticos
   readonly palabraDesconocidaConSugerencia: { readonly escrita: string; readonly sugerencia: string };
@@ -89,9 +89,9 @@ export interface ParametrosPorError {
   readonly corcheteDeMas: Record<string, never>;
   readonly corcheteDeMasEnLinea: { readonly linea: number };
   readonly corcheteInesperado: { readonly linea: number };
-  readonly parametroInesperado: Record<string, never>;
-  readonly palabraInesperada: Record<string, never>;
-  readonly numeroInesperado: Record<string, never>;
+  readonly parametroInesperado: { readonly valor: string; readonly linea: number };
+  readonly palabraInesperada: { readonly valor: string; readonly linea: number };
+  readonly numeroInesperado: { readonly valor: string; readonly linea: number };
   
   // procedimientos del mundo 2 (PARA...FIN)
   readonly finSinPara: { readonly linea: number };
@@ -103,8 +103,8 @@ export interface ParametrosPorError {
   readonly paraConParametros: Record<string, never>;
   
   // ejecución
-  readonly comandoNoPermitido: { readonly nombre: string };
-  readonly nodoNoImplementado: Record<string, never>;
+  readonly comandoNoPermitido: { readonly nombre: string; readonly linea: number };
+  readonly nodoNoImplementado: { readonly linea: number };
   readonly nodoNoImprimible: Record<string, never>;
   readonly guardaPasos: Record<string, never>;
   readonly guardaRecursion: { readonly nombre: string } | { readonly linea: number };
@@ -392,10 +392,14 @@ function construirMensaje<K extends IdError>(
       return 'No entiendo el carácter «&» de la línea 3. En KiroLogo no se usa.';
     case 'numeroMalFormado':
       return 'No entiendo el número 10.5.3 de la línea 2. Lleva un solo separador decimal, así: 10.5';
-    case 'comillaSinPalabra':
-      return 'Hay una comilla sola en la línea 4. Después de la comilla va una palabra, así: "naranja"';
-    case 'parametroSinNombre':
-      return 'Hay dos puntos sin nombre en la línea 5. Un parámetro se escribe así: :largo';
+    case 'comillaSinPalabra': {
+      const p = parametros as ParametrosPorError['comillaSinPalabra'];
+      return `Hay una comilla sola en la línea ${p.linea}. Después de la comilla va una palabra, así: "naranja"`;
+    }
+    case 'parametroSinNombre': {
+      const p = parametros as ParametrosPorError['parametroSinNombre'];
+      return `Hay dos puntos sin nombre en la línea ${p.linea}. Un parámetro se escribe así: :largo`;
+    }
     
     // sintácticos
     case 'palabraDesconocidaConSugerencia': {
@@ -443,12 +447,18 @@ function construirMensaje<K extends IdError>(
       const p = parametros as ParametrosPorError['corcheteInesperado'];
       return `Encontré un corchete en la línea ${p.linea} sin un comando que lo reciba.`;
     }
-    case 'parametroInesperado':
-      return 'Encontré :largo en la línea 3 sin un comando que lo reciba.';
-    case 'palabraInesperada':
-      return 'Encontré la palabra "hola" en la línea 3 sin un comando que la reciba.';
-    case 'numeroInesperado':
-      return 'Encontré el número 100 en la línea 3 sin un comando que lo reciba.';
+    case 'parametroInesperado': {
+      const p = parametros as ParametrosPorError['parametroInesperado'];
+      return `Encontré ${p.valor} en la línea ${p.linea} sin un comando que lo reciba.`;
+    }
+    case 'palabraInesperada': {
+      const p = parametros as ParametrosPorError['palabraInesperada'];
+      return `Encontré la palabra "${p.valor}" en la línea ${p.linea} sin un comando que la reciba.`;
+    }
+    case 'numeroInesperado': {
+      const p = parametros as ParametrosPorError['numeroInesperado'];
+      return `Encontré el número ${p.valor} en la línea ${p.linea} sin un comando que lo reciba.`;
+    }
     
     // procedimientos del mundo 2 (PARA...FIN)
     case 'finSinPara': {
@@ -477,10 +487,12 @@ function construirMensaje<K extends IdError>(
     // ejecución
     case 'comandoNoPermitido': {
       const p = parametros as ParametrosPorError['comandoNoPermitido'];
-      return `No puedo ejecutar ${p.nombre} en la línea 2: todavía no está disponible.`;
+      return `No puedo ejecutar ${p.nombre} en la línea ${p.linea}: todavía no está disponible.`;
     }
-    case 'nodoNoImplementado':
-      return 'Todavía no sé ejecutar la repetición de la línea 4.';
+    case 'nodoNoImplementado': {
+      const p = parametros as ParametrosPorError['nodoNoImplementado'];
+      return `Todavía no sé ejecutar la repetición de la línea ${p.linea}.`;
+    }
     case 'nodoNoImprimible':
       return 'Todavía no sé escribir la repetición como texto de KiroLogo.';
     case 'guardaPasos':

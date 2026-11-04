@@ -336,7 +336,7 @@ export function* ejecutar(
       // Buscar la definición del procedimiento en el programa raíz.
       const definicion = buscarDefinicion(programa, instruccion.nombre);
       if (definicion === null) {
-        const error = crearError('comandoNoPermitido', { nombre: instruccion.nombre }, { linea: instruccion.linea });
+        const error = crearError('comandoNoPermitido', { nombre: instruccion.nombre, linea: instruccion.linea }, { linea: instruccion.linea });
         return { operaciones, guardaActivada: null, error };
       }
       pila.push({ instrucciones: definicion.cuerpo, indice: 0, nombre: instruccion.nombre, lineaInvocacion: instruccion.linea });
@@ -355,7 +355,7 @@ export function* ejecutar(
 
     // --- Nodos reservados que esta spec no ejecuta ---
     if (instruccion.tipo !== 'invocacionComando') {
-      const error = crearError('nodoNoImplementado', {}, { linea: instruccion.linea });
+      const error = crearError('nodoNoImplementado', { linea: instruccion.linea }, { linea: instruccion.linea });
       return { operaciones, guardaActivada: null, error };
     }
 
@@ -365,7 +365,7 @@ export function* ejecutar(
     const busqueda = buscarComando(instruccion.nombre);
     const nombreCanonico = busqueda.hallada ? busqueda.entrada.nombre : instruccion.nombre;
     if (!permitidos.has(nombreCanonico)) {
-      const error = crearError('comandoNoPermitido', { nombre: nombreCanonico }, { linea: instruccion.linea });
+      const error = crearError('comandoNoPermitido', { nombre: nombreCanonico, linea: instruccion.linea }, { linea: instruccion.linea });
       return { operaciones, guardaActivada: null, error };
     }
 
@@ -385,7 +385,7 @@ export function* ejecutar(
     const resultado = ejecutarComando(nombreCanonico, instruccion, estado, decorativo, paso, instruccion.linea, profundidadActual());
     if (resultado.clase === 'noEjecutable') {
       // Comando permitido pero no ejecutable en esta capa (no debería ocurrir).
-      const error = crearError('comandoNoPermitido', { nombre: instruccion.nombre }, { linea: instruccion.linea });
+      const error = crearError('comandoNoPermitido', { nombre: instruccion.nombre, linea: instruccion.linea }, { linea: instruccion.linea });
       return { operaciones, guardaActivada: null, error };
     }
     if (resultado.clase === 'error') {
