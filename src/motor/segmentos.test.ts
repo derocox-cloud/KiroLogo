@@ -145,7 +145,7 @@ describe('segmentos', () => {
   // ==========================================================================
 
   describe('Property 16A: extracción de segmentos', () => {
-    const permitidos = comandosDelMundo(0).filter((e) => e.ejecutable);
+    const permitidos = comandosDelMundo(0).filter((e) => e.mundo === 0);
 
     function operacionesDe(semilla: number): readonly Operacion[] {
       const prng = crearPrng(semilla);

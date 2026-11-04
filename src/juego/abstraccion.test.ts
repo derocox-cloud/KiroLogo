@@ -108,3 +108,75 @@ describe('abstraccion · conjunto vacío y orden', () => {
     expect(analizar(a, exigencias)).toEqual(analizar(b, exigencias));
   });
 });
+
+// ============================================================================
+// defineProcedimiento · requisito de abstracción del nivel 2.6 (R10.2, R10.3, R10.6)
+// ============================================================================
+//
+// La estrella de abstracción del 2.6 exige que el AST del jugador contenga al
+// menos un nodo de definición de procedimiento. Todos estos casos construyen el
+// AST a mano: no se parsea ningún texto, porque el verificador analiza el árbol,
+// no la cadena de origen (R10.6). Representan el panel 2×2 del 2.6 de dos formas:
+// definiéndolo con PARA e invocándolo cuatro veces, o copiándolo inline cuatro
+// veces sin definir nada.
+
+const exigenciaDefinir: ExigenciaAbstraccion = { clave: 'defineProcedimiento' };
+
+// El cuerpo de un «panel»: un cuadrado dibujado con repetición.
+const panel = (): Repeticion => repite([av(100)]);
+
+describe('abstraccion · defineProcedimiento (nivel 2.6)', () => {
+  it('un AST que contiene un nodo de definición cumple el requisito y aparece en confirmadas (R10.2)', () => {
+    // PARA PANEL REPITE 4 [AV 100 GD 90] FIN  +  cuatro invocaciones.
+    const conProcedimiento = prog([
+      definir('PANEL', [], [panel()]),
+      llamar('PANEL'),
+      llamar('PANEL'),
+      llamar('PANEL'),
+      llamar('PANEL'),
+    ]);
+
+    const r = analizar(conProcedimiento, [exigenciaDefinir]);
+    expect(r.confirmadas).toEqual(['defineProcedimiento']);
+    expect(r.sinConfirmar).toEqual([]);
+  });
+
+  it('un AST que repite el panel inline sin definir procedimiento NO lo cumple y aparece en sinConfirmar (R10.3)', () => {
+    // El mismo dibujo del panel copiado cuatro veces, sin ningún PARA.
+    const inlineSinDefinir = prog([panel(), panel(), panel(), panel()]);
+
+    const r = analizar(inlineSinDefinir, [exigenciaDefinir]);
+    expect(r.confirmadas).toEqual([]);
+    expect(r.sinConfirmar).toEqual(['defineProcedimiento']);
+  });
+
+  it('reconoce la definición aunque esté anidada dentro de una repetición (R10.2, R10.6)', () => {
+    // Un nodo definicionProcedimiento colgando dentro de un REPITE: el análisis
+    // recorre el árbol completo, no solo el nivel superior.
+    const definicionAnidada = prog([repite([definir('PANEL', [], [panel()])])]);
+
+    const r = analizar(definicionAnidada, [exigenciaDefinir]);
+    expect(r.confirmadas).toEqual(['defineProcedimiento']);
+    expect(r.sinConfirmar).toEqual([]);
+  });
+
+  it('solo invocar un procedimiento, sin un nodo de definición en el árbol, no basta (R10.3, R10.6)', () => {
+    // Invocar PANEL sin que el árbol incluya su definicionProcedimiento: el
+    // verificador mira el AST presente, no nombres que parezcan procedimientos.
+    const soloInvocacion = prog([llamar('PANEL'), llamar('PANEL')]);
+
+    const r = analizar(soloInvocacion, [exigenciaDefinir]);
+    expect(r.confirmadas).toEqual([]);
+    expect(r.sinConfirmar).toEqual(['defineProcedimiento']);
+  });
+
+  it('el veredicto depende del nodo del AST, no de ningún texto de programa (R10.6)', () => {
+    // Dos árboles equivalentes salvo por la presencia del nodo de definición dan
+    // veredictos opuestos. En ningún momento interviene una cadena de origen.
+    const conDefinicion = prog([definir('PANEL', [], [panel()]), llamar('PANEL')]);
+    const sinDefinicion = prog([panel()]);
+
+    expect(analizar(conDefinicion, [exigenciaDefinir]).confirmadas).toContain('defineProcedimiento');
+    expect(analizar(sinDefinicion, [exigenciaDefinir]).confirmadas).not.toContain('defineProcedimiento');
+  });
+});

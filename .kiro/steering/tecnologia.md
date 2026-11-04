@@ -72,9 +72,13 @@ El jugador va a escribir `REPITE 99999` y recursiones sin caso base. No debe pod
 - Máximo 200 000 pasos de tortuga por ejecución.
 - Máximo 100 niveles de profundidad de recursión.
 - Máximo 5 segundos de tiempo de ejecución.
-- Al superar cualquiera de los tres, se detiene con un error explicativo en español, no con un cuelgue
-  ni un error genérico: `Detuve la ejecución: la tortuga llevaba demasiados pasos. ¿Hay una repetición
-  que nunca termina?`
+- Máximo 100 operaciones `RELLENA` por ejecución. Las otras tres guardas no la cubren: para el
+  intérprete un `RELLENA` es una operación barata, pero el lienzo calcula su área con una inundación
+  sobre una rejilla de 800 × 800, así que `REPITE 50000 [RELLENA]` pasa las guardas de pasos y de
+  tiempo y cuelga la pestaña al dibujar. Cien rellenos sobran para cualquier figura del juego.
+- Al superar cualquiera de los cuatro, se detiene con un error explicativo en español, no con un
+  cuelgue ni un error genérico: `Detuve la ejecución: la tortuga llevaba demasiados pasos. ¿Hay una
+  repetición que nunca termina?`
 
 ## Los personajes se dibujan por código
 

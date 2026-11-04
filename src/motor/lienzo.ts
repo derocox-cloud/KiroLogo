@@ -8,6 +8,17 @@
 // usa coordenadas lógicas con `y` hacia arriba.
 
 import type { Segmento } from './segmentos.js';
+import type { Color } from '../lenguaje/colores.js';
+import type { Punto } from './tortuga.js';
+import { calcularRelleno, type Corrida } from './relleno.js';
+import {
+  SIN_ESTILO,
+  cssDeColor,
+  mismoEstilo,
+  trazoDeTramo,
+  type EstiloPedido,
+  type TramoDibujo,
+} from './tramos-dibujo.js';
 
 // ============================================================================
 // 7.2 · ContextoDibujo — la costura de dibujo
@@ -241,21 +252,106 @@ function dibujarLineasCuadricula(
  * recorte al cuadrado lógico: un tramo que se sale se recorta al borde y el dibujo
  * continúa sin excepción. Un segmento por trazo independiente, porque los
  * segmentos de una estela no son necesariamente contiguos.
+ *
+ * Con `conEstilo`, cada tramo se pinta con el color y el grosor que pidió el
+ * jugador (PONCOLOR, PONGROSOR); lo no pedido sale de `trazo`. Los tramos seguidos
+ * del mismo estilo van en un solo trazo. Sin nada pedido hay un único grupo con el
+ * trazo del tema, así que las llamadas son exactamente las de siempre.
  */
 export function dibujarEstela(
   ctx: ContextoDibujo,
-  segmentos: readonly Segmento[],
+  segmentos: readonly TramoDibujo[],
   trazo: TrazoTema,
+  conEstilo = true,
 ): void {
   ctx.save();
   recortarAlCuadrado(ctx);
-  aplicarTrazo(ctx, trazo);
-  ctx.beginPath();
-  for (const segmento of segmentos) {
-    ctx.moveTo(segmento.desde.x, segmento.desde.y);
-    ctx.lineTo(segmento.hasta.x, segmento.hasta.y);
+  for (const grupo of agruparPorEstilo(segmentos, trazo, conEstilo)) {
+    aplicarTrazo(ctx, grupo.trazo);
+    ctx.beginPath();
+    for (const segmento of grupo.tramos) {
+      ctx.moveTo(segmento.desde.x, segmento.desde.y);
+      ctx.lineTo(segmento.hasta.x, segmento.hasta.y);
+    }
+    ctx.stroke();
   }
+  ctx.restore();
+}
+
+/**
+ * Agrupa los tramos seguidos que piden el mismo estilo. Una estela vacía da un solo
+ * grupo vacío con el trazo del tema, para conservar las llamadas de siempre.
+ */
+function agruparPorEstilo(
+  tramos: readonly TramoDibujo[],
+  tema: TrazoTema,
+  conEstilo: boolean,
+): Array<{ trazo: TrazoTema; tramos: TramoDibujo[]; estilo: EstiloPedido }> {
+  const grupos: Array<{ trazo: TrazoTema; tramos: TramoDibujo[]; estilo: EstiloPedido }> = [];
+  for (const tramo of tramos) {
+    const estilo: EstiloPedido = conEstilo ? tramo : SIN_ESTILO;
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo !== undefined && mismoEstilo(ultimo.estilo, estilo)) {
+      ultimo.tramos.push(tramo);
+    } else {
+      grupos.push({ trazo: trazoDeTramo(estilo, tema), tramos: [tramo], estilo });
+    }
+  }
+  if (grupos.length === 0) grupos.push({ trazo: tema, tramos: [], estilo: SIN_ESTILO });
+  return grupos;
+}
+
+/**
+ * Pinta el tramo que la tortuga lleva recorrido en la operación en curso (en la
+ * capa de personajes, que se borra en cada fotograma). Con `conEstilo` lleva el
+ * color y el grosor que pidió el jugador; sin él (la tortuga de Kiro), el tema. El
+ * recorte es el mismo que el de la estela definitiva, para que el tramo no asome
+ * por fuera del cuadrado lógico y luego desaparezca. Línea siempre continua.
+ */
+export function dibujarTramoEnCurso(
+  ctx: ContextoDibujo,
+  tramo: TramoDibujo,
+  tema: TrazoTema,
+  conEstilo: boolean,
+): void {
+  const trazo = conEstilo ? trazoDeTramo(tramo, tema) : tema;
+  ctx.save();
+  recortarAlCuadrado(ctx);
+  ctx.strokeStyle = trazo.color;
+  ctx.lineWidth = trazo.grosor;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(tramo.desde.x, tramo.desde.y);
+  ctx.lineTo(tramo.hasta.x, tramo.hasta.y);
   ctx.stroke();
+  ctx.restore();
+}
+
+// ============================================================================
+// Rellenos (R4.6, R4.7)
+// ============================================================================
+
+/** Un relleno ya calculado: su color y las corridas del área cerrada. */
+export interface RellenoDibujado {
+  readonly color: Color;
+  readonly corridas: readonly Corrida[];
+}
+
+/**
+ * Pinta los rellenos, cada uno como un solo `fill` de sus corridas (rectángulos de
+ * una unidad de alto que no se solapan, así que no quedan costuras). Sin rellenos
+ * no hace ninguna llamada: un dibujo sin RELLENA es exactamente el de siempre.
+ */
+export function dibujarRellenos(ctx: ContextoDibujo, rellenos: readonly RellenoDibujado[]): void {
+  if (rellenos.length === 0) return;
+  ctx.save();
+  recortarAlCuadrado(ctx);
+  for (const relleno of rellenos) {
+    ctx.fillStyle = cssDeColor(relleno.color);
+    ctx.beginPath();
+    for (const c of relleno.corridas) ctx.rect(c.x0, c.y, c.x1 - c.x0, 1);
+    ctx.fill();
+  }
   ctx.restore();
 }
 
@@ -280,9 +376,15 @@ export interface Lienzo {
    * redibuja. Guarda los segmentos para poder redibujar al cambiar de tamaño sin
    * volver a invocar el intérprete.
    */
-  ponerEstela(capa: CapaEstela, segmentos: readonly Segmento[]): void;
+  ponerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void;
   /** Añade segmentos a la estela de una capa y redibuja esa capa. */
-  crecerEstela(capa: CapaEstela, segmentos: readonly Segmento[]): void;
+  crecerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void;
+  /**
+   * Rellena con un color el área cerrada donde está la tortuga, calculada con los
+   * trazos que la capa tiene en este momento (R4.6). Sin área cerrada no cambia nada
+   * (R4.7). Solo la capa del jugador se rellena; en la de Kiro no hace nada.
+   */
+  rellenar(capa: CapaEstela, color: Color, punto: Punto): void;
   /** Borra la estela de una capa sin tocar las otras tres. */
   limpiarEstela(capa: CapaEstela): void;
   /** Devuelve una copia de los segmentos guardados de una capa de estela. */
@@ -313,10 +415,15 @@ export function crearLienzo(
 
   // Cada capa de estela guarda las operaciones (segmentos) que recibió, para
   // redibujar al cambiar de tamaño o densidad sin volver a invocar el intérprete.
-  const estelas: Record<CapaEstela, Segmento[]> = {
+  // Los de la capa del jugador conservan el estilo que pidió (color y grosor).
+  const estelas: Record<CapaEstela, TramoDibujo[]> = {
     jugador: [],
     referencia: [],
   };
+
+  // Rellenos de la figura del jugador, en el orden en que se pidieron. Se pintan
+  // debajo de su estela; BORRAPANTALLA y reiniciar los descartan con ella.
+  let rellenosJugador: RellenoDibujado[] = [];
 
   function fijarTransformaciones(): void {
     for (const nombre of ORDEN_CAPAS) {
@@ -352,7 +459,10 @@ export function crearLienzo(
   function redibujarEstela(capa: CapaEstela, estilo: EstiloLienzo): void {
     const ctx = capa === 'jugador' ? capas.jugador : capas.referencia;
     borrarCapa(ctx);
-    dibujarEstela(ctx, estelas[capa], trazoDeCapa(capa, estilo));
+    // Los rellenos van debajo de los trazos de la figura del jugador.
+    if (capa === 'jugador') dibujarRellenos(ctx, rellenosJugador);
+    // Solo la figura del jugador lleva su color y grosor; la de Kiro, siempre el tema.
+    dibujarEstela(ctx, estelas[capa], trazoDeCapa(capa, estilo), capa === 'jugador');
   }
 
   function redibujar(): void {
@@ -378,18 +488,28 @@ export function crearLienzo(
       return escalado;
     },
 
-    ponerEstela(capa: CapaEstela, segmentos: readonly Segmento[]): void {
+    ponerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void {
       estelas[capa] = segmentos.map((s) => ({ ...s }));
+      if (capa === 'jugador') rellenosJugador = [];
       redibujarEstela(capa, leerTema());
     },
 
-    crecerEstela(capa: CapaEstela, segmentos: readonly Segmento[]): void {
+    crecerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void {
       for (const s of segmentos) estelas[capa].push({ ...s });
       redibujarEstela(capa, leerTema());
     },
 
+    rellenar(capa: CapaEstela, color: Color, punto: Punto): void {
+      if (capa !== 'jugador') return;
+      const corridas = calcularRelleno(estelas.jugador, punto);
+      if (corridas === null) return;
+      rellenosJugador.push({ color, corridas });
+      redibujarEstela('jugador', leerTema());
+    },
+
     limpiarEstela(capa: CapaEstela): void {
       estelas[capa] = [];
+      if (capa === 'jugador') rellenosJugador = [];
       redibujarEstela(capa, leerTema());
     },
 

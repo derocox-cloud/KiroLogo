@@ -12,8 +12,16 @@ import { extraerSegmentos, type Segmento } from '../motor/segmentos.js';
 import { codificar } from '../azar/codigo-semilla.js';
 import { buscarNivel } from '../niveles/catalogo.js';
 import { GENERADORES } from './generadores-mundo-1.js';
+import { GENERADORES_M2 } from './generadores-mundo-2.js';
 import type { Nivel } from '../niveles/tipos.js';
 import { buscarGenerador } from '../niveles/generadores/registro.js';
+
+// Generadores por semilla de los mundos 1 y 2: comparten el mismo contrato
+// `(semilla) => ResultadoGenerador`, así que se fusionan en un único registro
+// una sola vez a nivel de módulo (no por llamada) para una búsqueda plana por
+// idGenerador. El registro del mundo 0, con otro contrato (reintento y
+// parámetros), se consulta aparte y tiene prioridad.
+const GENERADORES_POR_SEMILLA = { ...GENERADORES, ...GENERADORES_M2 };
 
 // ============================================================================
 // Tipos públicos
@@ -80,10 +88,11 @@ export function resolverReto(idNivel: string, semilla: number): ResultadoReto {
     referencia = nivel.origen.referencia;
     semillaEfectiva = nivel.origen.semilla;
   } else {
-    // Niveles generados. Dos registros conviven con contratos distintos: el del
-    // mundo 0 (niveles/generadores/registro.ts, con reintento y parámetros) y el
-    // del mundo 1 (juego/generadores-mundo-1.ts, por semilla). Se busca primero el
-    // del mundo 0; si el id no está ahí, se intenta el del mundo 1.
+    // Niveles generados. Dos familias de registros conviven con contratos
+    // distintos: el del mundo 0 (niveles/generadores/registro.ts, con reintento y
+    // parámetros) y los por semilla de los mundos 1 y 2 (fusionados en
+    // GENERADORES_POR_SEMILLA). Se busca primero el del mundo 0; si el id no está
+    // ahí, se intenta el registro por semilla.
     const idGenerador = nivel.origen.idGenerador;
     const generador = buscarGenerador(idGenerador);
     if (generador !== null) {
@@ -99,7 +108,7 @@ export function resolverReto(idNivel: string, semilla: number): ResultadoReto {
       referencia = generado.referencia;
       semillaEfectiva = generado.semillaEfectiva;
     } else {
-      const fn = GENERADORES[idGenerador];
+      const fn = GENERADORES_POR_SEMILLA[idGenerador];
       if (fn === undefined) {
         return { exito: false, error: crearError('generadorDesconocido', {}) };
       }

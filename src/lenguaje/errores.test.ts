@@ -11,6 +11,9 @@ import {
   tienePosicion,
   resolverPalabraNoEjecutable,
 } from './errores.js';
+import { VOCABULARIO, buscarComando } from './vocabulario.js';
+import { analizarLexico } from './lexer.js';
+import { analizar } from './parser.js';
 
 describe('errores.ts', () => {
   // ==========================================================================
@@ -42,13 +45,14 @@ describe('errores.ts', () => {
         'parametroInesperado',
         'palabraInesperada',
         'numeroInesperado',
-        // ejecución (6)
+        // ejecución (7)
         'comandoNoPermitido',
         'nodoNoImplementado',
         'nodoNoImprimible',
         'guardaPasos',
         'guardaRecursion',
         'guardaTiempo',
+        'guardaRellenos',
         // interfaz y persistencia (3)
         'limiteLineasEditor',
         'limiteCaracteresEditor',
@@ -78,7 +82,7 @@ describe('errores.ts', () => {
         'divergenciaExcesoFinal',
       ];
       
-      expect(todosIds).toHaveLength(47);
+      expect(todosIds).toHaveLength(48);
     });
     
     it('SeveridadError es "jugador" o "programacion"', () => {
@@ -315,6 +319,17 @@ describe('errores.ts', () => {
         expect(error.id).toBe('guardaTiempo');
         expect(error.severidad).toBe('jugador');
         expect(error.mensaje).toBe('Detuve la ejecución: tu programa llevaba más de 5 segundos dibujando. ¿Hay una repetición que nunca termina?');
+      });
+      
+      it('guardaRellenos', () => {
+        const error = crearError('guardaRellenos', { maximo: 100 });
+        expect(error.id).toBe('guardaRellenos');
+        expect(error.severidad).toBe('jugador');
+        expect(error.mensaje).toBe('Detuve la ejecución: tu programa pidió más de 100 rellenos. ¿Hay un RELLENA dentro de una repetición que no lo necesita?');
+      });
+
+      it('guardaRellenos con un máximo inválido cae en solicitudDeErrorInvalida', () => {
+        expect(crearError('guardaRellenos', { maximo: 0 }).id).toBe('solicitudDeErrorInvalida');
       });
     });
     
@@ -997,6 +1012,293 @@ describe('Property 11: forma de los mensajes del catálogo', () => {
         expect(a.severidad).toBe(b.severidad);
       }),
       { seed: 112, numRuns: 200 },
+    );
+  });
+});
+
+// ============================================================================
+// 7. Mundo 2: mensajes de PARA…FIN, redefinición, color y grosor
+// Valida: Requisitos R4.3, R6.1–R6.7
+// ============================================================================
+
+describe('Mundo 2: mensajes nuevos del catálogo', () => {
+  describe('procedimientos PARA…FIN', () => {
+    it('finSinPara sustituye la línea y es severidad jugador (R6.5)', () => {
+      const error = crearError('finSinPara', { linea: 7 }, { linea: 7, columna: 1 });
+      expect(error.id).toBe('finSinPara');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('Encontré FIN en la línea 7 pero no hay ningún PARA abierto.');
+      expect(error.linea).toBe(7);
+      expect(error.columna).toBe(1);
+    });
+
+    it('paraSinFin sustituye nombre y línea (R6.6)', () => {
+      const error = crearError('paraSinFin', { nombre: 'CUADRADO', linea: 1 }, { linea: 1 });
+      expect(error.id).toBe('paraSinFin');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('El comando CUADRADO que empezaste en la línea 1 nunca termina con FIN.');
+      expect(error.linea).toBe(1);
+    });
+
+    it('procedimientoRedefinido sustituye el nombre (R6.7)', () => {
+      const error = crearError('procedimientoRedefinido', { nombre: 'CUADRADO', linea: 9 }, { linea: 9 });
+      expect(error.id).toBe('procedimientoRedefinido');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('Ya le enseñaste a Kiro qué es CUADRADO más arriba. No puedo aprenderlo dos veces; edita la primera definición.');
+      expect(error.linea).toBe(9);
+    });
+
+    it('paraNombreQueEsLenguaje sustituye el nombre reservado (R6.2)', () => {
+      const error = crearError('paraNombreQueEsLenguaje', { nombre: 'AVANZA' });
+      expect(error.id).toBe('paraNombreQueEsLenguaje');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('AVANZA es una palabra de KiroLogo y no se puede volver a definir.');
+    });
+  });
+
+  describe('decorado: color y grosor', () => {
+    it('colorInvalido sustituye el color escrito y es severidad jugador (R4.3)', () => {
+      const error = crearError('colorInvalido', { escrita: 'turquesa' });
+      expect(error.id).toBe('colorInvalido');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('No conozco el color turquesa. Puedes usar: rojo, azul, verde, amarillo, naranja, morado, rosa, café, negro, blanco o gris.');
+    });
+
+    it('colorInvalido lista los once colores en el orden de NOMBRES_COLOR', () => {
+      const error = crearError('colorInvalido', { escrita: 'turquesa' });
+      // El orden y la redacción quedan fijados: bloquea cambios accidentales en
+      // la lista de colores que debe replicar NOMBRES_COLOR de colores.ts.
+      expect(error.mensaje).toContain(
+        'Puedes usar: rojo, azul, verde, amarillo, naranja, morado, rosa, café, negro, blanco o gris.',
+      );
+    });
+
+    it('grosorInvalido da el mensaje fijo del rango 1–50', () => {
+      const error = crearError('grosorInvalido', {});
+      expect(error.id).toBe('grosorInvalido');
+      expect(error.severidad).toBe('jugador');
+      expect(error.mensaje).toBe('El grosor debe ser un número entero entre 1 y 50.');
+    });
+  });
+});
+
+// ============================================================================
+// 8. Mundo 2: sugerencia de procedimientos en resolverPalabraNoEjecutable
+// Valida: Requisitos R6.3, R6.4
+// ============================================================================
+
+describe('resolverPalabraNoEjecutable con procedimientos definidos', () => {
+  it('sugiere un procedimiento definido cercano (R6.3)', () => {
+    // FLOt → FLOR es distancia 1; ningún comando del vocabulario queda dentro
+    // del umbral (≤2) de FLOT, así que el procedimiento gana de forma determinista.
+    const error = resolverPalabraNoEjecutable('FLOt', 2, undefined, ['FLOR']);
+    expect(error.id).toBe('palabraDesconocidaConSugerencia');
+    expect(error.mensaje).toContain('¿Querías decir FLOR?');
+  });
+
+  it('sugiere el procedimiento cuando está estrictamente más cerca que cualquier comando (R6.3)', () => {
+    // CUADRADi → CUADRADO es distancia 1; ningún comando se le acerca al umbral.
+    const error = resolverPalabraNoEjecutable('CUADRADi', 2, undefined, ['CUADRADO']);
+    expect(error.id).toBe('palabraDesconocidaConSugerencia');
+    expect(error.mensaje).toBe('No sé cómo hacer CUADRADi. ¿Querías decir CUADRADO?');
+  });
+
+  it('no sugiere nada cuando ningún candidato entra en el umbral (R6.4)', () => {
+    // ZZZZZZZ está lejos de todo comando y del procedimiento FLOR/CUADRADO.
+    const error = resolverPalabraNoEjecutable('ZZZZZZZ', 2, undefined, ['CUADRADO']);
+    expect(error.id).toBe('palabraDesconocidaSinSugerencia');
+    expect(error.mensaje).toBe('No sé cómo hacer ZZZZZZZ.');
+  });
+
+  it('sin el 4.º argumento se comporta igual que antes: no propone procedimientos', () => {
+    // AVANSA → AVANZA (comando del vocabulario) exactamente como en el mundo 0/1,
+    // sin que la ausencia del parámetro procedimientos altere nada.
+    const error = resolverPalabraNoEjecutable('AVANSA', 0);
+    expect(error.id).toBe('palabraDesconocidaConSugerencia');
+    expect(error.mensaje).toBe('No sé cómo hacer AVANSA. ¿Querías decir AVANZA?');
+  });
+
+  it('con lista de procedimientos vacía explícita mantiene el comportamiento del vocabulario', () => {
+    const error = resolverPalabraNoEjecutable('AVANSA', 0, undefined, []);
+    expect(error.id).toBe('palabraDesconocidaConSugerencia');
+    expect(error.mensaje).toBe('No sé cómo hacer AVANSA. ¿Querías decir AVANZA?');
+  });
+});
+
+// ============================================================================
+// Mensajes de argumento derivados del tipo de argumento (reseña del PR #24, punto 8)
+//
+// El texto de `argumentoFaltante` y `argumentoDeTipoEquivocado` sale del tipo que
+// declara `vocabulario.ts` (y de su ejemplo), no de un «necesita un número» fijo.
+// Los comandos numéricos conservan su texto byte a byte. El mensaje de REPITE no se
+// toca (fuera de alcance), ni los mensajes de texto fijo del catálogo.
+// ============================================================================
+
+describe('mensajes de argumento según el tipo del vocabulario (punto 8)', () => {
+  const NUMERICOS = ['AVANZA', 'RETROCEDE', 'GIRADERECHA', 'GIRAIZQUIERDA', 'PONGROSOR'] as const;
+
+  /** ¿El ejemplo se analiza sin errores en el mundo 2? (lo que el jugador copiaría) */
+  function ejemploSeAnaliza(ejemplo: string): boolean {
+    const { tokens, errores: errLex } = analizarLexico(ejemplo);
+    const { errores } = analizar(tokens, { mundo: 2 });
+    return errLex.length === 0 && errores.length === 0;
+  }
+
+  describe('PONCOLOR pide un color, no un número', () => {
+    it('sin argumento: nombra un color y da un ejemplo válido, sin hablar de números', () => {
+      const e = crearError('argumentoFaltante', { comando: 'PONCOLOR' });
+      expect(e.mensaje).toBe('PONCOLOR necesita un color. Por ejemplo: PONCOLOR "rojo');
+      expect(e.mensaje).not.toMatch(/número/);
+    });
+
+    it.each([
+      ['5', 'un número'],
+      ['100', 'un número'],
+      ['[', 'un corchete'],
+      [']', 'un corchete'],
+      [':largo', 'un parámetro'],
+      ['"hola', 'una palabra'],
+    ])('con «%s» dice que le diste %s', (recibido, clase) => {
+      const e = crearError('argumentoDeTipoEquivocado', { comando: 'PONCOLOR', recibido });
+      expect(e.mensaje).toBe(
+        `PONCOLOR necesita un color, pero le diste ${clase}: ${recibido}. Por ejemplo: PONCOLOR "rojo`,
+      );
+      expect(e.mensaje).not.toMatch(/necesita un número/);
+    });
+
+    it('la terna RGB pide tres números entre corchetes, con un ejemplo que se analiza', () => {
+      const falta = crearError('argumentoFaltante', { comando: 'PONCOLOR', parte: 'terna' });
+      expect(falta.mensaje).toBe(
+        'La terna de PONCOLOR necesita tres números entre corchetes. Por ejemplo: PONCOLOR [255 0 0]',
+      );
+      const mala = crearError('argumentoDeTipoEquivocado', {
+        comando: 'PONCOLOR',
+        recibido: '"a',
+        parte: 'terna',
+      });
+      expect(mala.mensaje).toBe(
+        'La terna de PONCOLOR necesita tres números entre corchetes, pero encontré una palabra: "a. Por ejemplo: PONCOLOR [255 0 0]',
+      );
+      expect(ejemploSeAnaliza('PONCOLOR [255 0 0]')).toBe(true);
+    });
+
+    it('el ejemplo del mensaje es el del vocabulario y el lexer y el parser lo aceptan', () => {
+      const ejemplo = buscarComando('PONCOLOR');
+      expect(ejemplo.hallada && ejemplo.entrada.ejemplo).toBe('PONCOLOR "rojo');
+      expect(ejemploSeAnaliza('PONCOLOR "rojo')).toBe(true);
+    });
+  });
+
+  describe('lo que no cambia', () => {
+    it.each(NUMERICOS)('%s conserva byte a byte sus dos mensajes numéricos', (comando) => {
+      expect(crearError('argumentoFaltante', { comando }).mensaje).toBe(
+        `${comando} necesita un número. Por ejemplo: ${comando} 100`,
+      );
+      expect(crearError('argumentoDeTipoEquivocado', { comando, recibido: '"hola' }).mensaje).toBe(
+        `${comando} necesita un número, pero le diste una palabra: "hola`,
+      );
+    });
+
+    it('REPITE no se toca: sigue con su mensaje actual (fuera de alcance)', () => {
+      expect(crearError('argumentoFaltante', { comando: 'REPITE' }).mensaje).toBe(
+        'REPITE necesita un número. Por ejemplo: REPITE 100',
+      );
+      expect(crearError('argumentoDeTipoEquivocado', { comando: 'REPITE', recibido: 'x' }).mensaje).toBe(
+        'REPITE necesita un número, pero le diste una palabra: x',
+      );
+    });
+
+    it('un nombre de comando desconocido cae al texto numérico', () => {
+      expect(crearError('argumentoFaltante', { comando: 'INVENTADO' }).mensaje).toBe(
+        'INVENTADO necesita un número. Por ejemplo: INVENTADO 100',
+      );
+    });
+  });
+
+  describe('el mensaje sale del tipo que declara el vocabulario (lo reutilizará RELLENA)', () => {
+    const conColor = VOCABULARIO.filter((e) => e.tiposArgumento[0] === 'color' && e.aridad === 1);
+
+    it('hay al menos un comando de color', () => {
+      expect(conColor.length).toBeGreaterThan(0);
+    });
+
+    it.each(conColor.map((e) => [e.nombre] as const))(
+      '%s: faltante y tipo equivocado nombran un color y usan el ejemplo del vocabulario',
+      (nombre) => {
+        const entrada = conColor.find((e) => e.nombre === nombre)!;
+        const faltante = crearError('argumentoFaltante', { comando: nombre }).mensaje;
+        const equivocado = crearError('argumentoDeTipoEquivocado', { comando: nombre, recibido: '5' }).mensaje;
+        for (const mensaje of [faltante, equivocado]) {
+          expect(mensaje).toContain(`${nombre} necesita un color`);
+          expect(mensaje.endsWith(`Por ejemplo: ${entrada.ejemplo}`)).toBe(true);
+          expect(mensaje).not.toMatch(/necesita un número/);
+        }
+        expect(ejemploSeAnaliza(entrada.ejemplo)).toBe(true);
+      },
+    );
+
+    it('todo comando de un solo argumento no numérico habla de su tipo, no de un número', () => {
+      const noNumericos = VOCABULARIO.filter(
+        (e) => e.aridad === 1 && e.tiposArgumento[0] !== undefined && e.tiposArgumento[0] !== 'numero',
+      );
+      for (const e of noNumericos) {
+        const mensaje = crearError('argumentoFaltante', { comando: e.nombre }).mensaje;
+        expect(mensaje, e.nombre).not.toMatch(/necesita un número/);
+        expect(mensaje, e.nombre).toContain(e.ejemplo);
+      }
+    });
+  });
+
+  describe('arquitectura: errores.ts sigue sin importar lexer, parser ni colores', () => {
+    it('no hay ciclos nuevos entre errores, vocabulario, lexer y parser', async () => {
+      const { readFileSync } = await import('node:fs');
+      const fuente = (nombre: string) => readFileSync(new URL(`./${nombre}`, import.meta.url), 'utf8');
+      const importes = (texto: string) => [...texto.matchAll(/from\s+'(\.[^']+)'/g)].map((m) => m[1]!);
+      expect(importes(fuente('errores.ts')).filter((i) => /lexer|parser|colores/.test(i))).toEqual([]);
+      expect(importes(fuente('vocabulario.ts')).filter((i) => /errores|lexer|parser/.test(i))).toEqual([]);
+    });
+  });
+});
+
+describe('mensajes de PARA: sin nombre, anidado y con parámetros (punto 8)', () => {
+  it('paraSinNombre dice que falta el nombre y da el ejemplo del vocabulario', () => {
+    const e = crearError('paraSinNombre', {}, { linea: 2, columna: 1 });
+    expect(e.id).toBe('paraSinNombre');
+    expect(e.severidad).toBe('jugador');
+    expect(e.mensaje).toBe('A PARA le falta el nombre del procedimiento. Por ejemplo: PARA cuadrado');
+    expect(e.linea).toBe(2);
+    expect(e.columna).toBe(1);
+  });
+
+  it('paraAnidado explica que PARA solo va en el nivel principal', () => {
+    const e = crearError('paraAnidado', {}, { linea: 1, columna: 11 });
+    expect(e.id).toBe('paraAnidado');
+    expect(e.severidad).toBe('jugador');
+    expect(e.mensaje).toBe(
+      'PARA solo se escribe en el nivel principal del programa, no dentro de REPITE ni de otro PARA. Defínelo afuera y llámalo desde aquí.',
+    );
+  });
+
+  it('paraConParametros avisa que los parámetros se desbloquean en el mundo 4', () => {
+    const e = crearError('paraConParametros', {}, { linea: 1, columna: 8 });
+    expect(e.id).toBe('paraConParametros');
+    expect(e.severidad).toBe('jugador');
+    expect(e.mensaje).toBe(
+      'Los parámetros de PARA (como :lado) se desbloquean en el mundo 4. Por ahora define el procedimiento sin ellos. Por ejemplo: PARA cuadrado',
+    );
+  });
+
+  it('los tres mensajes caben en 200 caracteres y no llevan líneas ni números fijos', () => {
+    for (const id of ['paraSinNombre', 'paraAnidado', 'paraConParametros'] as const) {
+      const { mensaje } = crearError(id, {});
+      expect(mensaje.length, id).toBeLessThanOrEqual(200);
+      expect(mensaje, id).not.toMatch(/línea \d|número 100/);
+    }
+  });
+
+  it('paraSinFin conserva su único significado: un PARA con nombre que no termina', () => {
+    expect(crearError('paraSinFin', { nombre: 'CUADRADO', linea: 3 }).mensaje).toBe(
+      'El comando CUADRADO que empezaste en la línea 3 nunca termina con FIN.',
     );
   });
 });

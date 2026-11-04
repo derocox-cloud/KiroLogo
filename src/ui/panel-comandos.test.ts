@@ -863,3 +863,183 @@ describe('panel-comandos · fijarMundo reconstruye el vocabulario vigente (Prope
     }
   });
 });
+
+// ============================================================================
+// Tarea 13 (spec 03-mundo-2-composicion) · Procedimientos del jugador en el panel
+//
+// R7: el panel muestra los procedimientos definidos DESPUÉS de los comandos del
+// lenguaje, en orden de definición, por su nombre tal como se escribió y sin
+// abreviatura (R7.1, R7.2); cambiar la lista refleja altas, bajas y renombres
+// (R7.4); una definición no registrada no aparece (R7.5, que satisface quien
+// llama filtrando). Activar un procedimiento inserta su nombre como un comando.
+// R12.3/R12.4: en el mundo 0/1 no hay comandos del mundo 2; en el mundo 2 sí,
+// con descripción y ejemplo.
+// ============================================================================
+
+describe('panel-comandos · procedimientos del jugador (R7)', () => {
+  const tecla = (key: string): KeyboardEvent =>
+    new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+
+  // Nombres de los botones de procedimiento (los que llevan la clase kl-procedimiento),
+  // en orden del DOM.
+  const nombresProcedimientos = (panel: PanelComandos): string[] =>
+    panel.botones
+      .filter((b) => b.classList.contains('kl-procedimiento'))
+      .map((b) => b.getAttribute('data-procedimiento') ?? '');
+
+  it('añade los procedimientos tras los comandos del mundo, por su nombre y sin abreviatura (R7.1, R7.2)', () => {
+    const { panel } = montar(2);
+    const comandosMundo2 = comandosDelMundo(2).length;
+    expect(panel.botones.length).toBe(comandosMundo2); // sin procedimientos todavía
+
+    panel.fijarProcedimientos(['CUADRADO', 'FLOR']);
+
+    // Dos botones extra, DESPUÉS de todos los comandos del lenguaje.
+    expect(panel.botones.length).toBe(comandosMundo2 + 2);
+    expect(nombresProcedimientos(panel)).toEqual(['CUADRADO', 'FLOR']);
+    // Van al final: los índices de los procedimientos son los últimos.
+    const indicesProc = panel.botones
+      .map((b, i) => (b.classList.contains('kl-procedimiento') ? i : -1))
+      .filter((i) => i >= 0);
+    expect(indicesProc).toEqual([comandosMundo2, comandosMundo2 + 1]);
+
+    // Nombre tal como se escribió, sin abreviatura: no hay trozo de abreviatura.
+    const botonCuadrado = panel.botones[comandosMundo2]!;
+    expect(botonCuadrado.querySelector('.kl-comando-nombre')!.textContent).toBe('CUADRADO');
+    expect(botonCuadrado.querySelector('.kl-comando-abrev')).toBeNull();
+    expect(botonCuadrado.textContent).toBe('CUADRADO');
+  });
+
+  it('conserva el orden de definición dado, no lo reordena', () => {
+    const { panel } = montar(2);
+    panel.fijarProcedimientos(['ZETA', 'ALFA', 'MEDIA']);
+    expect(nombresProcedimientos(panel)).toEqual(['ZETA', 'ALFA', 'MEDIA']);
+  });
+
+  it('cambiar la lista refleja una baja: quita FLOR y conserva CUADRADO (R7.4)', () => {
+    const { panel } = montar(2);
+    panel.fijarProcedimientos(['CUADRADO', 'FLOR']);
+    expect(nombresProcedimientos(panel)).toEqual(['CUADRADO', 'FLOR']);
+
+    panel.fijarProcedimientos(['CUADRADO']);
+    expect(nombresProcedimientos(panel)).toEqual(['CUADRADO']);
+  });
+
+  it('cambiar la lista refleja un renombre: CUADRADO pasa a TRIANGULO (R7.4)', () => {
+    const { panel } = montar(2);
+    panel.fijarProcedimientos(['CUADRADO']);
+    expect(nombresProcedimientos(panel)).toEqual(['CUADRADO']);
+
+    panel.fijarProcedimientos(['TRIANGULO']);
+    expect(nombresProcedimientos(panel)).toEqual(['TRIANGULO']);
+  });
+
+  it('cambiar la lista refleja un alta: añade un segundo procedimiento (R7.4)', () => {
+    const { panel } = montar(2);
+    panel.fijarProcedimientos(['CUADRADO']);
+    panel.fijarProcedimientos(['CUADRADO', 'FLOR']);
+    expect(nombresProcedimientos(panel)).toEqual(['CUADRADO', 'FLOR']);
+  });
+
+  it('una lista vacía no deja ningún botón de procedimiento, sin tocar los comandos (R7.5)', () => {
+    const { panel } = montar(2);
+    const comandosMundo2 = comandosDelMundo(2).length;
+    panel.fijarProcedimientos(['CUADRADO', 'FLOR']);
+    panel.fijarProcedimientos([]);
+    expect(nombresProcedimientos(panel)).toEqual([]);
+    expect(panel.botones.length).toBe(comandosMundo2);
+    // Los comandos del lenguaje siguen intactos y primeros.
+    expect(panel.botones.map((b) => b.getAttribute('data-comando'))).toEqual(
+      comandosDelMundo(2).map((e) => e.nombre),
+    );
+  });
+
+  it('no altera los botones de comando del lenguaje: siguen intactos y primeros', () => {
+    const { panel } = montar(2);
+    const comandosAntes = panel.botones.map((b) => b.getAttribute('data-comando'));
+    panel.fijarProcedimientos(['CUADRADO']);
+    const comandosDespues = panel.botones
+      .filter((b) => !b.classList.contains('kl-procedimiento'))
+      .map((b) => b.getAttribute('data-comando'));
+    expect(comandosDespues).toEqual(comandosAntes);
+  });
+
+  it('activar un procedimiento inserta su nombre en el editor como un comando', () => {
+    const { panel, editor, anuncios } = montar(2);
+    const comandosMundo2 = comandosDelMundo(2).length;
+    panel.fijarProcedimientos(['CUADRADO']);
+    editor.area.setSelectionRange(0, 0);
+    panel.botones[comandosMundo2]!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(editor.texto()).toBe('CUADRADO ');
+    expect(anuncios.at(-1)).toContain('CUADRADO');
+    expect(anuncios.at(-1)).toContain('línea 1');
+  });
+
+  it('el roving tabindex cubre comandos y procedimientos, con una sola parada de Tab', () => {
+    const { panel } = montar(2);
+    panel.fijarProcedimientos(['CUADRADO', 'FLOR']);
+
+    // Una sola parada de Tab en todo el conjunto combinado, en el primer botón.
+    const conTab = panel.botones.map((b, i) => (b.tabIndex === 0 ? i : -1)).filter((i) => i >= 0);
+    expect(conTab).toEqual([0]);
+
+    // Las flechas recorren hasta el último procedimiento y vuelven al primer comando.
+    const ultimo = panel.botones.length - 1;
+    panel.botones[ultimo]!.focus();
+    expect(panel.botones[ultimo]!.classList.contains('kl-procedimiento')).toBe(true);
+    expect(panel.botones.map((b, i) => (b.tabIndex === 0 ? i : -1)).filter((i) => i >= 0)).toEqual([
+      ultimo,
+    ]);
+    // Desde el último, la flecha abajo da la vuelta al primero (un comando).
+    panel.botones[ultimo]!.dispatchEvent(tecla('ArrowDown'));
+    expect(panel.botones.indexOf(document.activeElement as HTMLButtonElement)).toBe(0);
+  });
+
+  it('un cambio de mundo no borra los procedimientos ya fijados', () => {
+    const { panel } = montar(2);
+    panel.fijarProcedimientos(['CUADRADO']);
+    panel.fijarMundo(3); // reconstruye con el vocabulario del mundo 3
+    expect(nombresProcedimientos(panel)).toEqual(['CUADRADO']);
+  });
+});
+
+describe('panel-comandos · comandos del mundo 2 según el mundo (R12.3, R12.4)', () => {
+  const COMANDOS_M2 = [
+    'PARA',
+    'FIN',
+    'SUBELAPIZ',
+    'BAJALAPIZ',
+    'PONCOLOR',
+    'PONGROSOR',
+    'RELLENA',
+    'OCULTATORTUGA',
+    'MUESTRATORTUGA',
+  ];
+
+  it('en el mundo 0 y en el mundo 1 el panel no muestra ningún comando del mundo 2 (R12.4)', () => {
+    for (const mundo of [0, 1] as const) {
+      const { panel } = montar(mundo);
+      const nombres = panel.entradas.map((e) => e.nombre);
+      for (const comando of COMANDOS_M2) {
+        expect(nombres, `mundo ${mundo}: ${comando}`).not.toContain(comando);
+      }
+    }
+  });
+
+  it('en el mundo 2 el panel muestra cada comando del mundo 2 con descripción y ejemplo (R12.3)', () => {
+    const { panel } = montar(2);
+    for (const comando of COMANDOS_M2) {
+      const entrada = panel.entradas.find((e) => e.nombre === comando);
+      expect(entrada, comando).toBeDefined();
+      expect(entrada!.descripcion.length, `${comando}: descripción`).toBeGreaterThan(0);
+      expect(entrada!.ejemplo.length, `${comando}: ejemplo`).toBeGreaterThan(0);
+
+      // El botón renderiza su descripción y su ejemplo íntegros.
+      const indice = panel.entradas.indexOf(entrada!);
+      const boton = panel.botones[indice]!;
+      const texto = boton.textContent ?? '';
+      expect(texto, `${comando}: botón`).toContain(entrada!.descripcion);
+      expect(texto, `${comando}: botón`).toContain(entrada!.ejemplo);
+    }
+  });
+});

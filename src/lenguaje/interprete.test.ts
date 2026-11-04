@@ -30,7 +30,7 @@ import { generarPrograma } from '../azar/generadores-prueba.test.js';
 // Ayudas
 // ============================================================================
 
-const PERMITIDOS_MUNDO_0 = comandosDelMundo(0).filter((e) => e.ejecutable);
+const PERMITIDOS_MUNDO_0 = comandosDelMundo(0).filter((e) => e.mundo === 0);
 
 /** Ejecuta un programa hasta el final y devuelve el resultado del generador. */
 function correr(programa: Programa, opciones?: Partial<OpcionesEjecucion>): ResultadoEjecucion {
@@ -188,7 +188,7 @@ describe('interprete', () => {
       const { tokens } = analizarLexico('REPITE 4 [AV 100 GD 90]');
       const { programa: prog4 } = analizar(tokens, { mundo: 1 });
       expect(prog4).not.toBeNull();
-      const permitidos1 = comandosDelMundo(1).filter((e) => e.ejecutable);
+      const permitidos1 = comandosDelMundo(1).filter((e) => e.mundo === 0);
       const r = correr(prog4!, { comandosPermitidos: permitidos1 });
       expect(r.error).toBeNull();
       expect(r.operaciones).toHaveLength(8);
@@ -203,7 +203,7 @@ describe('interprete', () => {
       const { tokens } = analizarLexico('REPITE 0 [AV 100]');
       const { programa: prog0 } = analizar(tokens, { mundo: 1 });
       expect(prog0).not.toBeNull();
-      const permitidos1 = comandosDelMundo(1).filter((e) => e.ejecutable);
+      const permitidos1 = comandosDelMundo(1).filter((e) => e.mundo === 0);
       const r = correr(prog0!, { comandosPermitidos: permitidos1 });
       expect(r.error).toBeNull();
       expect(r.operaciones).toHaveLength(0);
@@ -213,7 +213,7 @@ describe('interprete', () => {
       const { tokens } = analizarLexico('REPITE 2 [REPITE 3 [AV 50 GD 60]]');
       const { programa: prog2 } = analizar(tokens, { mundo: 1 });
       expect(prog2).not.toBeNull();
-      const permitidos1 = comandosDelMundo(1).filter((e) => e.ejecutable);
+      const permitidos1 = comandosDelMundo(1).filter((e) => e.mundo === 0);
       const r = correr(prog2!, { comandosPermitidos: permitidos1 });
       expect(r.error).toBeNull();
       expect(r.operaciones).toHaveLength(12);
@@ -475,6 +475,301 @@ describe('interprete', () => {
       const r = correr(programa, { limites, ahora: () => 1 });
       expect(r.guardaActivada).toBe('pasos');
     });
+  });
+});
+
+// ============================================================================
+// Mundo 2: procedimientos, lápiz, visibilidad y canal decorativo
+// ============================================================================
+
+describe('mundo 2: procedimientos', () => {
+  // Permitimos todos los comandos de mundo ≤ 2: aquí se prueba la semántica del
+  // intérprete, que resuelve por nombre canónico.
+  const PERMITIDOS_MUNDO_2 = comandosDelMundo(2);
+
+  function correr2(texto: string): ResultadoEjecucion {
+    const { tokens } = analizarLexico(texto);
+    const { programa } = analizar(tokens, { mundo: 2 });
+    expect(programa).not.toBeNull();
+    return correr(programa!, { comandosPermitidos: PERMITIDOS_MUNDO_2 });
+  }
+
+  it('PARA CUADRADO … FIN CUADRADO emite exactamente lo mismo que REPITE 4 [AV 100 GD 90] (R1.1)', () => {
+    const conProc = correr2('PARA CUADRADO REPITE 4 [AV 100 GD 90] FIN CUADRADO');
+    const sinProc = correr2('REPITE 4 [AV 100 GD 90]');
+    expect(conProc.error).toBeNull();
+    expect(sinProc.error).toBeNull();
+    // Mismas operaciones, en el mismo orden. Se comparan tipo y campos de forma,
+    // ignorando la línea (que difiere por el texto distinto).
+    const forma = (r: ResultadoEjecucion) =>
+      r.operaciones.map((o) =>
+        o.tipo === 'mover'
+          ? { tipo: o.tipo, desde: o.desde, hasta: o.hasta, lapizAbajo: o.lapizAbajo }
+          : o.tipo === 'girar'
+            ? { tipo: o.tipo, grados: o.grados, sentido: o.sentido }
+            : { tipo: o.tipo },
+      );
+    expect(forma(conProc)).toEqual(forma(sinProc));
+  });
+
+  it('un procedimiento con cuerpo vacío invocado no emite operaciones ni error (R1.8)', () => {
+    // Construimos el AST directo: PARA VACIO FIN con cuerpo [] e invocación.
+    const definicion: DefinicionProcedimiento = {
+      tipo: 'definicionProcedimiento', nombre: 'VACIO', parametros: [], cuerpo: [], ...pos(),
+    };
+    const llamada: InvocacionProcedimiento = {
+      tipo: 'invocacionProcedimiento', nombre: 'VACIO', argumentos: [], ...pos(),
+    };
+    const r = correr(prog([definicion, llamada]), { comandosPermitidos: PERMITIDOS_MUNDO_2 });
+    expect(r.error).toBeNull();
+    expect(r.operaciones).toHaveLength(0);
+  });
+
+  it('invocar un procedimiento no definido detiene con comandoNoPermitido y no emite esa operación (R1.6)', () => {
+    const llamada: InvocacionProcedimiento = {
+      tipo: 'invocacionProcedimiento', nombre: 'FANTASMA', argumentos: [], ...pos(),
+    };
+    const r = correr(prog([inv('AVANZA', numero(10)), llamada]), { comandosPermitidos: PERMITIDOS_MUNDO_2 });
+    expect(r.operaciones).toHaveLength(1); // solo el AVANZA
+    expect(r.error).not.toBeNull();
+    expect(r.error!.id).toBe('comandoNoPermitido');
+  });
+});
+
+// Estas pruebas se quedan en la capa del lenguaje (estructura.md: lenguaje/ no
+// importa de motor/). Afirman lo que emite el intérprete —el estado del lápiz en
+// cada `mover`, qué tipos de operación salen— y no los segmentos: que un mover con
+// el lápiz arriba, una decoración o una visibilidad no aporten segmentos lo prueba
+// motor/segmentos.test.ts, y la frontera decorativa de punta a punta (R4.8), el
+// describe «validador · frontera decorativa (R4.8)» de motor/validador.test.ts.
+
+/** Estado del lápiz en cada `mover` emitido, en orden. */
+function lapizDeCadaMover(operaciones: ResultadoEjecucion['operaciones']): boolean[] {
+  return operaciones.flatMap((o) => (o.tipo === 'mover' ? [o.lapizAbajo] : []));
+}
+
+describe('mundo 2: lápiz', () => {
+  const PERMITIDOS_MUNDO_2 = comandosDelMundo(2);
+
+  function correr2(texto: string): ResultadoEjecucion {
+    const { tokens } = analizarLexico(texto);
+    const { programa } = analizar(tokens, { mundo: 2 });
+    expect(programa).not.toBeNull();
+    return correr(programa!, { comandosPermitidos: PERMITIDOS_MUNDO_2 });
+  }
+
+  it('SUBELAPIZ antes de AVANZA mueve con el lápiz arriba; BAJALAPIZ lo reanuda (R3.2, R3.4)', () => {
+    const conLapizArriba = correr2('SUBELAPIZ AVANZA 100');
+    expect(conLapizArriba.error).toBeNull();
+    expect(lapizDeCadaMover(conLapizArriba.operaciones)).toEqual([false]);
+
+    const reanudado = correr2('SUBELAPIZ AVANZA 100 BAJALAPIZ AVANZA 100');
+    expect(reanudado.error).toBeNull();
+    // Solo el segundo AVANZA (con el lápiz abajo) deja trazo.
+    expect(lapizDeCadaMover(reanudado.operaciones)).toEqual([false, true]);
+  });
+
+  it('SUBELAPIZ repetido es idempotente y no da error (R3.7)', () => {
+    const r = correr2('SUBELAPIZ SUBELAPIZ AVANZA 100');
+    expect(r.error).toBeNull();
+    expect(lapizDeCadaMover(r.operaciones)).toEqual([false]);
+    // Todas las operaciones de lápiz dejan lapizAbajo en false.
+    for (const op of r.operaciones) {
+      if (op.tipo === 'lapiz') expect(op.lapizAbajo).toBe(false);
+    }
+  });
+});
+
+describe('mundo 2: canal decorativo', () => {
+  const PERMITIDOS_MUNDO_2 = comandosDelMundo(2);
+
+  function correr2(texto: string): ResultadoEjecucion {
+    const { tokens } = analizarLexico(texto);
+    const { programa } = analizar(tokens, { mundo: 2 });
+    expect(programa).not.toBeNull();
+    return correr(programa!, { comandosPermitidos: PERMITIDOS_MUNDO_2 });
+  }
+
+  it('PONCOLOR, PONGROSOR y RELLENA no emiten movimientos ni cambian posición ni rumbo', () => {
+    const r = correr2('PONCOLOR rojo PONGROSOR 5 RELLENA "azul');
+    expect(r.error).toBeNull();
+    // Solo operaciones decorativas: ningún `mover` que pudiera dejar trazo.
+    expect(r.operaciones.map((o) => o.tipo)).toEqual(['color', 'grosor', 'relleno']);
+    // Ninguna movió la tortuga: estadoDespues conserva posición y rumbo.
+    for (const op of r.operaciones) {
+      expect(op.estadoDespues.posicion).toEqual(op.estadoAntes.posicion);
+      expect(op.estadoDespues.rumbo).toBe(op.estadoAntes.rumbo);
+    }
+  });
+
+  it('PONCOLOR resuelve el nombre del color del trazo', () => {
+    const r = correr2('PONCOLOR azul');
+    expect(r.error).toBeNull();
+    const color = r.operaciones[0]!;
+    expect(color.tipo).toBe('color');
+    if (color.tipo === 'color') expect(color.color.nombre).toBe('azul');
+  });
+
+  // RELLENA lleva su propio color (lenguaje-kirologo.md: `RELLENA "azul`; R4.6): no
+  // usa el color vigente del trazo.
+  it('RELLENA "azul emite OperacionRelleno con azul aunque el trazo sea rojo (R4.6)', () => {
+    const r = correr2('PONCOLOR rojo RELLENA "azul');
+    expect(r.error).toBeNull();
+    expect(r.operaciones.map((o) => o.tipo)).toEqual(['color', 'relleno']);
+    const relleno = r.operaciones[1]!;
+    if (relleno.tipo === 'relleno') expect(relleno.color.nombre).toBe('azul');
+  });
+
+  it('RELLENA sin PONCOLOR previo usa el color que se le indica, no el negro por omisión', () => {
+    const r = correr2('RELLENA verde');
+    expect(r.error).toBeNull();
+    const relleno = r.operaciones[0]!;
+    expect(relleno.tipo).toBe('relleno');
+    if (relleno.tipo === 'relleno') expect(relleno.color.nombre).toBe('verde');
+  });
+
+  it('RELLENA [0 0 255] resuelve una terna RGB', () => {
+    const r = correr2('RELLENA [0 0 255]');
+    expect(r.error).toBeNull();
+    const relleno = r.operaciones[0]!;
+    if (relleno.tipo === 'relleno') {
+      expect({ r: relleno.color.r, g: relleno.color.g, b: relleno.color.b }).toEqual({ r: 0, g: 0, b: 255 });
+      expect(relleno.color.nombre).toBeNull();
+    }
+  });
+
+  it('RELLENA con un color fuera del catálogo detiene con colorInvalido sin emitir relleno', () => {
+    const r = correr2('PONCOLOR rojo RELLENA turquesa');
+    expect(r.error!.id).toBe('colorInvalido');
+    expect(r.error!.mensaje).toContain('TURQUESA');
+    expect(r.operaciones.map((o) => o.tipo)).toEqual(['color']);
+  });
+
+  it('RELLENA con una terna fuera de 0..255 detiene con colorInvalido', () => {
+    const r = correr2('RELLENA [300 0 0]');
+    expect(r.error!.id).toBe('colorInvalido');
+    expect(r.operaciones).toHaveLength(0);
+  });
+
+  it('PONCOLOR [255 0 0] resuelve una terna RGB', () => {
+    const r = correr2('PONCOLOR [255 0 0]');
+    expect(r.error).toBeNull();
+    const op = r.operaciones[0]!;
+    expect(op.tipo).toBe('color');
+    if (op.tipo === 'color') {
+      expect({ r: op.color.r, g: op.color.g, b: op.color.b }).toEqual({ r: 255, g: 0, b: 0 });
+      expect(op.color.nombre).toBeNull();
+    }
+  });
+
+  it('color inválido detiene con colorInvalido y conserva el color vigente (R4.3)', () => {
+    // PONCOLOR verde válido, luego turquesa inválido: el segundo detiene sin emitir.
+    const r = correr2('PONCOLOR verde PONCOLOR turquesa RELLENA "azul');
+    expect(r.error).not.toBeNull();
+    expect(r.error!.id).toBe('colorInvalido');
+    // Solo se emitió el primer PONCOLOR (verde); el inválido no emite operación.
+    expect(r.operaciones.map((o) => o.tipo)).toEqual(['color']);
+  });
+
+  it('grosor fuera de 1..50 detiene con grosorInvalido (R4.5)', () => {
+    const r = correr2('PONGROSOR 100');
+    expect(r.error).not.toBeNull();
+    expect(r.error!.id).toBe('grosorInvalido');
+    expect(r.operaciones).toHaveLength(0);
+  });
+
+  it('grosor 0 también es inválido', () => {
+    const r = correr2('PONGROSOR 0');
+    expect(r.error!.id).toBe('grosorInvalido');
+  });
+
+  it('las abreviaturas PC, PG y RL se reconocen', () => {
+    const r = correr2('PC rojo PG 3 RL "azul');
+    expect(r.error).toBeNull();
+    expect(r.operaciones.map((o) => o.tipo)).toEqual(['color', 'grosor', 'relleno']);
+  });
+});
+
+describe('mundo 2: guarda de rellenos', () => {
+  const PERMITIDOS_MUNDO_2 = comandosDelMundo(2);
+
+  function correr2(texto: string, opciones?: Partial<OpcionesEjecucion>): ResultadoEjecucion {
+    const { tokens } = analizarLexico(texto);
+    const { programa } = analizar(tokens, { mundo: 2 });
+    expect(programa).not.toBeNull();
+    return correr(programa!, { comandosPermitidos: PERMITIDOS_MUNDO_2, ...opciones });
+  }
+
+  // El intérprete cuenta un RELLENA como una operación barata, pero el lienzo
+  // calcula su área con una inundación sobre 800×800 celdas. Sin esta guarda,
+  // `REPITE N [RELLENA]` con N grande pasa las guardas de pasos y de tiempo
+  // (emitir la operación es instantáneo) y cuelga la pestaña al dibujar. La guarda
+  // corta en el intérprete, antes de que ningún consumidor reciba el relleno de más.
+  it('más de maximoRellenos activa la guarda y corta antes de emitir el que sobra', () => {
+    const limites = { ...LIMITES_PREDETERMINADOS, maximoRellenos: 5 };
+    const r = correr2('REPITE 100 [RELLENA "azul]', { limites });
+    expect(r.guardaActivada).toBe('rellenos');
+    expect(r.error!.id).toBe('guardaRellenos');
+    expect(r.error!.mensaje).toContain('5');
+    // Se emitieron exactamente maximoRellenos, ni uno más.
+    expect(r.operaciones.filter((o) => o.tipo === 'relleno')).toHaveLength(5);
+  });
+
+  it('justo maximoRellenos rellenos no activa la guarda', () => {
+    const limites = { ...LIMITES_PREDETERMINADOS, maximoRellenos: 3 };
+    const r = correr2('REPITE 3 [RELLENA "azul]', { limites });
+    expect(r.guardaActivada).toBeNull();
+    expect(r.error).toBeNull();
+    expect(r.operaciones.filter((o) => o.tipo === 'relleno')).toHaveLength(3);
+  });
+
+  it('el límite por omisión (100) deja pasar los rellenos de cualquier figura del juego', () => {
+    // La cuadrícula más grande del mundo 2 tiene 9 paneles; 100 sobra de lejos.
+    const r = correr2('REPITE 9 [RELLENA "azul SUBELAPIZ AVANZA 1 BAJALAPIZ]');
+    expect(r.guardaActivada).toBeNull();
+    expect(r.operaciones.filter((o) => o.tipo === 'relleno')).toHaveLength(9);
+  });
+
+  it('los rellenos de distintas ejecuciones no se arrastran', () => {
+    const limites = { ...LIMITES_PREDETERMINADOS, maximoRellenos: 2 };
+    const a = correr2('RELLENA "azul RELLENA "rojo', { limites });
+    const b = correr2('RELLENA "azul RELLENA "rojo', { limites });
+    expect(a.guardaActivada).toBeNull();
+    expect(b.guardaActivada).toBeNull();
+  });
+});
+
+describe('mundo 2: visibilidad', () => {
+  const PERMITIDOS_MUNDO_2 = comandosDelMundo(2);
+
+  function correr2(texto: string): ResultadoEjecucion {
+    const { tokens } = analizarLexico(texto);
+    const { programa } = analizar(tokens, { mundo: 2 });
+    expect(programa).not.toBeNull();
+    return correr(programa!, { comandosPermitidos: PERMITIDOS_MUNDO_2 });
+  }
+
+  it('OCULTATORTUGA y MUESTRATORTUGA emiten OperacionVisibilidad (R5.1, R5.2)', () => {
+    const r = correr2('OCULTATORTUGA MUESTRATORTUGA');
+    expect(r.error).toBeNull();
+    expect(r.operaciones.map((o) => o.tipo)).toEqual(['visibilidad', 'visibilidad']);
+    const oculta = r.operaciones[0]!;
+    const muestra = r.operaciones[1]!;
+    if (oculta.tipo === 'visibilidad') expect(oculta.visible).toBe(false);
+    if (muestra.tipo === 'visibilidad') expect(muestra.visible).toBe(true);
+    // Ninguna emite un movimiento.
+    expect(lapizDeCadaMover(r.operaciones)).toEqual([]);
+  });
+
+  it('OCULTATORTUGA repetido es idempotente y sin error (R5.4, R5.5)', () => {
+    const r = correr2('OCULTATORTUGA OCULTATORTUGA');
+    expect(r.error).toBeNull();
+    for (const op of r.operaciones) {
+      if (op.tipo === 'visibilidad') {
+        expect(op.visible).toBe(false);
+        expect(op.estadoDespues.visible).toBe(false);
+      }
+    }
   });
 });
 

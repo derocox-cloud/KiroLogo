@@ -1,7 +1,7 @@
 // Catálogo de errores de KiroLogo
 // Fuente única de todos los mensajes de error visibles al jugador
 
-import { VOCABULARIO, buscarComando, normalizarPalabra, EntradaVocabulario, Mundo } from './vocabulario.js';
+import { VOCABULARIO, buscarComando, normalizarPalabra, EntradaVocabulario, Mundo, TipoArgumento } from './vocabulario.js';
 
 // ============================================================================
 // Tipos base
@@ -20,9 +20,14 @@ export type IdError =
   | 'argumentoFaltante' | 'argumentoDeTipoEquivocado'
   | 'corcheteSinCerrar' | 'corcheteSinCerrarEnLinea' | 'corcheteDeMas' | 'corcheteDeMasEnLinea' | 'corcheteInesperado'
   | 'parametroInesperado' | 'palabraInesperada' | 'numeroInesperado'
+  // procedimientos del mundo 2 (PARA...FIN)
+  | 'finSinPara' | 'paraSinFin' | 'procedimientoRedefinido' | 'paraNombreQueEsLenguaje'
+  | 'paraSinNombre' | 'paraAnidado' | 'paraConParametros'
   // ejecución
   | 'comandoNoPermitido' | 'nodoNoImplementado' | 'nodoNoImprimible'
-  | 'guardaPasos' | 'guardaRecursion' | 'guardaTiempo'
+  | 'guardaPasos' | 'guardaRecursion' | 'guardaTiempo' | 'guardaRellenos'
+  // decorado del mundo 2 (color y grosor)
+  | 'colorInvalido' | 'grosorInvalido'
   // interfaz y persistencia
   | 'limiteLineasEditor' | 'limiteCaracteresEditor' | 'progresoNoSeGuarda'
   // azar y semillas
@@ -77,8 +82,8 @@ export interface ParametrosPorError {
   readonly comandoEnIngles: { readonly escrita: string };
   readonly comandoBloqueado: { readonly nombre: string; readonly mundo: number };
   readonly comandoBloqueadoCercano: { readonly escrita: string; readonly nombre: string; readonly mundo: number };
-  readonly argumentoFaltante: { readonly comando: string };
-  readonly argumentoDeTipoEquivocado: { readonly comando: string; readonly recibido: string };
+  readonly argumentoFaltante: { readonly comando: string; readonly parte?: ParteArgumento };
+  readonly argumentoDeTipoEquivocado: { readonly comando: string; readonly recibido: string; readonly parte?: ParteArgumento };
   readonly corcheteSinCerrar: Record<string, never>;
   readonly corcheteSinCerrarEnLinea: { readonly linea: number };
   readonly corcheteDeMas: Record<string, never>;
@@ -88,6 +93,15 @@ export interface ParametrosPorError {
   readonly palabraInesperada: Record<string, never>;
   readonly numeroInesperado: Record<string, never>;
   
+  // procedimientos del mundo 2 (PARA...FIN)
+  readonly finSinPara: { readonly linea: number };
+  readonly paraSinFin: { readonly nombre: string; readonly linea: number };
+  readonly procedimientoRedefinido: { readonly nombre: string; readonly linea: number };
+  readonly paraNombreQueEsLenguaje: { readonly nombre: string };
+  readonly paraSinNombre: Record<string, never>;
+  readonly paraAnidado: Record<string, never>;
+  readonly paraConParametros: Record<string, never>;
+  
   // ejecución
   readonly comandoNoPermitido: { readonly nombre: string };
   readonly nodoNoImplementado: Record<string, never>;
@@ -95,6 +109,11 @@ export interface ParametrosPorError {
   readonly guardaPasos: Record<string, never>;
   readonly guardaRecursion: { readonly nombre: string } | { readonly linea: number };
   readonly guardaTiempo: Record<string, never>;
+  readonly guardaRellenos: { readonly maximo: number };
+  
+  // decorado del mundo 2 (color y grosor)
+  readonly colorInvalido: { readonly escrita: string };
+  readonly grosorInvalido: Record<string, never>;
   
   // interfaz y persistencia
   readonly limiteLineasEditor: Record<string, never>;
@@ -207,6 +226,36 @@ export function crearError<K extends IdError>(
         return crearError('solicitudDeErrorInvalida', {}, posicion);
       }
       break;
+    case 'paraSinFin':
+      const params9 = parametros as ParametrosPorError['paraSinFin'];
+      if (!params9.nombre?.trim()) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    case 'procedimientoRedefinido':
+      const params10 = parametros as ParametrosPorError['procedimientoRedefinido'];
+      if (!params10.nombre?.trim()) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    case 'paraNombreQueEsLenguaje':
+      const params11 = parametros as ParametrosPorError['paraNombreQueEsLenguaje'];
+      if (!params11.nombre?.trim()) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    case 'colorInvalido':
+      const params12 = parametros as ParametrosPorError['colorInvalido'];
+      if (!params12.escrita?.trim()) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    case 'guardaRellenos':
+      const params13 = parametros as ParametrosPorError['guardaRellenos'];
+      if (!Number.isInteger(params13.maximo) || params13.maximo < 1) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
   }
   
   // Obtener severidad
@@ -236,6 +285,96 @@ export function crearError<K extends IdError>(
   };
 }
 
+// ============================================================================
+// Mensajes de argumento derivados del tipo (vocabulario.ts)
+// ============================================================================
+
+/**
+ * Parte del argumento a la que se refiere el error cuando el comando tiene un
+ * componente con forma propia. Hoy solo la terna RGB de `PONCOLOR`.
+ */
+export type ParteArgumento = 'terna';
+
+/**
+ * Plantilla de los mensajes de argumento de un tipo. `sustantivo` es lo que el
+ * comando espera. Que sea un `Record` completo hace que agregar un `TipoArgumento`
+ * al vocabulario sin su plantilla no compile: el texto nunca vuelve a quedar fijo
+ * en «necesita un número» por olvido.
+ */
+interface PlantillaArgumento {
+  readonly sustantivo: string;
+}
+
+const PLANTILLAS_ARGUMENTO: Readonly<Record<TipoArgumento, PlantillaArgumento>> = {
+  numero: { sustantivo: 'un número' },
+  color: { sustantivo: 'un color' },
+  nombre: { sustantivo: 'el nombre del procedimiento' },
+  palabra: { sustantivo: 'una palabra' },
+  lista: { sustantivo: 'una lista de instrucciones entre corchetes' },
+  expresion: { sustantivo: 'una condición' },
+};
+
+/** Ejemplo del comando según el vocabulario (única fuente de los ejemplos de los mensajes). */
+function ejemploDe(comando: string): string {
+  const busqueda = buscarComando(comando);
+  return busqueda.hallada ? busqueda.entrada.ejemplo : comando;
+}
+
+/** Ejemplo de la terna RGB de un comando de color (el vocabulario tiene un solo ejemplo por comando). */
+function ejemploTerna(comando: string): string {
+  return `${comando} [255 0 0]`;
+}
+
+/**
+ * Clase exacta de lo que escribió el jugador, para decirlo sin llamar «palabra» a
+ * un número o a un símbolo. Trabaja sobre el texto: no importa el lexer ni el parser.
+ */
+export function clasificarRecibido(recibido: string): string {
+  if (/^\d/.test(recibido)) return 'un número';
+  if (recibido.startsWith('[') || recibido.startsWith(']')) return 'un corchete';
+  if (recibido.startsWith(':')) return 'un parámetro';
+  return 'una palabra';
+}
+
+/**
+ * Tipo de argumento que el comando espera según el vocabulario. Un comando que no
+ * existe, sin argumentos declarados o cuyo primer argumento es un número usa el
+ * texto numérico de siempre (los comandos numéricos y REPITE no cambian).
+ */
+function tipoDelComando(comando: string): { readonly tipo: TipoArgumento; readonly ejemplo: string | null } {
+  const busqueda = buscarComando(comando);
+  if (!busqueda.hallada) return { tipo: 'numero', ejemplo: null };
+  const tipo = busqueda.entrada.tiposArgumento[0] ?? 'numero';
+  return { tipo, ejemplo: busqueda.entrada.ejemplo };
+}
+
+function mensajeArgumentoFaltante(comando: string, parte: ParteArgumento | undefined): string {
+  if (parte === 'terna') {
+    return `La terna de ${comando} necesita tres números entre corchetes. Por ejemplo: ${ejemploTerna(comando)}`;
+  }
+  const { tipo, ejemplo } = tipoDelComando(comando);
+  if (tipo === 'numero' || ejemplo === null) {
+    return `${comando} necesita un número. Por ejemplo: ${comando} 100`;
+  }
+  return `${comando} necesita ${PLANTILLAS_ARGUMENTO[tipo].sustantivo}. Por ejemplo: ${ejemplo}`;
+}
+
+function mensajeArgumentoEquivocado(comando: string, recibido: string, parte: ParteArgumento | undefined): string {
+  if (parte === 'terna') {
+    return (
+      `La terna de ${comando} necesita tres números entre corchetes, ` +
+      `pero encontré ${clasificarRecibido(recibido)}: ${recibido}. Por ejemplo: ${ejemploTerna(comando)}`
+    );
+  }
+  const { tipo, ejemplo } = tipoDelComando(comando);
+  if (tipo === 'numero' || ejemplo === null) {
+    return `${comando} necesita un número, pero le diste una palabra: ${recibido}`;
+  }
+  return (
+    `${comando} necesita ${PLANTILLAS_ARGUMENTO[tipo].sustantivo}, ` +
+    `pero le diste ${clasificarRecibido(recibido)}: ${recibido}. Por ejemplo: ${ejemplo}`
+  );
+}
 // ============================================================================
 // Construcción de mensajes
 // ============================================================================
@@ -282,11 +421,11 @@ function construirMensaje<K extends IdError>(
     }
     case 'argumentoFaltante': {
       const p = parametros as ParametrosPorError['argumentoFaltante'];
-      return `${p.comando} necesita un número. Por ejemplo: ${p.comando} 100`;
+      return mensajeArgumentoFaltante(p.comando, p.parte);
     }
     case 'argumentoDeTipoEquivocado': {
       const p = parametros as ParametrosPorError['argumentoDeTipoEquivocado'];
-      return `${p.comando} necesita un número, pero le diste una palabra: ${p.recibido}`;
+      return mensajeArgumentoEquivocado(p.comando, p.recibido, p.parte);
     }
     case 'corcheteSinCerrar':
       return 'Falta cerrar el corchete que abriste en la línea 2.';
@@ -311,6 +450,30 @@ function construirMensaje<K extends IdError>(
     case 'numeroInesperado':
       return 'Encontré el número 100 en la línea 3 sin un comando que lo reciba.';
     
+    // procedimientos del mundo 2 (PARA...FIN)
+    case 'finSinPara': {
+      const p = parametros as ParametrosPorError['finSinPara'];
+      return `Encontré FIN en la línea ${p.linea} pero no hay ningún PARA abierto.`;
+    }
+    case 'paraSinFin': {
+      const p = parametros as ParametrosPorError['paraSinFin'];
+      return `El comando ${p.nombre} que empezaste en la línea ${p.linea} nunca termina con FIN.`;
+    }
+    case 'procedimientoRedefinido': {
+      const p = parametros as ParametrosPorError['procedimientoRedefinido'];
+      return `Ya le enseñaste a Kiro qué es ${p.nombre} más arriba. No puedo aprenderlo dos veces; edita la primera definición.`;
+    }
+    case 'paraNombreQueEsLenguaje': {
+      const p = parametros as ParametrosPorError['paraNombreQueEsLenguaje'];
+      return `${p.nombre} es una palabra de KiroLogo y no se puede volver a definir.`;
+    }
+    case 'paraSinNombre':
+      return `A PARA le falta el nombre del procedimiento. Por ejemplo: ${ejemploDe('PARA')}`;
+    case 'paraAnidado':
+      return 'PARA solo se escribe en el nivel principal del programa, no dentro de REPITE ni de otro PARA. Defínelo afuera y llámalo desde aquí.';
+    case 'paraConParametros':
+      return `Los parámetros de PARA (como :lado) se desbloquean en el mundo 4. Por ahora define el procedimiento sin ellos. Por ejemplo: ${ejemploDe('PARA')}`;
+    
     // ejecución
     case 'comandoNoPermitido': {
       const p = parametros as ParametrosPorError['comandoNoPermitido'];
@@ -332,6 +495,20 @@ function construirMensaje<K extends IdError>(
     }
     case 'guardaTiempo':
       return 'Detuve la ejecución: tu programa llevaba más de 5 segundos dibujando. ¿Hay una repetición que nunca termina?';
+    case 'guardaRellenos': {
+      const p = parametros as ParametrosPorError['guardaRellenos'];
+      return `Detuve la ejecución: tu programa pidió más de ${p.maximo} rellenos. ¿Hay un RELLENA dentro de una repetición que no lo necesita?`;
+    }
+    
+    // decorado del mundo 2 (color y grosor)
+    // La lista de colores es un literal fijo: su orden replica NOMBRES_COLOR
+    // de colores.ts, pero errores.ts no importa de colores.ts para no crear ciclos.
+    case 'colorInvalido': {
+      const p = parametros as ParametrosPorError['colorInvalido'];
+      return `No conozco el color ${p.escrita}. Puedes usar: rojo, azul, verde, amarillo, naranja, morado, rosa, café, negro, blanco o gris.`;
+    }
+    case 'grosorInvalido':
+      return 'El grosor debe ser un número entero entre 1 y 50.';
     
     // interfaz y persistencia
     case 'limiteLineasEditor':
@@ -554,17 +731,56 @@ function encontrarMejorCandidato(
 }
 
 /**
+ * Encuentra el procedimiento definido más cercano a la palabra escrita, con el
+ * mismo umbral de distancia de edición que usa `encontrarMejorCandidato` para los
+ * comandos (≤1 para palabras de 3 caracteres o menos, ≤2 para 4 o más).
+ *
+ * Los nombres de procedimiento ya llegan normalizados (el lexer guarda en
+ * `token.valor` el resultado de `normalizarPalabra`), así que la comparación es
+ * siempre normalizada-contra-normalizada, igual que con los comandos.
+ *
+ * @param palabra Palabra a comparar (ya normalizada)
+ * @param procedimientos Nombres de procedimiento definidos (ya normalizados)
+ * @returns El nombre más cercano y su distancia, o null si ninguno entra en el umbral
+ */
+function encontrarMejorProcedimiento(
+  palabra: string,
+  procedimientos: readonly string[],
+): { texto: string; distancia: number } | null {
+  let mejor: { texto: string; distancia: number } | null = null;
+  const umbral = palabra.length >= 4 ? 2 : 1;
+
+  for (const nombre of procedimientos) {
+    const distancia = distanciaEdicion(palabra, nombre);
+    if (distancia <= umbral) {
+      // Desempate entre procedimientos: el que aparece antes en la lista, que es
+      // el orden de definición en el programa (determinista y estable).
+      if (mejor === null || distancia < mejor.distancia) {
+        mejor = { texto: nombre, distancia };
+      }
+    }
+  }
+
+  return mejor;
+}
+
+/**
  * Resuelve una palabra que no se puede ejecutar aplicando exactamente un mensaje
  * en el orden de precedencia de los cinco casos.
  * @param palabra Palabra escrita por el jugador
  * @param mundoActual Mundo actual del jugador (0-5)
  * @param posicion Opcional: línea y columna donde ocurrió el error
+ * @param procedimientos Opcional: nombres de procedimiento definidos por el jugador
+ *   (ya normalizados), para que la sugerencia del caso 3 pueda proponer uno de ellos.
+ *   Por omisión `[]`, de modo que los mundos 0 y 1 (que aún no tienen `PARA … FIN`)
+ *   mantienen su comportamiento sin cambios.
  * @returns Error correspondiente al primer caso que aplica
  */
 export function resolverPalabraNoEjecutable(
   palabra: string,
   mundoActual: Mundo,
   posicion?: { readonly linea: number; readonly columna?: number },
+  procedimientos: readonly string[] = [],
 ): ErrorKiroLogo {
   const normalizada = normalizarPalabra(palabra);
   
@@ -596,10 +812,29 @@ export function resolverPalabraNoEjecutable(
   ]);
   
   const mejorDesbloqueado = encontrarMejorCandidato(normalizada, candidatosDesbloqueados);
-  if (mejorDesbloqueado !== null) {
+  const mejorProcedimiento = encontrarMejorProcedimiento(normalizada, procedimientos);
+
+  // La sugerencia del caso 3 considera tanto comandos desbloqueados como
+  // procedimientos definidos (R6.3). Desempate por distancia igual: gana el
+  // comando del lenguaje. El vocabulario es la referencia estable que el jugador
+  // siempre puede consultar; un nombre de procedimiento que él acaba de escribir
+  // puede ser justamente la fuente del error tipográfico, así que ante la duda
+  // apuntamos primero a la palabra del lenguaje.
+  let sugerencia: string | null = null;
+  if (mejorDesbloqueado !== null && mejorProcedimiento !== null) {
+    sugerencia = mejorProcedimiento.distancia < mejorDesbloqueado.distancia
+      ? mejorProcedimiento.texto
+      : mejorDesbloqueado.entrada.nombre;
+  } else if (mejorDesbloqueado !== null) {
+    sugerencia = mejorDesbloqueado.entrada.nombre;
+  } else if (mejorProcedimiento !== null) {
+    sugerencia = mejorProcedimiento.texto;
+  }
+
+  if (sugerencia !== null) {
     return crearError('palabraDesconocidaConSugerencia', {
       escrita: palabra,
-      sugerencia: mejorDesbloqueado.entrada.nombre,
+      sugerencia,
     }, posicion);
   }
   

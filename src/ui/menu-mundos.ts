@@ -18,7 +18,7 @@ import { MUNDOS, etiquetaDeMundo } from '../niveles/mundos.js';
 import type { Mundo } from '../lenguaje/vocabulario.js';
 import type { Progreso } from '../juego/progreso.js';
 import { mundoDesbloqueado, nivelDesbloqueado, estadoDeNivel, type EstadoNivel } from '../juego/desbloqueo.js';
-import { insigniaSecuenciaOtorgada } from '../juego/insignias.js';
+import { insigniasDelMundo } from '../juego/insignias.js';
 
 // ============================================================================
 // Callbacks y dependencias
@@ -482,7 +482,7 @@ export function crearMenuMundos(deps: DependenciasMenuMundos): MenuMundos {
 
   /** ¿Se ha ganado la insignia de concepto de un mundo? Hoy solo la del mundo 0. */
   function insigniaOtorgada(mundo: Mundo): boolean {
-    return mundo === 0 && insigniaSecuenciaOtorgada(deps.progreso);
+    return insigniasDelMundo(mundo, deps.progreso).length > 0;
   }
 
   function pintarEncabezado(mundo: Mundo): void {

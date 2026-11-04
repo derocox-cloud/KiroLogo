@@ -750,3 +750,149 @@ describe('animador · detener termina el tramo en curso', () => {
     expect(lienzo.estelas.jugador).toEqual([]);
   });
 });
+
+// ============================================================================
+// Color y grosor del jugador en la animación (reseña del PR #24, punto 5)
+// ============================================================================
+
+import { analizarLexico } from '../lenguaje/lexer.js';
+import { analizar } from '../lenguaje/parser.js';
+import { ejecutar } from '../lenguaje/interprete.js';
+import { comandosDelMundo } from '../lenguaje/vocabulario.js';
+import { extraerTramosDibujo, type TramoDibujo } from './tramos-dibujo.js';
+
+describe('animador · color y grosor del jugador (punto 5)', () => {
+  function opsDe(texto: string): readonly Operacion[] {
+    const { programa } = analizar(analizarLexico(texto).tokens, { mundo: 2 });
+    const g = ejecutar(programa!, { estadoInicial: ESTADO_INICIAL, comandosPermitidos: comandosDelMundo(2), semilla: 0 });
+    let p = g.next();
+    while (!p.done) p = g.next();
+    return p.value.operaciones;
+  }
+
+  const TEXTO = 'AV 10 PONCOLOR rojo PG 6 AV 20 BORRAPANTALLA AV 30';
+
+  it('de golpe (movimiento reducido), la estela que crece es la del extractor de dibujo, con su estilo', () => {
+    const lienzo = new LienzoDoble();
+    const animador = crearAnimador(lienzo, new RelojFalso(), () => true);
+    const ops = opsDe(TEXTO);
+    animador.cargar(ops, 'jugador');
+    animador.reproducir();
+    expect(lienzo.estelas.jugador).toEqual(extraerTramosDibujo(ops));
+    const ultimo = lienzo.estelas.jugador.at(-1) as TramoDibujo;
+    expect(ultimo.color?.nombre).toBe('rojo');
+    expect(ultimo.grosor).toBe(6);
+  });
+
+  it('paso a paso, cada tramo llega con el estilo vigente en ese momento', () => {
+    const lienzo = new LienzoDoble();
+    const animador = crearAnimador(lienzo, new RelojFalso(), () => false);
+    animador.cargar(opsDe('AV 10 PONCOLOR rojo AV 20'), 'jugador');
+    for (let i = 0; i < 3; i++) animador.paso();
+    const [primero, segundo] = lienzo.estelas.jugador as TramoDibujo[];
+    expect(primero!.color).toBeUndefined();
+    expect(segundo!.color?.nombre).toBe('rojo');
+  });
+
+  it('el tramo de un fotograma intermedio lleva el color y el grosor del jugador', () => {
+    const reloj = new RelojFalso();
+    const animador = crearAnimador(new LienzoDoble(), reloj, () => false);
+    const fotogramas: Fotograma[] = [];
+    animador.alFotograma((f) => fotogramas.push(f));
+    animador.cargar(opsDe('PONCOLOR azul PG 4 AV 100'), 'jugador');
+    animador.reproducir();
+    reloj.avanzar(DURACIONES.normal * 2 + 200);
+    const conTramo = fotogramas.filter((f) => f.tramo !== null);
+    expect(conTramo.length).toBeGreaterThan(0);
+    for (const f of conTramo) {
+      const tramo = f.tramo as TramoDibujo;
+      expect(tramo.color?.nombre).toBe('azul');
+      expect(tramo.grosor).toBe(4);
+    }
+  });
+
+  it('reiniciar y cargar otra secuencia vuelve al estilo del tema', () => {
+    const lienzo = new LienzoDoble();
+    const animador = crearAnimador(lienzo, new RelojFalso(), () => true);
+    animador.cargar(opsDe('PONCOLOR rojo AV 10'), 'jugador');
+    animador.reproducir();
+    animador.reiniciar(ESTADO_INICIAL);
+    animador.cargar(opsDe('AV 10'), 'jugador');
+    animador.reproducir();
+    expect(lienzo.estelas.jugador).toEqual(extraerSegmentos(opsDe('AV 10')));
+  });
+});
+
+describe('animador · relleno (punto 7b)', () => {
+  function opsDe(texto: string): readonly Operacion[] {
+    const { programa } = analizar(analizarLexico(texto).tokens, { mundo: 2 });
+    const g = ejecutar(programa!, { estadoInicial: ESTADO_INICIAL, comandosPermitidos: comandosDelMundo(2), semilla: 0 });
+    let p = g.next();
+    while (!p.done) p = g.next();
+    return p.value.operaciones;
+  }
+
+  class LienzoConRelleno extends LienzoDoble {
+    readonly pedidos: Array<{ capa: string; color: string | null; punto: { x: number; y: number }; tramosAntes: number }> = [];
+    rellenar(capa: 'jugador' | 'referencia', color: { nombre: string | null }, punto: { x: number; y: number }): void {
+      this.pedidos.push({ capa, color: color.nombre, punto, tramosAntes: this.estelas[capa].length });
+    }
+  }
+
+  it('al aplicar RELLENA pide el relleno en la posición de la tortuga, con su color, después de los trazos previos', () => {
+    const lienzo = new LienzoConRelleno();
+    const animador = crearAnimador(lienzo, new RelojFalso(), () => true);
+    animador.cargar(opsDe('REPITE 4 [AV 100 GD 90] GD 45 SL AV 20 BL RELLENA "azul AV 10'), 'jugador');
+    animador.reproducir();
+    expect(lienzo.pedidos).toHaveLength(1);
+    const [pedido] = lienzo.pedidos;
+    expect(pedido!.capa).toBe('jugador');
+    expect(pedido!.color).toBe('azul');
+    expect(pedido!.punto.x).toBeCloseTo(14.142, 2);
+    expect(pedido!.punto.y).toBeCloseTo(14.142, 2);
+    expect(pedido!.tramosAntes).toBe(4);
+  });
+
+  it('en la reproducción continua el relleno se aplica al EMPEZAR su turno, no al terminarlo', () => {
+    const reloj = new RelojFalso();
+    const lienzo = new LienzoConRelleno();
+    const animador = crearAnimador(lienzo, reloj, SIN_REDUCIR);
+    let aplicadas = 0;
+    animador.alAplicar(() => (aplicadas += 1));
+    // Ocho operaciones antes de RELLENA: cuatro avances y cuatro giros.
+    animador.cargar(opsDe('REPITE 4 [AV 100 GD 90] RELLENA "azul AV 10'), 'jugador');
+    animador.reproducir();
+    // Fotograma a fotograma hasta que termina la octava operación: ese mismo
+    // fotograma abre el turno de RELLENA.
+    let guarda = 0;
+    while (aplicadas < 8 && guarda++ < 10_000) reloj.avanzar(16);
+    expect(aplicadas).toBe(8);
+    expect(lienzo.pedidos).toHaveLength(1);
+    expect(lienzo.pedidos[0]!.color).toBe('azul');
+    // La operación sigue en su turno (no se dio por aplicada) y no se rellena dos veces.
+    reloj.avanzar(DURACIONES.normal + 100);
+    expect(aplicadas).toBeGreaterThanOrEqual(9);
+    expect(lienzo.pedidos).toHaveLength(1);
+    // Ni el orden ni la cantidad de operaciones cambian.
+    reloj.avanzar(DURACIONES.normal * 3);
+    expect(aplicadas).toBe(10);
+    expect(lienzo.estelas.jugador).toHaveLength(5);
+  });
+
+  it('paso a paso, RELLENA se aplica una sola vez, al dar su paso', () => {
+    const lienzo = new LienzoConRelleno();
+    const animador = crearAnimador(lienzo, new RelojFalso(), SIN_REDUCIR);
+    animador.cargar(opsDe('REPITE 4 [AV 100 GD 90] RELLENA "azul'), 'jugador');
+    for (let i = 0; i < 8; i++) animador.paso();
+    expect(lienzo.pedidos).toHaveLength(0);
+    animador.paso();
+    expect(lienzo.pedidos).toHaveLength(1);
+  });
+  it('un lienzo que no dibuja rellenos (sin rellenar) sigue funcionando', () => {
+    const lienzo = new LienzoDoble();
+    const animador = crearAnimador(lienzo, new RelojFalso(), () => true);
+    animador.cargar(opsDe('REPITE 4 [AV 100 GD 90] RELLENA "azul'), 'jugador');
+    expect(() => animador.reproducir()).not.toThrow();
+    expect(lienzo.estelas.jugador).toHaveLength(4);
+  });
+});

@@ -25,7 +25,7 @@ import '@fontsource-variable/jetbrains-mono/index.css';
 
 import type { Programa } from './lenguaje/ast.js';
 import { analizarLexico } from './lenguaje/lexer.js';
-import { analizar } from './lenguaje/parser.js';
+import { analizar, nombresDeProcedimientos } from './lenguaje/parser.js';
 import { esErrorParaJugador, crearError, type ErrorKiroLogo } from './lenguaje/errores.js';
 import { comandosDelMundo } from './lenguaje/vocabulario.js';
 import { ejecutar, type Operacion, type ResultadoEjecucion } from './lenguaje/interprete.js';
@@ -39,6 +39,7 @@ import {
   aplicarTransformacion,
   dibujarCuadricula,
   dibujarEstela,
+  dibujarTramoEnCurso,
   LADO_LOGICO,
   SEMILADO_LOGICO,
   type ContextoDibujo,
@@ -537,6 +538,14 @@ function componerAnuncioFin(fin: FinDeSecuencia): string {
   return `${motivo}: ${fin.operacionesAplicadas} operación(es) aplicada(s); ${textoEstadoTortuga(fin.estadoFinal)}.`;
 }
 
+/**
+ * Anuncio del fin cuando un error de ejecución detuvo el programa: nombra el error,
+ * dice que el intento no se calificó y deja el estado de la tortuga donde quedó.
+ */
+function componerAnuncioError(fin: FinDeSecuencia): string {
+  return `Tu programa se detuvo por un error y no se calificó: ${fin.operacionesAplicadas} operación(es) aplicada(s); ${textoEstadoTortuga(fin.estadoFinal)}.`;
+}
+
 // ============================================================================
 // Elección del reto inicial
 // ============================================================================
@@ -701,22 +710,9 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   ): void {
     lienzo.limpiarPersonajes();
     const ctx = lienzo.capaPersonajes();
-    if (f.tramo !== null) {
-      ctx.save();
-      // Mismo recorte que la estela definitiva, para que el tramo no asome por
-      // fuera del cuadrado lógico y luego desaparezca.
-      ctx.beginPath();
-      ctx.rect(-SEMILADO_LOGICO, -SEMILADO_LOGICO, LADO_LOGICO, LADO_LOGICO);
-      ctx.clip();
-      ctx.strokeStyle = trazo.color;
-      ctx.lineWidth = trazo.grosor;
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.moveTo(f.tramo.desde.x, f.tramo.desde.y);
-      ctx.lineTo(f.tramo.hasta.x, f.tramo.hasta.y);
-      ctx.stroke();
-      ctx.restore();
-    }
+    // Solo la tortuga del jugador pinta su tramo con el color y grosor que pidió;
+    // la de Kiro conserva el tema.
+    if (f.tramo !== null) dibujarTramoEnCurso(ctx, f.tramo, trazo, identidad === 'jugador');
     dibujarPersonajes(
       ctx,
       {
@@ -780,6 +776,20 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     mundo: reto.nivel.mundo,
     insertarTexto: (t: string) => editor.insertarEnCursor(t),
     anunciar,
+  });
+
+  // Mantener el panel al día con los procedimientos que el jugador define en el
+  // texto: en cada cambio se tokeniza y se obtienen los nombres válidos (los PARA
+  // … FIN bien formados, en orden de definición) para reflejar altas, bajas y
+  // renombres (R7.3, R7.4). Se usa la primera pasada del parser por los tokens, no
+  // el AST completo: así los procedimientos bien formados aparecen aunque el resto
+  // del programa todavía tenga errores mientras el jugador escribe. El panel ignora
+  // una lista igual a la vigente, así que esto no reconstruye en cada tecla. Se pasa
+  // el mundo del nivel en curso (no el del arranque): antes del mundo de PARA no hay
+  // procedimientos que mostrar.
+  editor.alCambiar((texto: string) => {
+    const lexico = analizarLexico(texto);
+    panel.fijarProcedimientos(nombresDeProcedimientos(lexico.tokens, reto.nivel.mundo));
   });
 
   // El panel de comandos se crea ANTES que los controles: va junto al editor (a su
@@ -1066,6 +1076,9 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     // queda siempre al día; en el primer montaje es un no-op porque ya coincide.
     editor.fijarMundo(reto.nivel.mundo);
     panel.fijarMundo(reto.nivel.mundo);
+    // Los procedimientos del panel dependen del mundo (antes del de PARA no hay):
+    // al cambiar de nivel se recalculan con el texto vigente, sin esperar otra tecla.
+    panel.fijarProcedimientos(nombresDeProcedimientos(analizarLexico(editor.texto()).tokens, reto.nivel.mundo));
 
     // Panel de semilla: el código y si el nivel admite otro reto.
     panelSemilla.presentarReto({
@@ -1261,17 +1274,23 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   /**
    * Concluye un intento cuando el animador devolvió el fin de secuencia (diseño 12.5):
    * extrae los segmentos, valida UNA vez, califica, guarda el progreso y lo muestra.
-   * Si una guarda cortó la ejecución no hay veredicto ni estrellas: se muestra el
-   * mensaje de la guarda y no se guarda nada (requisito 24.9).
+   * Si una guarda cortó la ejecución, o el programa terminó con un error de
+   * ejecución (un color o un grosor inválido, por ejemplo), no hay veredicto ni
+   * estrellas: Kiro explica el error en el globo, no se guarda nada y no se
+   * compara (requisito 24.9; producto.md: cada error se explica).
    */
   function concluirIntento(actual: IntentoEnCurso, fin: FinDeSecuencia): void {
     if (actual.reto !== reto) return;
     const { programa, resultado } = actual;
     const operaciones = resultado.operaciones;
 
-    if (resultado.guardaActivada !== null) {
+    if (resultado.guardaActivada !== null || resultado.error !== null) {
       if (resultado.error !== null) globo.mostrarMensajes([resultado.error]);
-      anunciar(componerAnuncioFin({ ...fin, motivo: 'guarda', operacionesAplicadas: operaciones.length }));
+      anunciar(
+        resultado.guardaActivada !== null
+          ? componerAnuncioFin({ ...fin, motivo: 'guarda', operacionesAplicadas: operaciones.length })
+          : componerAnuncioError({ ...fin, operacionesAplicadas: operaciones.length }),
+      );
       return;
     }
 

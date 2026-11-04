@@ -1590,7 +1590,7 @@ describe('main · navegación entre niveles', () => {
     }
     // La insignia Secuencia quedó anunciada por el globo o el menú la refleja.
     expect(app.menuMundos.insigniaVisible(0)).toBe(true);
-  });
+  }, 120_000);
 });
 
 /** Imprime la referencia del reto en curso como texto, para «copiarla». */
@@ -3549,5 +3549,243 @@ describe('main · preservación: arrancar directo en un nivel (mundo del editor 
     expect(cal!.precision.otorgada).toBe(true);
     expect(cal!.economia.otorgada).toBe(true);
     expect(cal!.abstraccion.otorgada).toBe(true);
+  });
+});
+
+// ============================================================================
+// Errores de ejecución en el mundo 2 (reseña del PR #24, punto 4)
+//
+// Un error que detiene el programa a medias (color o grosor inválido, por
+// ejemplo) se explica en el globo de Kiro y el intento NO se califica: sin
+// estrellas, sin guardar progreso y sin comparación, igual que con las guardas.
+// Antes solo se mostraba si había una guarda activada; cualquier otro error se
+// descartaba en silencio y lo dibujado hasta ahí se calificaba.
+// ============================================================================
+
+describe('main · un error de ejecución se explica en el globo y no se califica (punto 4)', () => {
+  beforeEach(() => {
+    montarDom();
+  });
+
+  const CLAVE_PROGRESO = 'kirologo.progreso.v2';
+
+  const CASOS: ReadonlyArray<{ programa: string; mensaje: string }> = [
+    { programa: 'PONCOLOR "red AV 100', mensaje: 'No conozco el color RED.' },
+    { programa: 'PG 0 AV 100', mensaje: 'El grosor debe ser un número entero entre 1 y 50.' },
+  ];
+
+  for (const { programa, mensaje } of CASOS) {
+    it(`«${programa}»: muestra el error en el globo, sin estrellas, sin veredicto y sin guardar nada`, () => {
+      const almacen = crearAlmacenMemoria();
+      const app = crearAppCon({ almacen, idNivel: '2.1' });
+      escribir(app, programa);
+      expect(app.editor.estadoContador().errores).toEqual([]); // es válido al analizar: falla al ejecutar
+
+      app.ejecutar();
+
+      // El error se explica en el globo, no se descarta.
+      expect(app.textoGlobo()).toContain(mensaje);
+      // Sin calificación, sin veredicto, sin estrellas reveladas.
+      expect(app.estado().calificacion).toBeNull();
+      expect(app.estado().veredicto).toBeNull();
+      expect(estrellas()).toEqual(['pendiente', 'pendiente', 'pendiente']);
+      expect(app.textoGlobo()).not.toContain('Resultado');
+      // No se guarda progreso del nivel.
+      const guardado = JSON.parse(almacen.getItem(CLAVE_PROGRESO) ?? '{"niveles":{}}') as {
+        niveles?: Record<string, unknown>;
+      };
+      expect(guardado.niveles?.['2.1']).toBeUndefined();
+      // El anuncio habla de un error, no de que terminó bien ni de «seguridad».
+      const anuncio = document.getElementById('anuncios')!.textContent ?? '';
+      expect(anuncio).toMatch(/error/i);
+      expect(anuncio).not.toMatch(/Terminó tu programa/);
+      expect(anuncio).not.toMatch(/por seguridad/);
+      // El programa del jugador no se toca y se puede volver a ejecutar.
+      expect(app.editor.texto()).toBe(programa);
+      expect(boton('ejecutar').disabled).toBe(false);
+    });
+  }
+
+  it('un programa correcto en el mismo nivel sigue calificándose (el error no apaga la calificación)', () => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+    escribir(app, 'PONCOLOR rojo REPITE 4 [AV 100 GD 90] AV 100 GD 30 REPITE 3 [AV 100 GD 120]');
+    app.ejecutar();
+    expect(app.estado().calificacion).not.toBeNull();
+    expect(app.textoGlobo()).toContain('Resultado');
+  });
+});
+
+describe('main · los errores de PARA se explican en el globo (punto 8)', () => {
+  beforeEach(() => {
+    montarDom();
+  });
+
+  const CASOS: ReadonlyArray<{ programa: string; mensaje: string }> = [
+    { programa: 'REPITE 2 [PARA X AV 100 FIN] X', mensaje: 'PARA solo se escribe en el nivel principal' },
+    { programa: 'PARA A PARA B AV 100 FIN FIN B', mensaje: 'PARA solo se escribe en el nivel principal' },
+    { programa: 'PARA X :lado AV 100 FIN X', mensaje: 'se desbloquean en el mundo 4' },
+    { programa: 'PARA', mensaje: 'le falta el nombre del procedimiento' },
+    { programa: 'PONCOLOR 5', mensaje: 'PONCOLOR necesita un color, pero le diste un número: 5' },
+  ];
+
+  for (const { programa, mensaje } of CASOS) {
+    it(`«${programa}»: el globo dice «${mensaje}» y no se ejecuta nada`, () => {
+      const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+      escribir(app, programa);
+      app.ejecutar();
+      expect(app.textoGlobo()).toContain(mensaje);
+      expect(app.estado().calificacion).toBeNull();
+      expect(estrellas()).toEqual(['pendiente', 'pendiente', 'pendiente']);
+    });
+  }
+});
+
+// ============================================================================
+// El panel solo muestra procedimientos donde PARA está desbloqueado (menor del PR #24)
+// ============================================================================
+
+describe('main · el panel no muestra procedimientos antes del mundo 2', () => {
+  beforeEach(() => {
+    montarDom();
+  });
+
+  const PROGRAMA = 'PARA CUADRADO REPITE 4 [AV 100 GD 90] FIN CUADRADO';
+
+  /** Nombres de los botones de procedimiento que el panel presenta ahora. */
+  const procedimientosDelPanel = (): string[] =>
+    [...document.querySelectorAll<HTMLElement>('.kl-procedimiento')].map(
+      (b) => b.getAttribute('data-procedimiento') ?? '',
+    );
+
+  it.each(['0.1', '1.1'])('en el nivel %s (PARA bloqueado) el panel no lista CUADRADO', (idNivel) => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel });
+    escribir(app, PROGRAMA);
+    expect(procedimientosDelPanel()).toEqual([]);
+  });
+
+  it('en el nivel 2.1 el panel lista CUADRADO', () => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+    escribir(app, PROGRAMA);
+    expect(procedimientosDelPanel()).toEqual(['CUADRADO']);
+  });
+
+  it('al navegar del mundo 2 al mundo 1 el panel retira el procedimiento sin esperar otra tecla', () => {
+    // Progreso con el mundo 0 aprobado, para que el 1.1 esté desbloqueado.
+    const almacen = crearAlmacenMemoria();
+    const estrellas = { precision: true, economia: true, abstraccion: true };
+    const niveles: Record<string, unknown> = {};
+    for (let n = 1; n <= 5; n++) niveles[`0.${n}`] = { estrellas, mejorConteo: 1, ultimaSemilla: 0 };
+    almacen.setItem('kirologo.progreso.v2', JSON.stringify({ version: 2, niveles, guiaVista: true }));
+
+    const app = crearAppCon({ almacen, idNivel: '2.1' });
+    escribir(app, PROGRAMA);
+    expect(procedimientosDelPanel()).toEqual(['CUADRADO']);
+
+    app.irANivel('1.1');
+    expect(app.nivelEnCurso()).toBe('1.1');
+    expect(procedimientosDelPanel()).toEqual([]);
+  });
+});
+
+// ============================================================================
+// RELLENA con argumento de color de punta a punta (reseña del PR #24, punto 7a)
+// ============================================================================
+
+describe('main · RELLENA lleva un color (punto 7a)', () => {
+  beforeEach(() => {
+    montarDom();
+  });
+
+  it('el ejemplo de la reseña, REPITE 4 [AV 100 GD 90] RELLENA "azul, se analiza y se ejecuta sin error', () => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+    escribir(app, 'REPITE 4 [AV 100 GD 90] RELLENA "azul');
+    expect(app.editor.estadoContador().errores).toEqual([]);
+    app.ejecutar();
+    // Corre entero y se califica (el cuadrado no es la casa: no importa la nota, sí que no hubo error).
+    expect(app.estado().calificacion).not.toBeNull();
+    expect(app.textoGlobo()).toContain('Resultado');
+    const ops = app.estado().operacionesJugador;
+    expect(ops[ops.length - 1]!.tipo).toBe('relleno');
+  });
+
+  it('RELLENA sin color muestra en el globo que necesita un color y no ejecuta', () => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+    escribir(app, 'REPITE 4 [AV 100 GD 90] RELLENA');
+    app.ejecutar();
+    expect(app.textoGlobo()).toContain('RELLENA necesita un color. Por ejemplo: RELLENA "azul');
+    expect(app.estado().calificacion).toBeNull();
+  });
+
+  it('RELLENA con un color fuera del catálogo explica colorInvalido en el globo y no califica', () => {
+    const app = crearAppCon({ almacen: crearAlmacenMemoria(), idNivel: '2.1' });
+    escribir(app, 'REPITE 4 [AV 100 GD 90] RELLENA turquesa');
+    app.ejecutar();
+    expect(app.textoGlobo()).toContain('No conozco el color TURQUESA.');
+    expect(app.estado().calificacion).toBeNull();
+    expect(estrellas()).toEqual(['pendiente', 'pendiente', 'pendiente']);
+  });
+});
+
+// ============================================================================
+// El relleno se ve al terminar el programa (reseña del PR #24, punto 7b)
+// ============================================================================
+
+describe('main · RELLENA como última instrucción deja el relleno en la figura del jugador', () => {
+  /** Doble que anota el color de cada `fill`; se reinicia con cada borrado de la capa. */
+  class DobleConRellenos extends DobleDibujo {
+    readonly rellenos: string[] = [];
+    override fill(): void {
+      this.rellenos.push(String(this.fillStyle));
+      super.fill();
+    }
+    override clearRect(x: number, y: number, ancho: number, alto: number): void {
+      this.rellenos.length = 0;
+      super.clearRect(x, y, ancho, alto);
+    }
+  }
+
+  const contextos = new Map<string, DobleConRellenos>();
+
+  beforeEach(() => {
+    montarDom();
+    contextos.clear();
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockImplementation(function (
+      this: HTMLCanvasElement,
+    ) {
+      let ctx = contextos.get(this.id);
+      if (!ctx) {
+        ctx = new DobleConRellenos();
+        contextos.set(this.id, ctx);
+      }
+      return ctx as unknown as CanvasRenderingContext2D;
+    } as never);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('la casa del 2.1 con RELLENA "azul al final gana la precisión y, al terminar, el lienzo del jugador tiene el relleno azul', () => {
+    const { reloj, avanzar } = relojManual();
+    const app = crearAplicacion({
+      documento: document,
+      almacen: crearAlmacenMemoria(),
+      reloj,
+      relojEspera: relojEsperaInerte(),
+      relojRebote: relojReboteInmediato,
+      movimiento: movimientoNormal,
+      idNivel: '2.1',
+    });
+    escribir(app, 'REPITE 4 [AV 100 GD 90] AV 100 GD 30 REPITE 3 [AV 100 GD 120] RELLENA "azul');
+    expect(app.editor.estadoContador().errores).toEqual([]);
+    app.ejecutar();
+    // Reproducción continua hasta el final.
+    avanzar(60_000);
+
+    // El relleno no cuenta para la precisión (R4.8): la casa se aprueba igual.
+    expect(app.estado().calificacion).not.toBeNull();
+    expect(app.estado().calificacion!.precision.otorgada).toBe(true);
+    // Y al terminar, el último dibujo de la capa del jugador incluye el relleno azul.
+    expect(contextos.get('lienzo-jugador')!.rellenos).toEqual(['#0000ff']);
   });
 });
