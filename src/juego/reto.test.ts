@@ -178,9 +178,10 @@ describe('Property 25: regresión del catálogo', () => {
 
     for (const nivel of CATALOGO) {
       // Autorado: usa su semilla fija. Generado: una semilla cualquiera; el
-      // generador produce un reto resoluble por construcción (su aprobación con
-      // tres estrellas sobre 200 semillas la cubren además las pruebas de cada
-      // generador). Así esta regresión abarca los cinco niveles del mundo 0.
+      // generador produce un reto resoluble por construcción, y su aprobación con
+      // las tres estrellas sobre las 200 semillas vive en las pruebas de cada
+      // generador (mundo 1: mundo-1-figuras.test; mundo 2: generadores-mundo-2.test).
+      // Aquí se confirma el cableado de punta a punta de todo el catálogo.
       const semilla = nivel.origen.tipo === 'autorado' ? nivel.origen.semilla : 1;
       const resultado = resolverReto(nivel.id, semilla);
       if (!resultado.exito) {

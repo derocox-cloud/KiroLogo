@@ -161,8 +161,16 @@ function contar(programa: Programa): number {
   if (!r.exito) throw new Error("conteo fallido");
   return r.instrucciones;
 }
-/** Muestra representativa de semillas para la validación geométrica costosa. */
-const MUESTRA = [0, 1, 7, 13, 42, 99, 150, 199] as const;
+/**
+ * Regresión obligatoria (validacion-geometrica, niveles-y-progresion): cada
+ * generador se verifica sobre 200 semillas, no una muestra. La validación
+ * geométrica es costosa (giro sobre máscara 800×800), así que estas pruebas
+ * llevan un timeout holgado; aun así tardan unos 60–75 s cada una.
+ */
+const MUESTRA = Array.from({ length: 200 }, (_, i) => i);
+
+/** Timeout de las regresiones de tres estrellas sobre 200 semillas. */
+const TIMEOUT_TRES_ESTRELLAS = 180_000;
 
 /** Afirma que una figura encuadra y no es degenerada. */
 function esperarEncuadrada(segmentos: readonly Segmento[]): void {
@@ -230,11 +238,11 @@ describe("generador 2.2 — estrella", () => {
     }
   });
 
-  it("muestra de semillas: la referencia aprueba su nivel con las TRES estrellas", () => {
+  it("200 semillas: la referencia aprueba su nivel con las TRES estrellas", () => {
     for (const s of MUESTRA) {
       apruebaLasTresEstrellas(NIVEL_2_2, generarEstrella(s).programa);
     }
-  });
+  }, TIMEOUT_TRES_ESTRELLAS);
 
   it("determinismo: misma semilla → misma referencia", () => {
     expect(generarEstrella(7).texto).toBe(generarEstrella(7).texto);
@@ -281,11 +289,11 @@ describe("generador 2.3 — escalera", () => {
     }
   });
 
-  it("muestra de semillas: la referencia aprueba su nivel con las TRES estrellas", () => {
+  it("200 semillas: la referencia aprueba su nivel con las TRES estrellas", () => {
     for (const s of MUESTRA) {
       apruebaLasTresEstrellas(NIVEL_2_3, generarEscalera(s).programa);
     }
-  });
+  }, TIMEOUT_TRES_ESTRELLAS);
 
   it("determinismo: misma semilla → misma referencia", () => {
     expect(generarEscalera(7).texto).toBe(generarEscalera(7).texto);
@@ -365,7 +373,7 @@ describe("generador 2.5 — dos polígonos", () => {
     }
   });
 
-  it("muestra de semillas: la referencia SIN SUBELAPIZ/BAJALAPIZ no obtiene la estrella de precisión", () => {
+  it("200 semillas: la referencia SIN SUBELAPIZ/BAJALAPIZ no obtiene la estrella de precisión", () => {
     for (const s of MUESTRA) {
       const { texto, programa } = generarDosPoligonos(s);
       const { segmentos: objetivo } = ejecutarYObtenerSegmentos(programa);
@@ -376,7 +384,7 @@ describe("generador 2.5 — dos polígonos", () => {
       const calificacion = calificar(sinLapiz, veredicto, retoDeReferencia(NIVEL_2_5, programa, objetivo));
       expect(calificacion.precision.otorgada, `semilla ${s}: ${texto}`).toBe(false);
     }
-  });
+  }, TIMEOUT_TRES_ESTRELLAS);
 
   it("200 semillas: olvidar SL/BL dejaría un conector que supera con holgura el 5 % de tolerancia", () => {
     // El conector olvidado es un trazo horizontal de d px; si el primer polígono es
@@ -411,11 +419,11 @@ describe("generador 2.5 — dos polígonos", () => {
     }
   });
 
-  it("muestra de semillas: la referencia aprueba su nivel con las TRES estrellas", () => {
+  it("200 semillas: la referencia aprueba su nivel con las TRES estrellas", () => {
     for (const s of MUESTRA) {
       apruebaLasTresEstrellas(NIVEL_2_5, generarDosPoligonos(s).programa);
     }
-  });
+  }, TIMEOUT_TRES_ESTRELLAS);
 
   it("determinismo: misma semilla → misma referencia", () => {
     expect(generarDosPoligonos(7).texto).toBe(generarDosPoligonos(7).texto);
@@ -529,11 +537,11 @@ describe("generador 2.6 — cuadrícula", () => {
     }
   });
 
-  it("muestra de semillas: la referencia aprueba su nivel con las TRES estrellas", () => {
+  it("200 semillas: la referencia aprueba su nivel con las TRES estrellas", () => {
     for (const s of MUESTRA) {
       apruebaLasTresEstrellas(NIVEL_2_6, generarCuadricula(s).programa);
     }
-  });
+  }, TIMEOUT_TRES_ESTRELLAS);
 
   it("determinismo: misma semilla → misma referencia", () => {
     expect(generarCuadricula(7).texto).toBe(generarCuadricula(7).texto);
