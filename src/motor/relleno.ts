@@ -74,8 +74,8 @@ function dentro(ix: number, iy: number): boolean {
 }
 
 /** Marca los trazos como muros con DDA de paso 0,5 (y siempre sus dos extremos). */
-function marcarMuros(trazos: readonly Segmento[]): Uint8Array {
-  const muros = new Uint8Array(LADO * LADO);
+function marcarMuros(muros: Uint8Array, trazos: readonly Segmento[]): void {
+  muros.fill(0);
   const marcar = (x: number, y: number): void => {
     const ix = columna(x);
     const iy = fila(y);
@@ -91,13 +91,28 @@ function marcarMuros(trazos: readonly Segmento[]): Uint8Array {
       marcar(t.desde.x + (dx * k) / n, t.desde.y + (dy * k) / n);
     }
   }
-  return muros;
+}
+
+/** Caja de celdas que ocupa una región cerrada, en índices de columna y fila. */
+interface CajaRegion {
+  readonly ix0: number;
+  readonly ix1: number;
+  readonly iy0: number;
+  readonly iy1: number;
 }
 
 /**
- * Inunda 4-conexamente desde `inicio` las celdas libres no visitadas. Marca en
- * `visitadas` todas las celdas de la región (con el número `marca`) y devuelve si
- * la región toca el borde de la cuadrícula.
+ * Inunda 4-conexamente desde `inicio` las celdas libres no visitadas, marcándolas
+ * en `visitadas` con el número `marca`. Devuelve la caja de la región si es
+ * cerrada, o null si toca el borde.
+ *
+ * Se detiene en cuanto toca el borde: una región abierta no se rellena (R4.7), así
+ * que recorrerla entera —típicamente el exterior de la figura, casi todo el
+ * lienzo— era el costo dominante y no aportaba nada. Cortar ahí deja la región
+ * marcada a medias, lo que es seguro: la inundación 4-conexa nunca cruza un muro,
+ * así que ninguna celda marcada pertenece a otra región, y una candidata posterior
+ * que caiga en una celda ya marcada se descarta igual que antes (es la misma región
+ * abierta).
  */
 function inundar(
   muros: Uint8Array,
@@ -105,24 +120,32 @@ function inundar(
   inicio: number,
   marca: number,
   cola: Int32Array,
-): boolean {
+): CajaRegion | null {
   let cabeza = 0;
   let fin = 0;
-  let tocaBorde = false;
+  let ix0 = LADO;
+  let ix1 = -1;
+  let iy0 = LADO;
+  let iy1 = -1;
   visitadas[inicio] = marca;
   cola[fin++] = inicio;
   while (cabeza < fin) {
     const celda = cola[cabeza++]!;
     const ix = celda % LADO;
     const iy = (celda - ix) / LADO;
-    if (ix === 0 || iy === 0 || ix === LADO - 1 || iy === LADO - 1) tocaBorde = true;
-    // Vecinas 4-conexas: izquierda, derecha, arriba, abajo.
-    if (ix > 0) fin = encolar(muros, visitadas, celda - 1, marca, cola, fin);
-    if (ix < LADO - 1) fin = encolar(muros, visitadas, celda + 1, marca, cola, fin);
-    if (iy > 0) fin = encolar(muros, visitadas, celda - LADO, marca, cola, fin);
-    if (iy < LADO - 1) fin = encolar(muros, visitadas, celda + LADO, marca, cola, fin);
+    if (ix === 0 || iy === 0 || ix === LADO - 1 || iy === LADO - 1) return null;
+    if (ix < ix0) ix0 = ix;
+    if (ix > ix1) ix1 = ix;
+    if (iy < iy0) iy0 = iy;
+    if (iy > iy1) iy1 = iy;
+    // Vecinas 4-conexas: izquierda, derecha, arriba, abajo. Ninguna sale de la
+    // cuadrícula: si la celda tocara el borde ya habríamos vuelto.
+    fin = encolar(muros, visitadas, celda - 1, marca, cola, fin);
+    fin = encolar(muros, visitadas, celda + 1, marca, cola, fin);
+    fin = encolar(muros, visitadas, celda - LADO, marca, cola, fin);
+    fin = encolar(muros, visitadas, celda + LADO, marca, cola, fin);
   }
-  return tocaBorde;
+  return { ix0, ix1, iy0, iy1 };
 }
 
 function encolar(
@@ -168,6 +191,23 @@ function celdasDeInicio(muros: Uint8Array, ix: number, iy: number): number[] {
 // ============================================================================
 
 /**
+ * Búferes de trabajo, reservados una sola vez y reutilizados en cada llamada. Antes
+ * se reservaban tres arreglos de 640 000 celdas (≈ 5,7 MB) por RELLENA. Es seguro
+ * compartirlos porque `calcularRelleno` es sincrónico y no reentrante, y cada
+ * llamada los limpia antes de usarlos.
+ */
+let bufferes: { muros: Uint8Array; visitadas: Int32Array; cola: Int32Array } | null = null;
+
+function bufferesDeTrabajo(): { muros: Uint8Array; visitadas: Int32Array; cola: Int32Array } {
+  bufferes ??= {
+    muros: new Uint8Array(LADO * LADO),
+    visitadas: new Int32Array(LADO * LADO),
+    cola: new Int32Array(LADO * LADO),
+  };
+  return bufferes;
+}
+
+/**
  * Calcula el área cerrada que contiene a la tortuga, delimitada por los trazos
  * dados. Devuelve sus corridas horizontales o `null` si no hay área cerrada (la
  * región llega al borde del lienzo, no hay trazos o la tortuga está fuera del
@@ -181,25 +221,26 @@ export function calcularRelleno(trazos: readonly Segmento[], punto: Punto): read
   const iy = fila(punto.y);
   if (trazos.length === 0 || !dentro(ix, iy)) return null;
 
-  const muros = marcarMuros(trazos);
-  const visitadas = new Int32Array(LADO * LADO);
-  const cola = new Int32Array(LADO * LADO);
+  const { muros, visitadas, cola } = bufferesDeTrabajo();
+  marcarMuros(muros, trazos);
+  visitadas.fill(0);
 
   let marca = 0;
   for (const inicio of celdasDeInicio(muros, ix, iy)) {
     if (visitadas[inicio] !== 0) continue; // ya pertenece a una región probada
     marca += 1;
-    const abierta = inundar(muros, visitadas, inicio, marca, cola);
-    if (!abierta) return corridasDeRegion(muros, visitadas, marca);
+    const caja = inundar(muros, visitadas, inicio, marca, cola);
+    if (caja !== null) return corridasDeRegion(muros, visitadas, marca, caja);
   }
   return null;
 }
 
 /**
  * Corridas horizontales de la región `marca`, ampliada con las celdas de muro que
- * la tocan (para que el color llegue hasta la línea).
+ * la tocan (para que el color llegue hasta la línea). Solo recorre la caja de la
+ * región más una celda de margen, que es donde están esos muros vecinos.
  */
-function corridasDeRegion(muros: Uint8Array, visitadas: Int32Array, marca: number): Corrida[] {
+function corridasDeRegion(muros: Uint8Array, visitadas: Int32Array, marca: number, caja: CajaRegion): Corrida[] {
   const enRegion = (celda: number): boolean => visitadas[celda] === marca;
   const pintada = (ix: number, iy: number): boolean => {
     const celda = iy * LADO + ix;
@@ -213,16 +254,20 @@ function corridasDeRegion(muros: Uint8Array, visitadas: Int32Array, marca: numbe
     );
   };
 
+  // Una región cerrada nunca toca el borde, así que el margen de una celda cae
+  // siempre dentro de la cuadrícula.
+  const ixDesde = caja.ix0 - 1;
+  const ixHasta = caja.ix1 + 1;
   const corridas: Corrida[] = [];
-  for (let iy = 0; iy < LADO; iy++) {
-    let ix = 0;
-    while (ix < LADO) {
+  for (let iy = caja.iy0 - 1; iy <= caja.iy1 + 1; iy++) {
+    let ix = ixDesde;
+    while (ix <= ixHasta) {
       if (!pintada(ix, iy)) {
         ix += 1;
         continue;
       }
       const desde = ix;
-      while (ix < LADO && pintada(ix, iy)) ix += 1;
+      while (ix <= ixHasta && pintada(ix, iy)) ix += 1;
       // La fila iy cubre y ∈ [400 − iy − 1, 400 − iy); la columna ix, x ∈ [ix − 400, ix − 399).
       corridas.push({ y: SEMILADO - iy - 1, x0: desde - SEMILADO, x1: ix - SEMILADO });
     }

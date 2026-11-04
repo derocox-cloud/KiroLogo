@@ -111,3 +111,30 @@ describe('relleno · sin área cerrada no hay relleno (R4.7)', () => {
     expect(calcularRelleno(segmentos, { x: 900, y: 0 })).toBeNull();
   });
 });
+
+describe('relleno · búferes reutilizados entre llamadas', () => {
+  // calcularRelleno comparte búferes de trabajo entre llamadas (reservarlos por
+  // llamada costaba ≈ 5,7 MB cada vez). Estas pruebas fijan que compartirlos no
+  // filtra estado de una llamada a la siguiente.
+  it('dos cuadrados en distintas posiciones dan cada uno su propio relleno', () => {
+    const izq = dibujo(CUADRADO);
+    const der = dibujo(`SL GD 90 AV 200 GI 90 BL ${CUADRADO}`);
+    const a = calcularRelleno(izq.segmentos, { x: 50, y: 50 });
+    const b = calcularRelleno(der.segmentos, { x: 250, y: 50 });
+    expect(a).not.toBeNull();
+    expect(b).not.toBeNull();
+    // El segundo no arrastra celdas del primero: su caja está a la derecha.
+    expect(caja(b!).xmin).toBeGreaterThanOrEqual(199);
+    // Y repetir el primero da el mismo resultado que la primera vez (sin arrastre).
+    const a2 = calcularRelleno(izq.segmentos, { x: 50, y: 50 });
+    expect(area(a2!)).toBe(area(a!));
+  });
+
+  it('una llamada que no encierra nada no contamina la siguiente que sí', () => {
+    const { segmentos } = dibujo(CUADRADO);
+    expect(calcularRelleno(segmentos, { x: -50, y: -50 })).toBeNull();
+    const dentro = calcularRelleno(segmentos, { x: 50, y: 50 });
+    expect(dentro).not.toBeNull();
+    expect(area(dentro!)).toBeGreaterThanOrEqual(99 * 99);
+  });
+});
