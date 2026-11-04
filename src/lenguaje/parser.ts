@@ -719,7 +719,10 @@ function analizarDefinicion(estado: Estado, tokenPara: Token): Instruccion | nul
   }
 
   // 4. Cuerpo: instrucciones hasta encontrar el comando FIN.
-  const cuerpo = analizarCuerpoDefinicion(estado);
+  if (colisionLenguaje) {
+    descartarCuerpoDefinicion(estado);
+  }
+  const cuerpo = colisionLenguaje ? [] : analizarCuerpoDefinicion(estado);
 
   // 5. ¿Terminó con FIN?
   const tokenFin = actual(estado);
@@ -748,6 +751,18 @@ function analizarDefinicion(estado: Estado, tokenPara: Token): Instruccion | nul
   return nodo;
 }
 
+/** Consume el cuerpo de una definici\u00f3n rechazada hasta su FIN, sin analizarlo. */
+function descartarCuerpoDefinicion(estado: Estado): void {
+  let corchetes = 0;
+  while (!finalizado(estado)) {
+    const token = actual(estado)!;
+    if (token.tipo === 'corchete_abre') corchetes += 1;
+    if (token.tipo === 'corchete_cierra' && corchetes > 0) corchetes -= 1;
+    if (token.tipo === 'comando' && token.valor === 'FIN' && corchetes === 0) return;
+    estado.indice += 1;
+  }
+}
+
 /**
  * Un PARA dentro de un REPITE o de otro PARA: reporta `paraAnidado` en el PARA y
  * descarta su definición completa (hasta su FIN, contando los PARA que contenga) para
@@ -766,9 +781,14 @@ function reportarParaAnidado(estado: Estado, tokenPara: Token): null {
   }
 
   let profundidad = 1;
+  let corchetes = 0;
   while (!finalizado(estado) && profundidad > 0) {
     const t = actual(estado)!;
-    if (t.tipo === 'corchete_cierra') break;
+    if (t.tipo === 'corchete_abre') corchetes += 1;
+    if (t.tipo === 'corchete_cierra') {
+      if (corchetes === 0) break;
+      corchetes -= 1;
+    }
     if (t.tipo === 'comando' && t.valor === 'PARA') profundidad += 1;
     if (t.tipo === 'comando' && t.valor === 'FIN') profundidad -= 1;
     estado.indice += 1;
