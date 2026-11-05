@@ -759,6 +759,8 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     contenedor: centro,
     mundo: reto.nivel.mundo,
     presupuestoEstrella: reto.presupuestoEstrella,
+    limiteDuro: reto.limiteDuro,
+    limiteDuroActivo: reto.limiteDuroActivo,
     pedirMensajeLimite: (limite: LimiteAlcanzado, _valor: number) => {
       void _valor;
       const error =
@@ -1071,7 +1073,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       semillaEfectiva: reto.semillaEfectiva,
       pistas,
     });
-    editor.presentarReto(reto.presupuestoEstrella);
+    editor.presentarReto(reto.presupuestoEstrella, reto.limiteDuro, reto.limiteDuroActivo);
     // Sincroniza el mundo del análisis y del vocabulario con el nivel en curso.
     // montarReto corre en el arranque y en cada cambiarANivel, así que el mundo
     // queda siempre al día; en el primer montaje es un no-op porque ya coincide.

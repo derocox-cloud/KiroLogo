@@ -81,7 +81,7 @@ insignias y la verificación integral.
   El contador ya marca el exceso de presupuesto; aquí anticipa el bloqueo por límite duro, por texto y
   en el nombre accesible, no solo por color.
 
-  - [ ] 3.1 Recibir el límite duro y señalar el bloqueo
+  - [x] 3.1 Recibir el límite duro y señalar el bloqueo
     - Añadir `limiteDuro: number` y `limiteDuroActivo: boolean` a `DependenciasEditor` (y a
       `presentarReto`, o guardarlos mutables como ya se hace con `presupuesto`).
     - En `actualizarContador`, además del aviso de presupuesto existente, añadir el aviso de bloqueo
@@ -93,7 +93,7 @@ insignias y la verificación integral.
       presupuesto» pero no el de bloqueo.
     - _Requirements: 2.5, 2.6_
 
-  - [ ]* 3.2 Tests del aviso en `src/ui/editor.test.ts`
+  - [x]* 3.2 Tests del aviso en `src/ui/editor.test.ts`
     - **Property 4: El contador del editor señala bloqueo si y solo si el conteo supera el límite activo**
     - **Validates: Requirements 2.5, 2.6**
     - Con `limiteDuroActivo` y conteo > `limiteDuro`, el contador muestra el aviso de bloqueo por texto
