@@ -245,7 +245,7 @@ insignias y la verificación integral.
   Módulo puro de `juego/` (importa de `niveles/` catálogo, `azar/` PRNG y `juego/` desbloqueo). No
   persiste estado propio: recalcula el reto de `(mundo, raíz, índice)`.
 
-  - [ ] 9.1 Implementar el módulo
+  - [x] 9.1 Implementar el módulo
     - `nivelesGeneradosDelMundo(mundo)`: los niveles con `origen.tipo === 'generado'` del mundo, en el
       orden del catálogo.
     - `desafioDisponible(mundo, progreso)`: falso si el mundo no tiene generados (R7.8); si no,
@@ -257,7 +257,7 @@ insignias y la verificación integral.
       dominio `[SEMILLA_MINIMA, SEMILLA_MAXIMA]`; determinista, nunca `Math.random` (R7.3, R7.4).
     - _Requirements: 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7, 7.8_
 
-  - [ ]* 9.2 Tests del desafío en `src/juego/desafio-infinito.test.ts`
+  - [x]* 9.2 Tests del desafío en `src/juego/desafio-infinito.test.ts`
     - **Property 13: El desafío infinito es determinista por su raíz**
     - **Property 14: La secuencia del desafío rota entre los niveles generados del mundo**
     - **Property 15: El desafío está disponible si y solo si el mundo está completo y tiene generados**
