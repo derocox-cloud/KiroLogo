@@ -17,11 +17,26 @@ import type { Progreso } from './progreso.js';
 // Identificadores de insignia
 // ============================================================================
 
-/** Las insignias por concepto disponibles en esta spec. */
-export type IdInsignia = 'secuencia' | 'iteracion' | 'descomposicion' | 'simetria';
+/**
+ * Las insignias de esta spec: cuatro por concepto (una por mundo) y cuatro
+ * transversales, que premian formas de jugar en lugar de completar un mundo.
+ */
+export type IdInsignia =
+  | 'secuencia'
+  | 'iteracion'
+  | 'descomposicion'
+  | 'simetria'
+  | 'depurador'
+  | 'minimalista'
+  | 'sinPistas'
+  | 'buenOjo';
 
-/** El mundo al que pertenece cada insignia por concepto. */
-const MUNDO_DE_INSIGNIA: Readonly<Record<IdInsignia, number>> = {
+/**
+ * El mundo al que pertenece cada insignia **por concepto**. Las transversales
+ * NO se mapean por mundo (no tienen uno): se derivan de señales del progreso, y
+ * por eso quedan fuera de este registro y de `insigniasDelMundo`.
+ */
+const MUNDO_DE_INSIGNIA: Readonly<Record<string, number>> = {
   secuencia: 0,
   iteracion: 1,
   descomposicion: 2,
@@ -96,6 +111,79 @@ export function insigniaDescomposicionOtorgada(progreso: Progreso): boolean {
  */
 export function insigniaSimetriaOtorgada(progreso: Progreso): boolean {
   return mundoCompletoConTresEstrellas(3, progreso);
+}
+
+// ============================================================================
+// Insignias transversales
+// ============================================================================
+// Premian la forma de jugar, no completar un mundo. Cada una es un predicado
+// puro del progreso guardado: al no tener estado propio, se mantiene otorgada
+// exactamente una vez (R9.5) y su verificación es reproducible por pruebas
+// (R9.6). *Minimalista* se deriva de las estrellas que el progreso ya guardaba;
+// las otras tres leen las señales anónimas que la spec 04 añadió al progreso.
+
+/** Niveles con estrella de economía que exige *Minimalista*. */
+const NIVELES_ECONOMIA_MINIMALISTA = 10;
+
+/** Aprobaciones posteriores a la reproducción en paralelo que exige *Depurador*. */
+const APROBACIONES_DEPURADOR = 5;
+
+/**
+ * ¿Se otorga *Minimalista*? Verdadero cuando el jugador ganó la estrella de
+ * economía en al menos diez niveles. Se cuenta sobre el catálogo, usando las
+ * estrellas ya guardadas; no necesita ninguna señal nueva (R9.2).
+ *
+ * @param progreso Progreso del jugador
+ */
+export function insigniaMinimalistaOtorgada(progreso: Progreso): boolean {
+  const conEconomia = CATALOGO.filter((n) => progreso.estrellasDe(n.id)?.economia === true).length;
+  return conEconomia >= NIVELES_ECONOMIA_MINIMALISTA;
+}
+
+/**
+ * ¿Se otorga *Depurador*? Verdadero cuando el jugador aprobó al menos cinco
+ * niveles *después* de haber usado la reproducción en paralelo. "Después" se
+ * mide con la bandera anónima del progreso: cuenta los niveles cuya aprobación
+ * con precisión ocurrió mientras la reproducción ya estaba marcada como usada
+ * (R9.1).
+ *
+ * @param progreso Progreso del jugador
+ */
+export function insigniaDepuradorOtorgada(progreso: Progreso): boolean {
+  const posteriores = CATALOGO.filter((n) => progreso.aprobadoTrasReproduccionParalelaEn(n.id)).length;
+  return posteriores >= APROBACIONES_DEPURADOR;
+}
+
+/**
+ * ¿Se otorga *Sin pistas*? Verdadero cuando existe al menos un mundo completado
+ * entero (todos sus niveles aprobados con precisión) en el que no se abrió
+ * ninguna pista en ninguno de sus niveles (R9.3).
+ *
+ * @param progreso Progreso del jugador
+ */
+export function insigniaSinPistasOtorgada(progreso: Progreso): boolean {
+  const mundos = new Set(CATALOGO.map((n) => n.mundo));
+  for (const mundo of mundos) {
+    const niveles = nivelesDelMundo(mundo);
+    if (niveles.length === 0) continue;
+    const completoSinPistas = niveles.every(
+      (n) => progreso.estrellasDe(n.id)?.precision === true && !progreso.pistaAbiertaEn(n.id),
+    );
+    if (completoSinPistas) return true;
+  }
+  return false;
+}
+
+/**
+ * ¿Se otorga *Buen ojo*? Verdadero cuando existe al menos un nivel resuelto con
+ * precisión cuya demostración se vio exactamente una vez (R9.4).
+ *
+ * @param progreso Progreso del jugador
+ */
+export function insigniaBuenOjoOtorgada(progreso: Progreso): boolean {
+  return CATALOGO.some(
+    (n) => progreso.estrellasDe(n.id)?.precision === true && progreso.vistasDemostracionDe(n.id) === 1,
+  );
 }
 
 // ============================================================================

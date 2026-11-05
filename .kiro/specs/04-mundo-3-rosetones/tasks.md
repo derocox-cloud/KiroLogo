@@ -293,7 +293,7 @@ insignias y la verificación integral.
   guardadas; las otras tres necesitan señales anónimas nuevas en el progreso (banderas y contadores
   por `idNivel`), mínimas y derivables, compatibles con el formato versión 2 y la migración existente.
 
-  - [ ] 11.1 Extender `progreso.ts` con las señales anónimas
+  - [x] 11.1 Extender `progreso.ts` con las señales anónimas
     - Añadir las señales mínimas por `idNivel` que las reglas necesitan: haber usado la reproducción en
       paralelo y las aprobaciones posteriores (*Depurador*), si se abrió una pista en el nivel (*Sin
       pistas*), y cuántas veces se vio la demostración del intento (*Buen ojo*).
@@ -301,7 +301,7 @@ insignias y la verificación integral.
       versión 2 sin romper progresos guardados.
     - _Requirements: 9.1, 9.3, 9.4, 9.6_
 
-  - [ ] 11.2 Implementar los cuatro predicados en `insignias.ts`
+  - [x] 11.2 Implementar los cuatro predicados en `insignias.ts`
     - Añadir `'depurador'`, `'minimalista'`, `'sinPistas'`, `'buenOjo'` a `IdInsignia`.
     - `insigniaMinimalistaOtorgada(progreso)`: estrella de economía en 10 niveles (R9.2).
     - `insigniaDepuradorOtorgada(progreso)`: 5 niveles aprobados tras usar la reproducción en paralelo
@@ -314,7 +314,7 @@ insignias y la verificación integral.
       otorga exactamente una vez (R9.5, R9.6).
     - _Requirements: 9.1, 9.2, 9.3, 9.4, 9.5, 9.6_
 
-  - [ ]* 11.3 Tests de las transversales en `src/juego/insignias.test.ts`
+  - [x]* 11.3 Tests de las transversales en `src/juego/insignias.test.ts`
     - **Property 17: El otorgamiento de toda insignia es función pura e idempotente del progreso**
     - **Property 18: Cada insignia transversal se deriva de su señal en el progreso**
     - **Validates: Requirements 9.1, 9.2, 9.3, 9.4, 9.5, 9.6**

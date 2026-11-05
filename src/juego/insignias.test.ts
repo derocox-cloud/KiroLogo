@@ -225,3 +225,173 @@ describe('insignias · derivado del progreso y alcance', () => {
     }
   });
 });
+
+// ============================================================================
+// Insignias transversales (spec 04, requisito 9)
+// ============================================================================
+// Property 17: El otorgamiento de toda insignia es función pura e idempotente
+// del progreso.
+// Property 18: Cada insignia transversal se deriva de su señal en el progreso.
+// Validates: Requirements 9.1, 9.2, 9.3, 9.4, 9.5, 9.6
+
+// Importadas aparte para no alterar el bloque de imports original del archivo.
+import {
+  insigniaMinimalistaOtorgada,
+  insigniaDepuradorOtorgada,
+  insigniaSinPistasOtorgada,
+  insigniaBuenOjoOtorgada,
+} from './insignias.js';
+
+/** Diez ids de niveles reales del catálogo, para las reglas que cuentan diez. */
+const DIEZ_IDS = CATALOGO.slice(0, 10).map((n) => n.id);
+
+describe('insignia Minimalista (R9.2)', () => {
+  it('se otorga con la estrella de economía en 10 niveles', () => {
+    const progreso = cargarProgreso(null);
+    for (const id of DIEZ_IDS) progreso.guardar(id, 1, calif(true, true, false), 1);
+    expect(insigniaMinimalistaOtorgada(progreso)).toBe(true);
+  });
+
+  it('no se otorga con economía en solo 9 niveles', () => {
+    const progreso = cargarProgreso(null);
+    for (const id of DIEZ_IDS.slice(0, 9)) progreso.guardar(id, 1, calif(true, true, false), 1);
+    expect(insigniaMinimalistaOtorgada(progreso)).toBe(false);
+  });
+
+  it('la precisión sin economía no cuenta para Minimalista', () => {
+    const progreso = cargarProgreso(null);
+    for (const id of DIEZ_IDS) progreso.guardar(id, 1, calif(true, false, false), 1);
+    expect(insigniaMinimalistaOtorgada(progreso)).toBe(false);
+  });
+
+  it('no se otorga sin ningún progreso', () => {
+    expect(insigniaMinimalistaOtorgada(cargarProgreso(null))).toBe(false);
+  });
+});
+
+describe('insignia Depurador (R9.1)', () => {
+  it('se otorga con 5 niveles aprobados tras usar la reproducción en paralelo', () => {
+    const progreso = cargarProgreso(null);
+    progreso.marcarReproduccionParalelaUsada();
+    for (const id of CATALOGO.slice(0, 5).map((n) => n.id)) {
+      progreso.guardar(id, 1, calif(true, false, false), 1);
+    }
+    expect(insigniaDepuradorOtorgada(progreso)).toBe(true);
+  });
+
+  it('no se otorga si los 5 aprobados fueron antes de usar la reproducción', () => {
+    const progreso = cargarProgreso(null);
+    // Aprobados ANTES de marcar la reproducción: no cuentan.
+    for (const id of CATALOGO.slice(0, 5).map((n) => n.id)) {
+      progreso.guardar(id, 1, calif(true, false, false), 1);
+    }
+    progreso.marcarReproduccionParalelaUsada();
+    expect(insigniaDepuradorOtorgada(progreso)).toBe(false);
+  });
+
+  it('no se otorga con solo 4 aprobaciones posteriores', () => {
+    const progreso = cargarProgreso(null);
+    progreso.marcarReproduccionParalelaUsada();
+    for (const id of CATALOGO.slice(0, 4).map((n) => n.id)) {
+      progreso.guardar(id, 1, calif(true, false, false), 1);
+    }
+    expect(insigniaDepuradorOtorgada(progreso)).toBe(false);
+  });
+
+  it('no se otorga sin haber usado nunca la reproducción en paralelo', () => {
+    const progreso = cargarProgreso(null);
+    for (const id of CATALOGO.slice(0, 6).map((n) => n.id)) {
+      progreso.guardar(id, 1, calif(true, false, false), 1);
+    }
+    expect(insigniaDepuradorOtorgada(progreso)).toBe(false);
+  });
+});
+
+describe('insignia Sin pistas (R9.3)', () => {
+  it('se otorga al completar un mundo entero sin abrir ninguna pista', () => {
+    const progreso = cargarProgreso(null);
+    for (const id of IDS) progreso.guardar(id, 1, calif(true, false, false), 1); // mundo 0, sin pistas
+    expect(insigniaSinPistasOtorgada(progreso)).toBe(true);
+  });
+
+  it('no se otorga si se abrió una pista en algún nivel del mundo completado', () => {
+    const progreso = cargarProgreso(null);
+    for (const id of IDS) progreso.guardar(id, 1, calif(true, false, false), 1);
+    progreso.marcarPistaAbierta('0.3');
+    expect(insigniaSinPistasOtorgada(progreso)).toBe(false);
+  });
+
+  it('no se otorga si el mundo no está completo, aunque no haya pistas abiertas', () => {
+    const progreso = cargarProgreso(null);
+    for (const id of IDS.slice(0, 4)) progreso.guardar(id, 1, calif(true, false, false), 1); // falta 0.5
+    expect(insigniaSinPistasOtorgada(progreso)).toBe(false);
+  });
+
+  it('no se otorga sin ningún progreso', () => {
+    expect(insigniaSinPistasOtorgada(cargarProgreso(null))).toBe(false);
+  });
+});
+
+describe('insignia Buen ojo (R9.4)', () => {
+  it('se otorga al resolver un nivel con la demostración vista una sola vez', () => {
+    const progreso = cargarProgreso(null);
+    progreso.registrarVistaDemostracion('0.1');
+    progreso.guardar('0.1', 1, calif(true, false, false), 1);
+    expect(insigniaBuenOjoOtorgada(progreso)).toBe(true);
+  });
+
+  it('no se otorga si se vio la demostración dos veces', () => {
+    const progreso = cargarProgreso(null);
+    progreso.registrarVistaDemostracion('0.1');
+    progreso.registrarVistaDemostracion('0.1');
+    progreso.guardar('0.1', 1, calif(true, false, false), 1);
+    expect(insigniaBuenOjoOtorgada(progreso)).toBe(false);
+  });
+
+  it('no se otorga si el nivel visto una vez no fue resuelto con precisión', () => {
+    const progreso = cargarProgreso(null);
+    progreso.registrarVistaDemostracion('0.1');
+    progreso.guardar('0.1', 1, calif(false, false, false), 1);
+    expect(insigniaBuenOjoOtorgada(progreso)).toBe(false);
+  });
+
+  it('no se otorga sin ningún progreso', () => {
+    expect(insigniaBuenOjoOtorgada(cargarProgreso(null))).toBe(false);
+  });
+});
+
+// ============================================================================
+// Property 17: pureza e idempotencia de TODAS las insignias (R9.5, R9.6)
+// ============================================================================
+describe('Property 17: el otorgamiento es función pura e idempotente del progreso', () => {
+  it('evaluar dos veces cada transversal sobre el mismo progreso da el mismo booleano', () => {
+    const progreso = cargarProgreso(null);
+    // Un progreso que dispara las cuatro transversales a la vez.
+    progreso.marcarReproduccionParalelaUsada();
+    for (const id of DIEZ_IDS) progreso.guardar(id, 1, calif(true, true, false), 1); // economía ×10, aprobados posteriores
+    progreso.registrarVistaDemostracion('0.1'); // una sola vista
+    for (const id of IDS) progreso.guardar(id, 1, calif(true, true, false), 1); // mundo 0 completo sin pistas
+
+    for (const predicado of [
+      insigniaMinimalistaOtorgada,
+      insigniaDepuradorOtorgada,
+      insigniaSinPistasOtorgada,
+      insigniaBuenOjoOtorgada,
+    ]) {
+      const primera = predicado(progreso);
+      const segunda = predicado(progreso);
+      expect(segunda).toBe(primera);
+    }
+  });
+
+  it('reconstruir el progreso desde las mismas señales da el mismo otorgamiento (sin segunda instancia)', () => {
+    const construir = () => {
+      const p = cargarProgreso(null);
+      p.marcarReproduccionParalelaUsada();
+      for (const id of DIEZ_IDS) p.guardar(id, 1, calif(true, true, false), 1);
+      return p;
+    };
+    expect(insigniaMinimalistaOtorgada(construir())).toBe(insigniaMinimalistaOtorgada(construir()));
+    expect(insigniaDepuradorOtorgada(construir())).toBe(insigniaDepuradorOtorgada(construir()));
+  });
+});

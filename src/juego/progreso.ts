@@ -52,6 +52,34 @@ export interface Progreso {
    */
   marcarUltimoReto(idNivel: string, semilla: number): void;
   guardar(idNivel: string, semilla: number, calificacion: Calificacion, conteoJugador: number): void;
+
+  // --------------------------------------------------------------------------
+  // Señales anónimas para las insignias transversales (spec 04, requisito 9).
+  // Son datos anónimos (una bandera global y, por nivel, una bandera y dos
+  // contadores). No registran nada del jugador. Las lee insignias.ts para
+  // derivar las transversales como predicados puros del progreso guardado.
+  // --------------------------------------------------------------------------
+
+  /** ¿El jugador ya usó alguna vez la reproducción en paralelo? (Depurador) */
+  reproduccionParalelaUsada(): boolean;
+  /** Marca, una sola vez, que se usó la reproducción en paralelo. */
+  marcarReproduccionParalelaUsada(): void;
+  /**
+   * ¿El nivel fue aprobado con precisión mientras la reproducción en paralelo ya
+   * estaba usada? Cuenta las aprobaciones "posteriores" para la insignia
+   * Depurador. Una vez verdadero, nunca retrocede.
+   */
+  aprobadoTrasReproduccionParalelaEn(idNivel: string): boolean;
+
+  /** ¿Se abrió alguna pista en este nivel? (Sin pistas) */
+  pistaAbiertaEn(idNivel: string): boolean;
+  /** Marca que se abrió una pista en este nivel. */
+  marcarPistaAbierta(idNivel: string): void;
+
+  /** Cuántas veces se vio la demostración de este nivel. (Buen ojo) */
+  vistasDemostracionDe(idNivel: string): number;
+  /** Suma una vista de la demostración de este nivel. */
+  registrarVistaDemostracion(idNivel: string): void;
 }
 
 // ============================================================================
@@ -62,6 +90,11 @@ interface RegistroNivel {
   estrellas: EstrellasGuardadas;
   mejorConteo: number | null; // null hasta el primer aprobado con precisión
   ultimaSemilla: number;
+  // Señales anónimas de la spec 04 (opcionales en el JSON: un progreso v2 viejo
+  // no las trae y se leen con su valor por defecto).
+  pistaAbierta: boolean; // ¿se abrió una pista en este nivel? (Sin pistas)
+  vistasDemostracion: number; // cuántas veces se vio la demostración (Buen ojo)
+  aprobadoTrasReproduccionParalela: boolean; // aprobado con precisión tras usar la reproducción (Depurador)
 }
 
 interface Contenido {
@@ -69,10 +102,23 @@ interface Contenido {
   niveles: Record<string, RegistroNivel>;
   ultimoReto: RetoEnCurso | null;
   guiaVista: boolean;
+  reproduccionParalelaUsada: boolean; // bandera global (Depurador)
 }
 
 function contenidoVacio(): Contenido {
-  return { version: VERSION_FORMATO, niveles: {}, ultimoReto: null, guiaVista: false };
+  return { version: VERSION_FORMATO, niveles: {}, ultimoReto: null, guiaVista: false, reproduccionParalelaUsada: false };
+}
+
+/** Un registro de nivel recién creado, con las señales en su valor por defecto. */
+function registroVacio(): RegistroNivel {
+  return {
+    estrellas: { precision: false, economia: false, abstraccion: false },
+    mejorConteo: null,
+    ultimaSemilla: SEMILLA_MINIMA,
+    pistaAbierta: false,
+    vistasDemostracion: 0,
+    aprobadoTrasReproduccionParalela: false,
+  };
 }
 
 // ============================================================================
@@ -167,9 +213,65 @@ export function cargarProgreso(almacen: Storage | null): Progreso {
       if (calificacion.precision.otorgada && Number.isFinite(conteoJugador)) {
         mejorConteo = mejorConteo === null ? conteoJugador : Math.min(mejorConteo, conteoJugador);
       }
-      contenido.niveles[idNivel] = { estrellas, mejorConteo, ultimaSemilla: semilla };
+      // Aprobación "posterior" (Depurador): se marca cuando el nivel se aprueba
+      // con precisión y la reproducción en paralelo YA estaba usada al guardar.
+      // Semántica elegida: "después" = aprobado en un guardado cuyo momento
+      // tiene la bandera global en verdadero. Es función pura del progreso
+      // guardado (no depende de relojes) y, como las estrellas, nunca retrocede.
+      const aprobadoTrasReproduccionParalela =
+        (previo?.aprobadoTrasReproduccionParalela ?? false) ||
+        (calificacion.precision.otorgada && contenido.reproduccionParalelaUsada);
+      contenido.niveles[idNivel] = {
+        estrellas,
+        mejorConteo,
+        ultimaSemilla: semilla,
+        // Las señales de intento del nivel se conservan al reaprobar.
+        pistaAbierta: previo?.pistaAbierta ?? false,
+        vistasDemostracion: previo?.vistasDemostracion ?? 0,
+        aprobadoTrasReproduccionParalela,
+      };
       // El último reto en curso se actualiza siempre.
       contenido.ultimoReto = { idNivel, semilla };
+      persistir();
+    },
+
+    reproduccionParalelaUsada(): boolean {
+      return contenido.reproduccionParalelaUsada;
+    },
+
+    marcarReproduccionParalelaUsada(): void {
+      if (contenido.reproduccionParalelaUsada) return;
+      contenido.reproduccionParalelaUsada = true;
+      persistir();
+    },
+
+    aprobadoTrasReproduccionParalelaEn(idNivel: string): boolean {
+      return contenido.niveles[idNivel]?.aprobadoTrasReproduccionParalela ?? false;
+    },
+
+    pistaAbiertaEn(idNivel: string): boolean {
+      return contenido.niveles[idNivel]?.pistaAbierta ?? false;
+    },
+
+    marcarPistaAbierta(idNivel: string): void {
+      const registro = contenido.niveles[idNivel] ?? registroVacio();
+      if (registro.pistaAbierta) {
+        contenido.niveles[idNivel] = registro; // asegura que exista aunque ya estuviera marcado
+        return;
+      }
+      registro.pistaAbierta = true;
+      contenido.niveles[idNivel] = registro;
+      persistir();
+    },
+
+    vistasDemostracionDe(idNivel: string): number {
+      return contenido.niveles[idNivel]?.vistasDemostracion ?? 0;
+    },
+
+    registrarVistaDemostracion(idNivel: string): void {
+      const registro = contenido.niveles[idNivel] ?? registroVacio();
+      registro.vistasDemostracion += 1;
+      contenido.niveles[idNivel] = registro;
       persistir();
     },
   };
@@ -207,6 +309,9 @@ function interpretar(crudo: string | null): Contenido {
 
   // Guía vista: solo un booleano verdadero cuenta.
   contenido.guiaVista = obj['guiaVista'] === true;
+
+  // Reproducción en paralelo usada: ausente o no booleano → falso (tolerante).
+  contenido.reproduccionParalelaUsada = obj['reproduccionParalelaUsada'] === true;
 
   return contenido;
 }
@@ -255,7 +360,22 @@ function validarRegistroV2(idNivel: string, registro: unknown): RegistroNivel | 
     return null; // valor de mejorConteo inválido: registro descartado
   }
 
-  return { estrellas, mejorConteo, ultimaSemilla: r['ultimaSemilla'] as number };
+  // Señales anónimas de la spec 04: opcionales y tolerantes. Un valor ausente
+  // o con tipo inválido cae en su valor por defecto sin descartar el registro,
+  // de modo que un progreso v2 viejo se lee intacto.
+  return {
+    estrellas,
+    mejorConteo,
+    ultimaSemilla: r['ultimaSemilla'] as number,
+    pistaAbierta: r['pistaAbierta'] === true,
+    vistasDemostracion: enteroNoNegativoOCero(r['vistasDemostracion']),
+    aprobadoTrasReproduccionParalela: r['aprobadoTrasReproduccionParalela'] === true,
+  };
+}
+
+/** Un entero ≥ 0, o 0 si el valor es ausente o inválido (tolerancia). */
+function enteroNoNegativoOCero(valor: unknown): number {
+  return typeof valor === 'number' && Number.isInteger(valor) && valor >= 0 ? valor : 0;
 }
 
 /** Valida el objeto de estrellas; devuelve el normalizado o null. */
@@ -323,6 +443,10 @@ function migrarDesdeV1(almacen: Storage | null): Contenido {
         estrellas,
         mejorConteo: null, // la v1 no lo guardaba; se queda sin valor hasta el próximo intento
         ultimaSemilla: r['semilla'] as number,
+        // La v1 no conocía las señales de la spec 04: arrancan en su valor por defecto.
+        pistaAbierta: false,
+        vistasDemostracion: 0,
+        aprobadoTrasReproduccionParalela: false,
       };
       if (estrellas.precision) algunaPrecision = true;
     }
