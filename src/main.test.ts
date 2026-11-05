@@ -34,6 +34,31 @@ vi.mock('./lenguaje/interprete.js', async (importOriginal) => {
   };
 });
 
+// El catálogo todavía no tiene niveles del mundo 3 (eso es la tarea 6/7 de esta
+// spec), así que para probar la guarda de límite duro de `main.ts` se envuelve
+// `resolverReto`: cuando `forzarLimiteDuro.activo` está encendido, sobre un reto
+// REAL (nivel y segmentos auténticos) se sobrescriben SOLO los dos campos que la
+// guarda lee —`limiteDuroActivo` y `limiteDuro`—, igual que los produciría un
+// reto del mundo 3. La guarda no mira `nivel.mundo`, de modo que esto ejercita el
+// mismo camino de código sin inventar un nivel ni un harness nuevo. Apagado por
+// omisión: los demás tests y la resolución normal del reto quedan intactos.
+const forzarLimiteDuro = vi.hoisted(() => ({ activo: false, limiteDuro: 0 }));
+
+vi.mock('./juego/reto.js', async (importOriginal) => {
+  const real = await importOriginal<typeof import('./juego/reto.js')>();
+  return {
+    ...real,
+    resolverReto: (idNivel: string, semilla: number) => {
+      const r = real.resolverReto(idNivel, semilla);
+      if (!r.exito || !forzarLimiteDuro.activo) return r;
+      return {
+        exito: true as const,
+        reto: { ...r.reto, limiteDuroActivo: true, limiteDuro: forzarLimiteDuro.limiteDuro },
+      };
+    },
+  };
+});
+
 // ============================================================================
 // Montaje del DOM
 // ============================================================================
@@ -3787,5 +3812,159 @@ describe('main · RELLENA como última instrucción deja el relleno en la figura
     expect(app.estado().calificacion!.precision.otorgada).toBe(true);
     // Y al terminar, el último dibujo de la capa del jugador incluye el relleno azul.
     expect(contextos.get('lienzo-jugador')!.rellenos).toEqual(['#0000ff']);
+  });
+});
+
+// ============================================================================
+// Spec 04 · Mundo 3 · Guarda de límite duro en `ejecutarPrograma` (tarea 2)
+//
+// Property 1: La guarda de límite duro ejecuta si y solo si el conteo cabe.
+//   Validates: Requirements 1.3, 1.4, 1.6, 1.7
+// Property 2: En los mundos 0 a 2 el exceso de presupuesto ejecuta sin economía.
+//   Validates: Requirements 1.5, 10.3
+//
+// La guarda vive entre el análisis del texto y la carga del animador: si el
+// reto tiene `limiteDuroActivo` y el conteo del programa del jugador supera
+// `limiteDuro`, Kiro detiene ANTES de ceder la demostración, reiniciar la capa
+// del jugador y ejecutar el intérprete. Un programa bloqueado no emite ninguna
+// operación de tortuga; uno que cabe ejecuta como siempre.
+//
+// Nota sobre el harness: mientras el catálogo no tenga niveles del mundo 3
+// (tarea 6/7), estas pruebas encienden `forzarLimiteDuro` para que `resolverReto`
+// devuelva un reto REAL (nivel 0.1, segmentos auténticos) con `limiteDuroActivo`
+// y `limiteDuro` sobreescritos, tal como los daría el mundo 3. La guarda no mira
+// `nivel.mundo`; se ejercita el mismo camino de código.
+// ============================================================================
+
+/**
+ * App con reloj inmediato sobre el nivel 0.1: la animación se completa de forma
+ * síncrona al ejecutar, de modo que `calificacion` ya está disponible sin avanzar
+ * el reloj. Útil para los casos «ejecuta» de la guarda de límite duro.
+ */
+function crearApp2(): Aplicacion {
+  return crearAplicacion({
+    documento: document,
+    almacen: null,
+    reloj: relojInmediato(),
+    relojEspera: relojEsperaInerte(),
+    relojRebote: relojReboteInmediato,
+    movimiento: movimientoReducido,
+    idNivel: '0.1',
+  });
+}
+
+describe('main · guarda de límite duro del mundo 3 (Property 1 — R1.3, R1.4, R1.6, R1.7)', () => {
+  beforeEach(() => {
+    montarDom();
+  });
+  afterEach(() => {
+    forzarLimiteDuro.activo = false;
+    forzarLimiteDuro.limiteDuro = 0;
+  });
+
+  it('con límite duro activo, un conteo mayor que el límite no emite ninguna operación, no cede la demostración ni reinicia la capa, y muestra limiteDuroExcedido (R1.3)', () => {
+    // presupuestoEstrella del 0.1 es 1; límite duro = 4 (presupuesto + 3).
+    forzarLimiteDuro.activo = true;
+    forzarLimiteDuro.limiteDuro = 4;
+
+    const { reloj, avanzar } = relojManual();
+    const app = crearAppAnimada(reloj);
+    expect(app.estado().reto.limiteDuroActivo).toBe(true);
+    expect(app.estado().reto.limiteDuro).toBe(4);
+
+    // Cinco instrucciones: supera el límite de 4.
+    escribir(app, 'AVANZA 20 AVANZA 20 AVANZA 20 AVANZA 20 AVANZA 20');
+    expect(app.editor.estadoContador().conteo).toBe(5);
+
+    app.ejecutar();
+    // Ni siquiera avanzando el reloj aparece operación alguna: la guarda cortó
+    // antes de cargar el animador, así que no hay nada que reproducir.
+    avanzar(5000);
+
+    // No se emitió ninguna operación de tortuga; no se tocó la capa del jugador.
+    expect(app.estado().operacionesJugador.length).toBe(0);
+    expect(app.estado().astJugador).toBeNull();
+    expect(app.estado().veredicto).toBeNull();
+    expect(app.estado().calificacion).toBeNull();
+    // No se marcó ejecución en curso (el botón ejecutar sigue disponible).
+    expect(boton('ejecutar').disabled).toBe(false);
+    expect(estrellas()).toEqual(['pendiente', 'pendiente', 'pendiente']);
+    // El globo muestra el mensaje de bloqueo con la cuenta exacta (5 usadas, 4 de
+    // límite, sobra 1) y empuja a anidar REPITE, sin revelar el presupuesto.
+    const texto = app.textoGlobo();
+    expect(texto).toContain('5');
+    expect(texto).toContain('4');
+    expect(texto).toContain('REPITE');
+    expect(texto.toLowerCase()).not.toContain('presupuesto');
+  });
+
+  it('con límite duro activo, un conteo menor o igual que el límite ejecuta con normalidad (R1.4)', () => {
+    forzarLimiteDuro.activo = true;
+    forzarLimiteDuro.limiteDuro = 4;
+
+    const app = crearApp2();
+    // Dos instrucciones ≤ 4: ejecuta.
+    escribir(app, 'AVANZA 50 AVANZA 50');
+    app.ejecutar();
+
+    expect(app.estado().operacionesJugador.length).toBeGreaterThan(0);
+    expect(app.estado().calificacion).not.toBeNull();
+    // No apareció el mensaje de bloqueo.
+    expect(app.textoGlobo()).not.toContain('REPITE dentro de otro');
+  });
+
+  it('un conteo igual al presupuestoEstrella ejecuta, porque nunca excede el límite duro (R1.6)', () => {
+    forzarLimiteDuro.activo = true;
+    forzarLimiteDuro.limiteDuro = 4;
+
+    const app = crearApp2();
+    expect(app.estado().reto.presupuestoEstrella).toBe(1);
+    // Una instrucción = presupuesto: ejecuta y gana las tres estrellas.
+    escribir(app, 'AVANZA 100');
+    app.ejecutar();
+
+    expect(app.estado().operacionesJugador.length).toBe(1);
+    const cal = app.estado().calificacion;
+    expect(cal).not.toBeNull();
+    expect(cal!.economia.otorgada).toBe(true);
+  });
+
+  it('un rodeo equivalente con conteo = presupuesto + 3 (dentro del límite) ejecuta (R1.7)', () => {
+    forzarLimiteDuro.activo = true;
+    forzarLimiteDuro.limiteDuro = 4; // presupuesto 1 + margen 3
+
+    const app = crearApp2();
+    // Cuatro instrucciones = presupuesto (1) + 3 = límite duro: cabe, ejecuta.
+    escribir(app, 'AVANZA 25 AVANZA 25 AVANZA 25 AVANZA 25');
+    expect(app.editor.estadoContador().conteo).toBe(4);
+    app.ejecutar();
+
+    expect(app.estado().operacionesJugador.length).toBe(4);
+    expect(app.estado().calificacion).not.toBeNull();
+  });
+});
+
+describe('main · no-regresión de los mundos 0–2 (Property 2 — R1.5, R10.3)', () => {
+  beforeEach(() => {
+    montarDom();
+  });
+
+  it('con límite duro inactivo (mundo 0), un conteo que supera el presupuesto ejecuta y no gana economía', () => {
+    // Sin forzar nada: el 0.1 tiene limiteDuroActivo = false.
+    const app = crearApp2();
+    expect(app.estado().reto.limiteDuroActivo).toBe(false);
+    expect(app.estado().reto.presupuestoEstrella).toBe(1);
+
+    // Tres instrucciones > presupuesto (1): en el mundo 0 se ejecuta igual.
+    escribir(app, 'AVANZA 100 GIRADERECHA 90 AVANZA 100');
+    app.ejecutar();
+
+    // Produjo operaciones (se dibujó) y no se mostró ningún bloqueo.
+    expect(app.estado().operacionesJugador.length).toBeGreaterThan(0);
+    const cal = app.estado().calificacion;
+    expect(cal).not.toBeNull();
+    // No gana la estrella de economía: 3 instrucciones frente al presupuesto de 1.
+    expect(cal!.economia.otorgada).toBe(false);
+    expect(cal!.conteoJugador).toBe(3);
   });
 });

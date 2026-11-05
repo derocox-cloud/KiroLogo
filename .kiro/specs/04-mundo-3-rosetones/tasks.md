@@ -48,7 +48,7 @@ insignias y la verificación integral.
   ejecutar el intérprete y cargar el animador, de modo que un programa bloqueado deja el intento como
   estaba y no emite ninguna operación de tortuga.
 
-  - [ ] 2.1 Insertar la guarda antes de animar
+  - [x] 2.1 Insertar la guarda antes de animar
     - Tras obtener `programa` válido y antes de `ejecutando = true`,
       `controles.marcarEjecucionEnCurso()`, `demostracion.cederAEjecucion()` y
       `animador.reiniciar(...)`: si `reto.limiteDuroActivo`, contar con
@@ -60,7 +60,7 @@ insignias y la verificación integral.
       (R1.4, R1.6, R1.7).
     - _Requirements: 1.3, 1.4, 1.6, 1.7_
 
-  - [ ]* 2.2 Tests de la guarda en `src/main.test.ts`
+  - [x]* 2.2 Tests de la guarda en `src/main.test.ts`
     - **Property 1: La guarda de límite duro ejecuta si y solo si el conteo cabe**
     - **Validates: Requirements 1.3, 1.4, 1.6, 1.7**
     - Con un reto del mundo 3 (`limiteDuroActivo`), un programa cuyo conteo supera `limiteDuro` no
@@ -70,7 +70,7 @@ insignias y la verificación integral.
       `presupuestoEstrella` ejecuta (R1.6); un rodeo equivalente con conteo `presupuesto + k`, `k ≤ 3`,
       ejecuta por caber en el límite (R1.7).
 
-  - [ ]* 2.3 Test de no-regresión de los mundos 0–2 en `src/main.test.ts`
+  - [x]* 2.3 Test de no-regresión de los mundos 0–2 en `src/main.test.ts`
     - **Property 2: En los mundos 0 a 2 el exceso de presupuesto ejecuta sin economía**
     - **Validates: Requirements 1.5, 10.3**
     - Con un reto de mundo 0–2 (`limiteDuroActivo` falso), un programa cuyo conteo supera
