@@ -163,7 +163,7 @@ insignias y la verificación integral.
 
   Incorporar las dos entradas al registro que `reto.ts` consulta vía `buscarGenerador`.
 
-  - [ ] 5.1 Añadir `roseton-m3` y `flor-m3` al registro
+  - [x] 5.1 Añadir `roseton-m3` y `flor-m3` al registro
     - `import { generarRoseton } from './rosetón.js';` e `import { generarFlor } from './flor.js';`.
     - Añadir `'roseton-m3': generarRoseton` y `'flor-m3': generarFlor` al record `GENERADORES`, sin
       alterar las entradas existentes.
