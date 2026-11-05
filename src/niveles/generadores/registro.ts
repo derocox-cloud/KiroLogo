@@ -11,7 +11,7 @@
 import type { Generador } from '../tipos.js';
 import { generarCamino } from './camino.js';
 import { generarZigzag } from './zigzag.js';
-import { generarRoseton } from './rosetón.js';
+import { generarRoseton } from './roseton.js';
 import { generarFlor } from './flor.js';
 
 // ============================================================================

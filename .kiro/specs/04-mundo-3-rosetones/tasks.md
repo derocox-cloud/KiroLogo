@@ -233,12 +233,12 @@ insignias y la verificación integral.
     - Los cuatro declaran `normalizacion` fija y `usaRepiteAnidado`.
     - El `presupuestoEstrella` de un nivel autorado es el del Conteo, no un valor a mano.
 
-- [ ] 8. Checkpoint — Asegurar que la capa de lenguaje, niveles y generadores pasan
+- [x] 8. Checkpoint — Asegurar que la capa de lenguaje, niveles y generadores pasan
 
   Ejecutar los tests de errores, main, editor, generadores, niveles y catálogo antes del desafío
   infinito y las insignias.
 
-  - [ ] 8.1 Correr `npm test` y confirmar que pasan sin regresiones; ante dudas, preguntar al usuario.
+  - [x] 8.1 Correr `npm test` y confirmar que pasan sin regresiones; ante dudas, preguntar al usuario.
 
 - [ ] 9. Desafío infinito — `src/juego/desafio-infinito.ts` (NUEVO)
 

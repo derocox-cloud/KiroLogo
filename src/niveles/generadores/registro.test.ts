@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { buscarGenerador, idsGenerador } from './registro.js';
 import { generarCamino } from './camino.js';
 import { generarZigzag } from './zigzag.js';
-import { generarRoseton } from './rosetón.js';
+import { generarRoseton } from './roseton.js';
 import { generarFlor } from './flor.js';
 import type { EntradaGenerador } from '../tipos.js';
 

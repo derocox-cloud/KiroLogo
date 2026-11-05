@@ -11,7 +11,7 @@ import fc from 'fast-check';
 import type { Instruccion, Repeticion, InvocacionComando, Programa } from '../../lenguaje/ast.js';
 import { analizar } from '../../juego/abstraccion.js';
 import { cajaDeReferencia, LIMITE_LIENZO, DIMENSION_MINIMA } from './comun.js';
-import { generarRoseton } from './rosetón.js';
+import { generarRoseton } from './roseton.js';
 import { ejecutar } from '../../lenguaje/interprete.js';
 import { comandosDelMundo } from '../../lenguaje/vocabulario.js';
 import { ESTADO_INICIAL } from '../../motor/tortuga.js';

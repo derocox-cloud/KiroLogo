@@ -58,6 +58,25 @@
         "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
         "timestamp": 1793898165120
       }
+    ],
+    "8.1 Correr `npm test` y confirmar que pasan sin regresiones; ante dudas, preguntar al usuario.": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793898628375
+      },
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793899447125
+      }
+    ],
+    "8. Checkpoint — Asegurar que la capa de lenguaje, niveles y generadores pasan": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793899447148
+      }
     ]
   }
 }
