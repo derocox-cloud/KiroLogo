@@ -98,6 +98,95 @@
         "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
         "timestamp": 1793901503445
       }
+    ],
+    "12.1 Ejecutar `npm run typecheck`, `npm run build` y `npm test -- --maxWorkers=2` en verde.": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902159319
+      },
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902352269
+      }
+    ],
+    "12. Verificación integral y regresión": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902352304
+      }
+    ],
+    "12.2 Regresión del catálogo del mundo 3": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902353189
+      }
+    ],
+    "1. Mensaje de bloqueo por límite excedido — `src/lenguaje/errores.ts` (AMPLIAR)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902734400
+      }
+    ],
+    "2. Guarda de límite duro — `src/main.ts` `ejecutarPrograma` (AMPLIAR)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902735847
+      }
+    ],
+    "3. Aviso anticipado de bloqueo en el contador — `src/ui/editor.ts` (AMPLIAR)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902737252
+      }
+    ],
+    "4. Generadores del mundo 3 — `src/niveles/generadores/rosetón.ts` y `flor.ts` (NUEVOS)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902738197
+      }
+    ],
+    "5. Registrar los generadores — `src/niveles/generadores/registro.ts` (AMPLIAR)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902739601
+      }
+    ],
+    "6. Niveles del mundo 3 — `src/niveles/mundo-3-rosetones.ts` (NUEVO)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902740997
+      }
+    ],
+    "9. Desafío infinito — `src/juego/desafio-infinito.ts` (NUEVO)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902742400
+      }
+    ],
+    "10. Insignia de concepto Simetría — `src/juego/insignias.ts` (AMPLIAR)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902743348
+      }
+    ],
+    "11. Insignias transversales y señales del progreso — `src/juego/progreso.ts` e": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902744508
+      }
     ]
   }
 }

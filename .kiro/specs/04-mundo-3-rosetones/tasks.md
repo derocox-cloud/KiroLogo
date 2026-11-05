@@ -18,7 +18,7 @@ insignias y la verificación integral.
 
 ## Tasks
 
-- [ ] 1. Mensaje de bloqueo por límite excedido — `src/lenguaje/errores.ts` (AMPLIAR)
+- [x] 1. Mensaje de bloqueo por límite excedido — `src/lenguaje/errores.ts` (AMPLIAR)
 
   El mensaje vive en el catálogo de errores, única fuente del texto (R2.4). Es la base del bloqueo:
   tanto la guarda de `main.ts` como el aviso del editor dependen de él, así que se construye primero.
@@ -42,7 +42,7 @@ insignias y la verificación integral.
       menciona `REPITE` y no contiene «presupuesto».
     - Parámetros inválidos (`usadas ≤ limite`, no enteros) caen en `solicitudDeErrorInvalida`.
 
-- [ ] 2. Guarda de límite duro — `src/main.ts` `ejecutarPrograma` (AMPLIAR)
+- [x] 2. Guarda de límite duro — `src/main.ts` `ejecutarPrograma` (AMPLIAR)
 
   Guarda previa a la ejecución: corta antes de ceder la demostración, reiniciar la capa del jugador,
   ejecutar el intérprete y cargar el animador, de modo que un programa bloqueado deja el intento como
@@ -76,7 +76,7 @@ insignias y la verificación integral.
     - Con un reto de mundo 0–2 (`limiteDuroActivo` falso), un programa cuyo conteo supera
       `presupuestoEstrella` ejecuta, produce operaciones y no gana la estrella de economía (R1.5, R10.3).
 
-- [ ] 3. Aviso anticipado de bloqueo en el contador — `src/ui/editor.ts` (AMPLIAR)
+- [x] 3. Aviso anticipado de bloqueo en el contador — `src/ui/editor.ts` (AMPLIAR)
 
   El contador ya marca el exceso de presupuesto; aquí anticipa el bloqueo por límite duro, por texto y
   en el nombre accesible, no solo por color.
@@ -100,7 +100,7 @@ insignias y la verificación integral.
       y el `aria-label` lo nombra (R2.5); con conteo ≤ `limiteDuro`, no hay aviso de bloqueo (R2.6);
       con `limiteDuroActivo` falso, nunca hay aviso de bloqueo.
 
-- [ ] 4. Generadores del mundo 3 — `src/niveles/generadores/rosetón.ts` y `flor.ts` (NUEVOS)
+- [x] 4. Generadores del mundo 3 — `src/niveles/generadores/rosetón.ts` y `flor.ts` (NUEVOS)
 
   Dos `Generador` del contrato de `tipos.ts` (`(entrada: EntradaGenerador) => ResultadoGeneracion`),
   que solo importan de `lenguaje/` y `azar/`. Producen AST: construyen el texto KiroLogo, lo parsean
@@ -159,7 +159,7 @@ insignias y la verificación integral.
       números adivinables, tienen la forma `REPITE c [REPITE n [GD a AV L] GD 360/c]`, y su referencia
       gana las tres estrellas contra el nivel 3.3.
 
-- [ ] 5. Registrar los generadores — `src/niveles/generadores/registro.ts` (AMPLIAR)
+- [x] 5. Registrar los generadores — `src/niveles/generadores/registro.ts` (AMPLIAR)
 
   Incorporar las dos entradas al registro que `reto.ts` consulta vía `buscarGenerador`.
 
@@ -169,7 +169,7 @@ insignias y la verificación integral.
       alterar las entradas existentes.
     - _Requirements: 5.1, 5.3_
 
-- [ ] 6. Niveles del mundo 3 — `src/niveles/mundo-3-rosetones.ts` (NUEVO)
+- [x] 6. Niveles del mundo 3 — `src/niveles/mundo-3-rosetones.ts` (NUEVO)
 
   Mismo molde que `mundo-2-composicion.ts`: `parsearReferencia(texto)` con `{ mundo: 3 }` para los
   autorados, semillas fijas, y el array `MUNDO_3`. La diferencia de datos es la normalización fija y
@@ -240,7 +240,7 @@ insignias y la verificación integral.
 
   - [x] 8.1 Correr `npm test` y confirmar que pasan sin regresiones; ante dudas, preguntar al usuario.
 
-- [ ] 9. Desafío infinito — `src/juego/desafio-infinito.ts` (NUEVO)
+- [x] 9. Desafío infinito — `src/juego/desafio-infinito.ts` (NUEVO)
 
   Módulo puro de `juego/` (importa de `niveles/` catálogo, `azar/` PRNG y `juego/` desbloqueo). No
   persiste estado propio: recalcula el reto de `(mundo, raíz, índice)`.
@@ -268,7 +268,7 @@ insignias y la verificación integral.
     - `desafioDisponible` es falso en un mundo incompleto (R7.2) y en un mundo sin generados (R7.8), y
       verdadero en un mundo completo con generados (R7.1); mundos 0, 1, 2 y 3 son retroactivos (R7.7).
 
-- [ ] 10. Insignia de concepto Simetría — `src/juego/insignias.ts` (AMPLIAR)
+- [x] 10. Insignia de concepto Simetría — `src/juego/insignias.ts` (AMPLIAR)
 
   Entrada más del patrón de las insignias de concepto, derivada solo del progreso y el catálogo.
 
@@ -286,7 +286,7 @@ insignias y la verificación integral.
       faltante en algún nivel → no otorgada (R8.2); volver a completar con la insignia ya otorgada la
       mantiene una sola vez (R8.3, R8.4).
 
-- [ ] 11. Insignias transversales y señales del progreso — `src/juego/progreso.ts` e
+- [x] 11. Insignias transversales y señales del progreso — `src/juego/progreso.ts` e
   `src/juego/insignias.ts` (AMPLIAR)
 
   Cuatro predicados puros sobre el progreso. *Minimalista* ya es calculable con las estrellas
@@ -322,19 +322,19 @@ insignias y la verificación integral.
       y evaluarla dos veces sobre el mismo progreso da el mismo booleano, sin segunda instancia (R9.5,
       R9.6).
 
-- [ ] 12. Verificación integral y regresión
+- [x] 12. Verificación integral y regresión
 
   Correr la suite completa y los tests de propiedad, y confirmar que los mundos 0 a 2 no cambian de
   comportamiento.
 
-  - [ ] 12.1 Ejecutar `npm run typecheck`, `npm run build` y `npm test -- --maxWorkers=2` en verde.
+  - [x] 12.1 Ejecutar `npm run typecheck`, `npm run build` y `npm test -- --maxWorkers=2` en verde.
 
-  - [ ]* 12.2 Regresión del catálogo del mundo 3
+  - [x]* 12.2 Regresión del catálogo del mundo 3
     - La referencia de cada nivel del mundo 3 gana las tres estrellas contra su propio nivel: 3.1 y 3.4
       directamente; 3.2 y 3.3 sobre al menos 200 semillas consecutivas (R4.7, R5.9).
     - La referencia de 3.4 no activa la guarda de 200 000 pasos (R4.4).
 
-  - [ ]* 12.3 No-regresión de los mundos 0–2
+  - [x]* 12.3 No-regresión de los mundos 0–2
     - Los retos de referencia de los mundos 0, 1 y 2 producen las mismas operaciones, presupuestos y
       estrellas que antes de esta spec (R10.3).
 
