@@ -8,10 +8,19 @@
 
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import type { Instruccion, Repeticion, InvocacionComando } from '../../lenguaje/ast.js';
+import type { Instruccion, Repeticion, InvocacionComando, Programa } from '../../lenguaje/ast.js';
 import { analizar } from '../../juego/abstraccion.js';
 import { cajaDeReferencia, LIMITE_LIENZO, DIMENSION_MINIMA } from './comun.js';
 import { generarRoseton } from './rosetón.js';
+import { ejecutar } from '../../lenguaje/interprete.js';
+import { comandosDelMundo } from '../../lenguaje/vocabulario.js';
+import { ESTADO_INICIAL } from '../../motor/tortuga.js';
+import { extraerSegmentos } from '../../motor/segmentos.js';
+import { validar } from '../../motor/validador.js';
+import { contarInstrucciones } from '../../lenguaje/conteo.js';
+import { calificar } from '../../juego/estrellas.js';
+import type { Reto } from '../../juego/reto.js';
+import { NIVEL_3_2 } from '../mundo-3-rosetones.js';
 
 // ============================================================================
 // Conjuntos esperados por el requisito
@@ -192,12 +201,69 @@ describe('roseton-m3 · Property 10: forma REPITE c [REPITE n [AV L GD 360/n] GD
 });
 
 // ============================================================================
-// Property 7 · tres estrellas contra el nivel 3.2 — PENDIENTE
+// Property 7 · tres estrellas contra el nivel 3.2
 // ============================================================================
+//
+// El nivel 3.2 ya existe en `mundo-3-rosetones.ts` (tarea 6), así que se puede
+// verificar la Property 7 SIN el catálogo del mundo 3 (tarea 7): se ejecuta la
+// referencia con el mismo intérprete que usa `resolverReto`, se extraen sus
+// segmentos y se valida contra sí misma con la normalización FIJA del nivel.
+// Como la referencia del jugador ES la de la demostración, debe ganar las tres
+// estrellas: precisión (coincide consigo misma), economía (su conteo es el
+// presupuesto) y abstracción (`usaRepiteAnidado`). La regresión sobre las 200
+// semillas del catálogo queda para la tarea 12.2.
 
-// Pendiente de la tarea 6 (catálogo del mundo 3) y de la tarea 12.2 (regresión).
-// Sin el nivel 3.2 declarado en el catálogo no se puede resolver el reto ni
-// validar la referencia, así que la Property 7 (precisión + economía +
-// abstracción de la referencia contra su propio nivel) se verifica cuando el
-// nivel exista. No se inventa el nivel aquí.
-describe.todo('roseton-m3 · Property 7: la referencia gana las tres estrellas contra el nivel 3.2 (pendiente tarea 6 / 12.2)');
+/** Ejecuta una referencia del mundo 3 y devuelve sus segmentos dibujados. */
+function segmentosDe(referencia: Programa): ReturnType<typeof extraerSegmentos> {
+  const gen = ejecutar(referencia, {
+    estadoInicial: ESTADO_INICIAL,
+    comandosPermitidos: comandosDelMundo(3),
+    semilla: 0,
+  });
+  let paso = gen.next();
+  while (!paso.done) paso = gen.next();
+  return extraerSegmentos(paso.value.operaciones);
+}
+
+/**
+ * Arma un Reto mínimo para calificar la referencia contra su propio nivel, con
+ * el presupuesto por el Conteo (como haría `resolverReto`) y la normalización
+ * fija del nivel. Solo rellena los campos que `calificar` consume.
+ */
+function retoDeReferencia(referencia: Programa, nivel: typeof NIVEL_3_2): Reto {
+  const conteo = contarInstrucciones(referencia);
+  const presupuesto = conteo.exito ? conteo.instrucciones : 0;
+  return {
+    nivel,
+    semillaEfectiva: 0,
+    codigoSemilla: '',
+    referencia,
+    operaciones: [],
+    segmentos: [],
+    presupuestoEstrella: presupuesto,
+    limiteDuro: presupuesto + 3,
+    limiteDuroActivo: true,
+  };
+}
+
+describe('roseton-m3 · Property 7: la referencia gana las tres estrellas contra el nivel 3.2', () => {
+  // Validates: Requirements 5.9, 4.7
+  it('la referencia de varias semillas gana precisión, economía y abstracción contra el nivel 3.2', () => {
+    for (const semilla of [0, 1, 7, 42, 199]) {
+      const r = generarRoseton({ semilla, parametros: {}, intentosMaximos: 200 });
+      expect(r.exito, `semilla ${semilla}`).toBe(true);
+      if (!r.exito) continue;
+
+      const segmentos = segmentosDe(r.referencia);
+      // El jugador dibuja exactamente la referencia: se valida contra sí misma
+      // con la normalización fija del nivel 3.2.
+      const veredicto = validar(segmentos, segmentos, NIVEL_3_2.normalizacion);
+      const reto = retoDeReferencia(r.referencia, NIVEL_3_2);
+      const calificacion = calificar(r.referencia, veredicto, reto);
+
+      expect(calificacion.precision.otorgada, `precisión semilla ${semilla}`).toBe(true);
+      expect(calificacion.economia.otorgada, `economía semilla ${semilla}`).toBe(true);
+      expect(calificacion.abstraccion.otorgada, `abstracción semilla ${semilla}`).toBe(true);
+    }
+  });
+});

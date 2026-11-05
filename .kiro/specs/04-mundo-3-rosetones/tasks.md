@@ -176,7 +176,7 @@ insignias y la verificación integral.
   la exigencia de abstracción `usaRepiteAnidado`. Ningún nivel escribe un número de presupuesto: lo
   calcula `resolverReto` por el Conteo (R4.2, R4.6, R5.5).
 
-  - [ ] 6.1 Referencias autoradas y normalización
+  - [x] 6.1 Referencias autoradas y normalización
     - `REFERENCIA_3_1 = parsearReferencia('REPITE 36 [REPITE 4 [AV 100 GD 90] GD 10]')` (rosetón de 36
       cuadrados, R4.1).
     - `REFERENCIA_3_4 = parsearReferencia('REPITE 8 [GD 45 REPITE 6 [REPITE 90 [AV 2 GD 2] GD 90]]')`
@@ -185,7 +185,7 @@ insignias y la verificación integral.
       (R3.5).
     - _Requirements: 4.1, 4.3, 3.5_
 
-  - [ ] 6.2 Declarar los cuatro niveles y exportar `MUNDO_3`
+  - [x] 6.2 Declarar los cuatro niveles y exportar `MUNDO_3`
     - `NIVEL_3_1` (autorado, `REFERENCIA_3_1`, semilla 301) y `NIVEL_3_4` (autorado, `REFERENCIA_3_4`,
       semilla 304); `NIVEL_3_2` (generado `roseton-m3`) y `NIVEL_3_3` (generado `flor-m3`).
     - Los cuatro con `mundo: 3`, `concepto: 'simetria'`, `normalizacion: NORMALIZACION_M3`,
@@ -196,7 +196,7 @@ insignias y la verificación integral.
     - `export const MUNDO_3: readonly Nivel[] = [NIVEL_3_1, NIVEL_3_2, NIVEL_3_3, NIVEL_3_4];`.
     - _Requirements: 3.5, 3.6, 4.5, 5.8, 6.1_
 
-  - [ ]* 6.3 Tests de niveles autorados en `src/niveles/mundo-3-rosetones.test.ts`
+  - [x]* 6.3 Tests de niveles autorados en `src/niveles/mundo-3-rosetones.test.ts`
     - **Property 6: El presupuesto de todo nivel del mundo 3 es el conteo de su referencia**
     - **Validates: Requirements 4.2, 4.6**
     - 3.1 y 3.4 parsean sin error; su `presupuestoEstrella` sale de `contarInstrucciones` sobre su
@@ -204,14 +204,14 @@ insignias y la verificación integral.
     - La referencia de 3.4 se ejecuta hasta el final sin activar la guarda de 200 000 pasos (R4.4).
     - Los cuatro niveles declaran `normalizacion` fija (R3.5) y `usaRepiteAnidado` (R4.5, R6.1).
 
-  - [ ]* 6.4 Test de abstracción anidada en `src/juego/abstraccion.test.ts`
+  - [x]* 6.4 Test de abstracción anidada en `src/juego/abstraccion.test.ts`
     - **Property 12: La estrella de abstracción se otorga si y solo si hay REPITE anidado, analizando el AST**
     - **Validates: Requirements 6.2, 6.3, 6.4**
     - Un AST con `REPITE` dentro de `REPITE` cumple `usaRepiteAnidado`; una lista plana de `REPITE`
       consecutivos no lo cumple; dos textos distintos con el mismo AST obtienen el mismo veredicto
       (se analiza el AST, no el texto).
 
-  - [ ]* 6.5 Test de normalización fija en `src/motor/validador.test.ts`
+  - [x]* 6.5 Test de normalización fija en `src/motor/validador.test.ts`
     - **Property 5: La normalización fija niega la precisión a una figura trasladada o rotada**
     - **Validates: Requirements 3.3, 3.4**
     - Una figura correcta pero trasladada, y otra rotada, con `Normalizacion_Fija`, no alcanzan el IoU

@@ -1478,3 +1478,99 @@ describe('Bugfix Caso 1: el exceso visual cubre el excedente real del trazo', ()
     expect(excesoDilatado).toBeGreaterThan(0);
   });
 });
+
+// ============================================================================
+// Property 5 · la normalización fija niega la precisión a una figura trasladada
+// o rotada (mundo 3, R3.3, R3.4). La tolerancia de dilatación es la misma que
+// la de los mundos 0–2 (R3.2): no se toca al cambiar la normalización.
+// ============================================================================
+
+describe('Property 5: normalización fija niega precisión a figura trasladada o rotada', () => {
+  // Validates: Requirements 3.3, 3.4
+  const FIJA_M3: NormalizacionNivel = { traslacion: 'fija', rotacion: 'fija', escala: 'exacta' };
+  const LIBRE_M3: NormalizacionNivel = { traslacion: 'libre', rotacion: 'libre', escala: 'exacta' };
+
+  const seg5 = (ax: number, ay: number, bx: number, by: number, paso: number): Segmento => ({
+    desde: { x: ax, y: ay },
+    hasta: { x: bx, y: by },
+    paso,
+    linea: paso + 1,
+  });
+
+  // Figura de referencia: un cuadrado de lado 160 centrado cerca del origen, con
+  // un pico para que sea asimétrica y una rotación no la vuelva a hacer coincidir
+  // consigo misma por accidente.
+  const referencia: Segmento[] = [
+    seg5(-80, -80, 80, -80, 0),
+    seg5(80, -80, 80, 80, 1),
+    seg5(80, 80, -80, 80, 2),
+    seg5(-80, 80, -80, -80, 3),
+    seg5(-80, 80, 0, 160, 4), // pico que rompe la simetría
+    seg5(0, 160, 80, 80, 5),
+  ];
+
+  /** Traslada todos los segmentos (dx, dy). */
+  function trasladar(segs: readonly Segmento[], dx: number, dy: number): Segmento[] {
+    return segs.map((s) => ({
+      ...s,
+      desde: { x: s.desde.x + dx, y: s.desde.y + dy },
+      hasta: { x: s.hasta.x + dx, y: s.hasta.y + dy },
+    }));
+  }
+
+  /** Rota todos los segmentos `grados` alrededor del origen. */
+  function rotar(segs: readonly Segmento[], grados: number): Segmento[] {
+    const rad = (grados * Math.PI) / 180;
+    const cos = Math.cos(rad);
+    const sin = Math.sin(rad);
+    const giraPunto = (p: Punto): Punto => ({ x: p.x * cos - p.y * sin, y: p.x * sin + p.y * cos });
+    return segs.map((s) => ({ ...s, desde: giraPunto(s.desde), hasta: giraPunto(s.hasta) }));
+  }
+
+  it('la figura idéntica coincide con normalización fija (línea base de tolerancia)', () => {
+    const v = validar(referencia, referencia, FIJA_M3);
+    expect(v.coincide).toBe(true);
+    expect(v.angulo).toBe(0);
+    expect(v.traslacion).toEqual({ x: 0, y: 0 });
+  });
+
+  it('una figura correcta pero trasladada 100 px NO coincide con normalización fija (R3.3)', () => {
+    const trasladada = trasladar(referencia, 100, 0);
+    const v = validar(trasladada, referencia, FIJA_M3);
+    expect(v.coincide).toBe(false);
+    // Con traslación fija el validador no recentra: la traslación reportada es 0.
+    expect(v.traslacion).toEqual({ x: 0, y: 0 });
+  });
+
+  it('esa misma figura trasladada SÍ coincidiría con normalización libre: lo que la niega es la fija (R3.3)', () => {
+    const trasladada = trasladar(referencia, 100, 0);
+    const vLibre = validar(trasladada, referencia, LIBRE_M3);
+    // La traslación libre recentra por caja y la figura, por lo demás idéntica,
+    // vuelve a coincidir. Esto prueba que es la normalización fija —no la forma—
+    // la que niega la precisión.
+    expect(vLibre.coincide).toBe(true);
+  });
+
+  it('una figura correcta pero rotada 90° NO coincide con normalización fija (R3.4)', () => {
+    // 90° es muy superior a la tolerancia de dilatación (disco de 8 px): con
+    // rotación fija el validador solo compara el ángulo 0, así que no busca el
+    // giro que la realinee y la precisión queda negada.
+    const rotada = rotar(referencia, 90);
+    const v = validar(rotada, referencia, FIJA_M3);
+    expect(v.coincide).toBe(false);
+    expect(v.angulo).toBe(0);
+  });
+
+  it('la tolerancia de dilatación es la misma que en 0–2: la figura idéntica coincide con fija y con libre (R3.2)', () => {
+    // La normalización fija y la libre comparten el mismo trazado, la misma
+    // dilatación de disco 8 y el mismo umbral de IoU/exceso: lo único que cambia
+    // es si se recentra y se busca giro. Sobre la figura idéntica ambas coinciden,
+    // lo que ancla que cambiar a fija no tocó la tolerancia de dilatación.
+    const vFija = validar(referencia, referencia, FIJA_M3);
+    const vLibre = validar(referencia, referencia, LIBRE_M3);
+    expect(vFija.coincide).toBe(true);
+    expect(vLibre.coincide).toBe(true);
+    expect(vFija.iou).toBe(vLibre.iou);
+    expect(vFija.excesoPorcentaje).toBe(vLibre.excesoPorcentaje);
+  });
+});

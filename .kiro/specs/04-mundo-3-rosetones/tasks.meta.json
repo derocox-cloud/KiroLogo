@@ -37,6 +37,20 @@
         "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
         "timestamp": 1793895789736
       }
+    ],
+    "5.1 Añadir `roseton-m3` y `flor-m3` al registro": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793896846278
+      }
+    ],
+    "6.1 Referencias autoradas y normalización": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793897012997
+      }
     ]
   }
 }
