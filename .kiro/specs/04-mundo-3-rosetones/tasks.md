@@ -272,14 +272,14 @@ insignias y la verificación integral.
 
   Entrada más del patrón de las insignias de concepto, derivada solo del progreso y el catálogo.
 
-  - [ ] 10.1 Registrar la insignia Simetría
+  - [x] 10.1 Registrar la insignia Simetría
     - Añadir `'simetria'` a `IdInsignia` y a `MUNDO_DE_INSIGNIA` (`simetria: 3`).
     - `insigniaSimetriaOtorgada(progreso)` delega en `mundoCompletoConTresEstrellas(3, progreso)`
       (R8.1, R8.2) e incluir la rama del mundo 3 en `insigniasDelMundo` para que devuelva `['simetria']`
       cuando corresponde.
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-  - [ ]* 10.2 Tests de la insignia Simetría en `src/juego/insignias.test.ts`
+  - [x]* 10.2 Tests de la insignia Simetría en `src/juego/insignias.test.ts`
     - **Property 16: La insignia Simetría se otorga si y solo si el mundo 3 tiene las tres estrellas**
     - **Validates: Requirements 8.1, 8.2**
     - Con las tres estrellas en los cuatro niveles del mundo 3 → otorgada (R8.1); con una estrella

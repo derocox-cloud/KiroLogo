@@ -7,6 +7,7 @@ import {
   insigniaSecuenciaOtorgada,
   insigniaIteracionOtorgada,
   insigniaDescomposicionOtorgada,
+  insigniaSimetriaOtorgada,
   insigniasDelMundo,
 } from './insignias.js';
 import { CATALOGO } from '../niveles/catalogo.js';
@@ -22,6 +23,9 @@ const IDS_MUNDO_1 = CATALOGO.filter((n) => n.mundo === 1).map((n) => n.id);
 
 /** Ids de los niveles del mundo 2, derivados del catálogo (no hardcodeados). */
 const IDS_MUNDO_2 = CATALOGO.filter((n) => n.mundo === 2).map((n) => n.id);
+
+/** Ids de los niveles del mundo 3, derivados del catálogo (no hardcodeados). */
+const IDS_MUNDO_3 = CATALOGO.filter((n) => n.mundo === 3).map((n) => n.id);
 
 function calif(p: boolean, e: boolean, a: boolean): Calificacion {
   const est = (o: boolean) => (o ? { otorgada: true as const } : { otorgada: false as const, motivo: { clave: 'sinPrecision' as const } });
@@ -150,6 +154,61 @@ describe('insignia Descomposición', () => {
 });
 
 // ============================================================================
+// Insignia Simetría (mundo 3), requisito 8
+// ============================================================================
+// Property 16: La insignia Simetría se otorga si y solo si el mundo 3 tiene las
+// tres estrellas en sus cuatro niveles.
+// Validates: Requirements 8.1, 8.2
+describe('insignia Simetría', () => {
+  it('el catálogo tiene cuatro niveles en el mundo 3', () => {
+    expect(IDS_MUNDO_3).toEqual(['3.1', '3.2', '3.3', '3.4']);
+  });
+
+  it('se otorga con las tres estrellas en los cuatro niveles del mundo 3 (R8.1)', () => {
+    const progreso = conTresEstrellas(...IDS_MUNDO_3);
+    expect(insigniaSimetriaOtorgada(progreso)).toBe(true);
+    expect(insigniasDelMundo(3, progreso)).toEqual(['simetria']);
+  });
+
+  it('no se otorga si a un nivel le falta una sola estrella (R8.2)', () => {
+    const progreso = cargarProgreso(null);
+    for (const id of IDS_MUNDO_3.slice(1)) progreso.guardar(id, 1, calif(true, true, true), 1);
+    // El 3.1 queda con precisión y economía pero sin abstracción.
+    progreso.guardar(IDS_MUNDO_3[0]!, 1, calif(true, true, false), 1);
+    expect(insigniaSimetriaOtorgada(progreso)).toBe(false);
+    expect(insigniasDelMundo(3, progreso)).toEqual([]);
+  });
+
+  it('no se otorga si un nivel del mundo está sin jugar (R8.2)', () => {
+    const progreso = conTresEstrellas(...IDS_MUNDO_3.slice(1)); // falta el primero
+    expect(insigniaSimetriaOtorgada(progreso)).toBe(false);
+    expect(insigniasDelMundo(3, progreso)).toEqual([]);
+  });
+
+  it('no se otorga sin ningún progreso (R8.2)', () => {
+    expect(insigniaSimetriaOtorgada(cargarProgreso(null))).toBe(false);
+  });
+
+  it('es función pura: evaluar dos veces el mismo progreso da el mismo booleano (R8.3, R8.4)', () => {
+    const progreso = conTresEstrellas(...IDS_MUNDO_3);
+    const primera = insigniaSimetriaOtorgada(progreso);
+    const segunda = insigniaSimetriaOtorgada(progreso);
+    expect(primera).toBe(true);
+    expect(segunda).toBe(primera);
+  });
+
+  it('se mantiene otorgada exactamente una vez al recompletar el mundo (R8.3, R8.4)', () => {
+    const progreso = conTresEstrellas(...IDS_MUNDO_3);
+    expect(insigniaSimetriaOtorgada(progreso)).toBe(true);
+    // "Recompletar" un nivel ya completo no crea una segunda instancia: la
+    // insignia se deriva del progreso, así que sigue otorgada y sin duplicar.
+    progreso.guardar(IDS_MUNDO_3[0]!, 1, calif(true, true, true), 1);
+    expect(insigniaSimetriaOtorgada(progreso)).toBe(true);
+    expect(insigniasDelMundo(3, progreso)).toEqual(['simetria']);
+  });
+});
+
+// ============================================================================
 describe('insignias · derivado del progreso y alcance', () => {
   it('reconstruir el progreso desde las mismas estrellas da el mismo otorgamiento', () => {
     const a = conTresEstrellas(...IDS);
@@ -158,10 +217,10 @@ describe('insignias · derivado del progreso y alcance', () => {
   });
 
   it('ningún mundo sin insignia declarada la otorga en esta spec', () => {
-    // Mundos 3 a 5 no tienen insignia declarada todavía; aunque se completaran
+    // Mundos 4 y 5 no tienen insignia declarada todavía; aunque se completaran
     // sus niveles, insigniasDelMundo no devolvería nada para ellos.
-    const progreso = conTresEstrellas(...IDS, ...IDS_MUNDO_1, ...IDS_MUNDO_2);
-    for (const mundo of [3, 4, 5]) {
+    const progreso = conTresEstrellas(...IDS, ...IDS_MUNDO_1, ...IDS_MUNDO_2, ...IDS_MUNDO_3);
+    for (const mundo of [4, 5]) {
       expect(insigniasDelMundo(mundo, progreso)).toEqual([]);
     }
   });

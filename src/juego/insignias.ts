@@ -1,8 +1,9 @@
 // Insignias de KiroLogo.
 //
 // Las insignias de concepto se otorgan al dominar un mundo entero: las tres
-// estrellas en todos sus niveles. Aquí se reconocen tres: *Secuencia* (mundo 0),
-// *Iteración* (mundo 1) y *Descomposición* (mundo 2). El otorgamiento se deriva
+// estrellas en todos sus niveles. Aquí se reconocen cuatro: *Secuencia* (mundo 0),
+// *Iteración* (mundo 1), *Descomposición* (mundo 2) y *Simetría* (mundo 3). El
+// otorgamiento se deriva
 // **solo** del progreso y el catálogo, sin estado propio persistido, de modo que
 // es reproducible a partir de las estrellas guardadas y, por lo mismo, se
 // mantiene otorgado exactamente una vez sin crear una segunda instancia. Ninguna
@@ -17,13 +18,14 @@ import type { Progreso } from './progreso.js';
 // ============================================================================
 
 /** Las insignias por concepto disponibles en esta spec. */
-export type IdInsignia = 'secuencia' | 'iteracion' | 'descomposicion';
+export type IdInsignia = 'secuencia' | 'iteracion' | 'descomposicion' | 'simetria';
 
 /** El mundo al que pertenece cada insignia por concepto. */
 const MUNDO_DE_INSIGNIA: Readonly<Record<IdInsignia, number>> = {
   secuencia: 0,
   iteracion: 1,
   descomposicion: 2,
+  simetria: 3,
 };
 
 // ============================================================================
@@ -85,14 +87,25 @@ export function insigniaDescomposicionOtorgada(progreso: Progreso): boolean {
   return mundoCompletoConTresEstrellas(2, progreso);
 }
 
+/**
+ * ¿Se otorga la insignia *Simetría*? Verdadero solo si los cuatro niveles del
+ * mundo 3 tienen las tres estrellas cada uno. Falta una sola estrella en
+ * cualquiera y no se otorga. Reconoce el dominio de la iteración anidada.
+ *
+ * @param progreso Progreso del jugador
+ */
+export function insigniaSimetriaOtorgada(progreso: Progreso): boolean {
+  return mundoCompletoConTresEstrellas(3, progreso);
+}
+
 // ============================================================================
 // Insignias por mundo
 // ============================================================================
 
 /**
  * Las insignias otorgadas de un mundo. Hoy el mundo 0 tiene *Secuencia*, el
- * mundo 1 tiene *Iteración* y el mundo 2 tiene *Descomposición*; cualquier otro
- * mundo devuelve una lista vacía.
+ * mundo 1 tiene *Iteración*, el mundo 2 tiene *Descomposición* y el mundo 3
+ * tiene *Simetría*; cualquier otro mundo devuelve una lista vacía.
  *
  * @param mundo Número de mundo (0 a 5)
  * @param progreso Progreso del jugador
@@ -109,6 +122,9 @@ export function insigniasDelMundo(mundo: number, progreso: Progreso): readonly I
       otorgadas.push(id);
     }
     if (id === 'descomposicion' && insigniaDescomposicionOtorgada(progreso)) {
+      otorgadas.push(id);
+    }
+    if (id === 'simetria' && insigniaSimetriaOtorgada(progreso)) {
       otorgadas.push(id);
     }
   }
