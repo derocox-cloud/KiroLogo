@@ -107,7 +107,7 @@ insignias y la verificación integral.
   con `{ mundo: 3 }` y devuelven el `Programa`. Miden la caja con su propia aritmética de polígono
   (como `anchoPoligono` en los generadores del mundo 2), sin importar de `motor/`.
 
-  - [ ] 4.1 Generador `roseton-m3` (nivel 3.2)
+  - [x] 4.1 Generador `roseton-m3` (nivel 3.2)
     - Forma `REPITE c [REPITE n [AV L GD 360/n] GD 360/c]`: un `REPITE` de copias que contiene el
       `REPITE` de la figura interna y el giro entre copias (R5.2).
     - `c ∈ {6, 8, 9, 12, 18, 36}` (copias) vía `prng.elegir`; `n ∈ {3, 4, 5, 6}` (lados) vía
@@ -117,7 +117,7 @@ insignias y la verificación integral.
     - El AST tiene `REPITE` anidado, de modo que su referencia gana `usaRepiteAnidado` (R5.8).
     - _Requirements: 5.1, 5.2, 5.4, 5.8_
 
-  - [ ] 4.2 Generador `flor-m3` (nivel 3.3)
+  - [x] 4.2 Generador `flor-m3` (nivel 3.3)
     - Forma exacta `REPITE c [REPITE n [GD a AV L] GD 360/c]`: un giro previo al avance en cada pétalo
       (R5.3).
     - `c` (pétalos) de un conjunto cuyo `360/c` sea entero; `n` segmentos por pétalo; `a` ángulo
@@ -125,7 +125,7 @@ insignias y la verificación integral.
       (R5.8).
     - _Requirements: 5.3, 5.4, 5.8_
 
-  - [ ] 4.3 Lazo de reintento, encuadre y no degeneración (los dos)
+  - [x] 4.3 Lazo de reintento, encuadre y no degeneración (los dos)
     - Dentro de `entrada.intentosMaximos`, con `prng = crearPrng(entrada.semilla + intento)`: elegir
       parámetros, construir y parsear el texto, medir la caja envolvente alineada a los ejes sobre el
       recorrido calculado.
@@ -138,7 +138,7 @@ insignias y la verificación integral.
       (R5.5).
     - _Requirements: 5.5, 5.6, 5.7_
 
-  - [ ]* 4.4 Tests de propiedad de `roseton-m3` en `src/niveles/generadores/rosetón.test.ts`
+  - [x]* 4.4 Tests de propiedad de `roseton-m3` en `src/niveles/generadores/rosetón.test.ts`
     - **Property 7: Toda referencia del mundo 3 aprueba su propio nivel con las tres estrellas**
     - **Property 8: El reto generado aceptado encuadra y no degenera**
     - **Property 9: Los generadores emiten solo números adivinables**
@@ -149,7 +149,7 @@ insignias y la verificación integral.
       `REPITE c [REPITE n [...] GD 360/c]` con `c ∈ {6,8,9,12,18,36}` y `n ∈ 3..6`, y su referencia
       gana las tres estrellas (precisión, economía y `usaRepiteAnidado`) contra el nivel 3.2.
 
-  - [ ]* 4.5 Tests de propiedad de `flor-m3` en `src/niveles/generadores/flor.test.ts`
+  - [x]* 4.5 Tests de propiedad de `flor-m3` en `src/niveles/generadores/flor.test.ts`
     - **Property 7: Toda referencia del mundo 3 aprueba su propio nivel con las tres estrellas**
     - **Property 8: El reto generado aceptado encuadra y no degenera**
     - **Property 9: Los generadores emiten solo números adivinables**
