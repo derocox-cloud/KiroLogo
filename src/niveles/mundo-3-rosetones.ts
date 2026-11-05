@@ -88,8 +88,8 @@ export const NIVEL_3_1: Nivel = {
   normalizacion: NORMALIZACION_M3,
   abstraccion: [{ clave: 'usaRepiteAnidado' }],
   pistas: [
-    'Un rosetón son muchas copias de la misma figura, giradas un poco cada vez alrededor de un punto. Aquí la figura es un cuadrado. Fíjate dónde empieza la tortuga y hacia dónde mira: la posición y el rumbo de partida importan para aprobar.',
-    'Si hay 36 copias, entre copia y copia la tortuga gira 360/36 = 10°. Cada cuadrado son cuatro giros de 90°. Pon el REPITE del cuadrado dentro del REPITE de las copias, y parte desde la misma posición y el mismo rumbo que ves en la demostración.',
+    'Un rosetón son copias de una misma figura, giradas un poco alrededor de un punto. Aquí la figura es un cuadrado. La posición y el rumbo de partida importan para aprobar.',
+    'Con 36 copias, entre copia y copia se gira 360/36 = 10°; cada cuadrado son cuatro giros de 90°. Pon el REPITE del cuadrado dentro del REPITE de las copias, y parte igual que la demo.',
     'REPITE 36 [ REPITE 4 [...] GD ... ]  —el cuadrado va dentro; cuida el punto y el rumbo de partida.',
   ],
 };
@@ -111,8 +111,8 @@ export const NIVEL_3_2: Nivel = {
   normalizacion: NORMALIZACION_M3,
   abstraccion: [{ clave: 'usaRepiteAnidado' }],
   pistas: [
-    'Es un rosetón como el anterior, pero la figura que se repite es un polígono de varios lados. Cuenta cuántas copias hay y cuántos lados tiene el polígono. La posición y el rumbo de partida de la tortuga cuentan para aprobar.',
-    'Entre copias la tortuga gira 360 dividido entre el número de copias; dentro del polígono gira 360 dividido entre su número de lados. Un REPITE para el polígono, dentro de otro REPITE para las copias. Empieza desde la misma posición y el mismo rumbo que la demostración.',
+    'Es un rosetón, pero la figura que se repite es un polígono de varios lados. Cuenta las copias y los lados. La posición y el rumbo de partida cuentan para aprobar.',
+    'Entre copias se gira 360 entre el número de copias; dentro del polígono, 360 entre sus lados. Un REPITE del polígono dentro de otro REPITE de copias. Empieza igual que la demo.',
     'REPITE copias [ REPITE lados [...] GD ... ]  —arranca donde arranca la demostración, mirando igual.',
   ],
 };
@@ -134,8 +134,8 @@ export const NIVEL_3_3: Nivel = {
   normalizacion: NORMALIZACION_M3,
   abstraccion: [{ clave: 'usaRepiteAnidado' }],
   pistas: [
-    'Una flor son pétalos repetidos alrededor de un centro, y cada pétalo se inclina antes de dibujarse. Cuenta los pétalos. Dónde empieza la tortuga y hacia dónde mira son parte del reto: la posición y el rumbo de partida importan.',
-    'Entre pétalo y pétalo la tortuga gira 360 dividido entre el número de pétalos. Dentro de cada pétalo gira primero y luego avanza, varias veces. Un REPITE del pétalo dentro del REPITE de los pétalos, partiendo desde la misma posición y el mismo rumbo de la demostración.',
+    'Una flor son pétalos repetidos alrededor de un centro, y cada pétalo se inclina antes de dibujarse. Cuenta los pétalos. La posición y el rumbo de partida importan.',
+    'Entre pétalos se gira 360 entre el número de pétalos. Dentro de cada pétalo se gira primero y luego se avanza, varias veces. Un REPITE del pétalo dentro del de pétalos; parte igual que la demo.',
     'REPITE petalos [ REPITE n [ GD ... AV ... ] GD ... ]  —el giro va antes del avance; respeta el punto y el rumbo de partida.',
   ],
 };
@@ -157,8 +157,8 @@ export const NIVEL_3_4: Nivel = {
   normalizacion: NORMALIZACION_M3,
   abstraccion: [{ clave: 'usaRepiteAnidado' }],
   pistas: [
-    'Un mandala es un rosetón de rosetones: un patrón que se repite varias veces alrededor del centro, y ese patrón ya tiene su propia repetición dentro. Observa con calma la demostración y cuenta las vueltas. La posición y el rumbo de partida de la tortuga importan para aprobar.',
-    'Hay un REPITE dentro de otro dentro de otro: el más interno dibuja un círculo con avances cortos y giros iguales, el del medio lo repite en abanico, y el externo rota todo el abanico varias veces. Empieza desde la misma posición y el mismo rumbo que la demostración.',
+    'Un mandala es un rosetón de rosetones: un patrón que se repite alrededor del centro, y ese patrón ya repite algo dentro. Cuenta las vueltas. La posición y el rumbo de partida importan.',
+    'Hay un REPITE dentro de otro dentro de otro: el interno dibuja un círculo con avances cortos, el del medio lo repite en abanico y el externo rota el abanico. Empieza igual que la demo.',
     'REPITE [ ... REPITE [ REPITE [ AV ... GD ... ] GD ... ] ]  —tres niveles de anidación; parte desde el punto y el rumbo de la demostración.',
   ],
 };

@@ -218,17 +218,17 @@ insignias y la verificación integral.
       mínimo y niegan la precisión (R3.3, R3.4); la tolerancia de dilatación es la misma que la de los
       mundos 0–2 (R3.2).
 
-- [ ] 7. Registrar el mundo 3 en el catálogo — `src/niveles/catalogo.ts` (AMPLIAR)
+- [x] 7. Registrar el mundo 3 en el catálogo — `src/niveles/catalogo.ts` (AMPLIAR)
 
   Incorporar los cuatro niveles al registro que resuelve `reto.ts`.
 
-  - [ ] 7.1 Añadir `MUNDO_3` al catálogo
+  - [x] 7.1 Añadir `MUNDO_3` al catálogo
     - `import { MUNDO_3 } from './mundo-3-rosetones.js';` y
       `CATALOGO = [...MUNDO_0, ...MUNDO_1, ...MUNDO_2, ...MUNDO_3]`.
     - `mundos.ts` ya declara el mundo 3 («Rosetones», insignia «Simetría»): no se toca.
     - _Requirements: 10.5_
 
-  - [ ]* 7.2 Test del catálogo en `src/niveles/catalogo.test.ts`
+  - [x]* 7.2 Test del catálogo en `src/niveles/catalogo.test.ts`
     - El mundo 3 tiene cuatro niveles (3.1–3.4) con `insignia: 'Simetría'` y `concepto: 'simetria'`.
     - Los cuatro declaran `normalizacion` fija y `usaRepiteAnidado`.
     - El `presupuestoEstrella` de un nivel autorado es el del Conteo, no un valor a mano.
