@@ -1,0 +1,192 @@
+{
+  "pbtResults": {
+    "4.4 Tests de propiedad de `roseton-m3` en `src/niveles/generadores/rosetón.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1793896484154
+    },
+    "4.5 Tests de propiedad de `flor-m3` en `src/niveles/generadores/flor.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1793896484954
+    }
+  },
+  "executionHistory": {
+    "1.1 Nuevo `IdError` `limiteDuroExcedido` con su mensaje exacto": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793894430113
+      }
+    ],
+    "2.1 Insertar la guarda antes de animar": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793894817016
+      }
+    ],
+    "3.1 Recibir el límite duro y señalar el bloqueo": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793895302016
+      }
+    ],
+    "4.1 Generador `roseton-m3` (nivel 3.2)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793895789736
+      }
+    ],
+    "5.1 Añadir `roseton-m3` y `flor-m3` al registro": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793896846278
+      }
+    ],
+    "6.1 Referencias autoradas y normalización": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793897012997
+      }
+    ],
+    "7.1 Añadir `MUNDO_3` al catálogo": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793898165120
+      }
+    ],
+    "8.1 Correr `npm test` y confirmar que pasan sin regresiones; ante dudas, preguntar al usuario.": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793898628375
+      },
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793899447125
+      }
+    ],
+    "8. Checkpoint — Asegurar que la capa de lenguaje, niveles y generadores pasan": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793899447148
+      }
+    ],
+    "9.1 Implementar el módulo": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793899496849
+      }
+    ],
+    "10.1 Registrar la insignia Simetría": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793901129606
+      }
+    ],
+    "11.1 Extender `progreso.ts` con las señales anónimas": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793901503445
+      }
+    ],
+    "12.1 Ejecutar `npm run typecheck`, `npm run build` y `npm test -- --maxWorkers=2` en verde.": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902159319
+      },
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902352269
+      }
+    ],
+    "12. Verificación integral y regresión": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902352304
+      }
+    ],
+    "12.2 Regresión del catálogo del mundo 3": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902353189
+      }
+    ],
+    "1. Mensaje de bloqueo por límite excedido — `src/lenguaje/errores.ts` (AMPLIAR)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902734400
+      }
+    ],
+    "2. Guarda de límite duro — `src/main.ts` `ejecutarPrograma` (AMPLIAR)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902735847
+      }
+    ],
+    "3. Aviso anticipado de bloqueo en el contador — `src/ui/editor.ts` (AMPLIAR)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902737252
+      }
+    ],
+    "4. Generadores del mundo 3 — `src/niveles/generadores/rosetón.ts` y `flor.ts` (NUEVOS)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902738197
+      }
+    ],
+    "5. Registrar los generadores — `src/niveles/generadores/registro.ts` (AMPLIAR)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902739601
+      }
+    ],
+    "6. Niveles del mundo 3 — `src/niveles/mundo-3-rosetones.ts` (NUEVO)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902740997
+      }
+    ],
+    "9. Desafío infinito — `src/juego/desafio-infinito.ts` (NUEVO)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902742400
+      }
+    ],
+    "10. Insignia de concepto Simetría — `src/juego/insignias.ts` (AMPLIAR)": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902743348
+      }
+    ],
+    "11. Insignias transversales y señales del progreso — `src/juego/progreso.ts` e": [
+      {
+        "executionId": "d2bc823e-3dbb-4cb4-8c79-efb9cb6ff611",
+        "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
+        "timestamp": 1793902744508
+      }
+    ]
+  }
+}

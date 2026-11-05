@@ -11,7 +11,7 @@
 // constantes (400 y 200). Una prueba las ancla contra el comportamiento real de
 // `motor/encuadre.ts` para que no se separen.
 
-import type { Programa, InvocacionComando, NumeroLiteral } from '../../lenguaje/ast.js';
+import type { Programa, Instruccion, InvocacionComando, NumeroLiteral, Repeticion } from '../../lenguaje/ast.js';
 import { crearPrng, type Prng, SEMILLA_MINIMA, SEMILLA_MAXIMA } from '../../azar/prng.js';
 import { crearError } from '../../lenguaje/errores.js';
 import type { EntradaGenerador, ResultadoGeneracion } from '../tipos.js';
@@ -44,6 +44,29 @@ export function avanza(n: number, linea: number): InvocacionComando {
  */
 export function giro(nombre: 'GIRADERECHA' | 'GIRAIZQUIERDA', grados: number, linea: number): InvocacionComando {
   return invocacion(nombre, grados, linea);
+}
+
+/**
+ * Construye un `REPITE veces [ … ]` como nodo del AST. El mundo 1 en adelante lo
+ * usa; el mundo 3 lo anida (un `repite` en el cuerpo de otro). `veces` viaja como
+ * literal numérico, coherente con lo que produciría el parser.
+ */
+export function repite(veces: number, cuerpo: readonly Instruccion[], linea: number): Repeticion {
+  const columnaNombre = 1;
+  const columnaNumero = 'REPITE'.length + 2; // nombre + un espacio, columnas desde 1
+  const vecesNodo: NumeroLiteral = {
+    tipo: 'numeroLiteral',
+    valor: veces,
+    linea,
+    columna: columnaNumero,
+  };
+  return {
+    tipo: 'repeticion',
+    veces: vecesNodo,
+    cuerpo,
+    linea,
+    columna: columnaNombre,
+  };
 }
 
 /** Nodo de invocación de un comando de aridad 1 con un literal numérico. */
@@ -90,57 +113,107 @@ interface Caja {
  * @returns la caja envolvente, o `null` si el candidato no dibuja ningún tramo
  */
 export function cajaDeReferencia(programa: Programa): Caja | null {
-  let x = 0;
-  let y = 0;
-  let rumbo = 0; // grados, 0 hacia +y
-
-  let izquierda = Infinity;
-  let derecha = -Infinity;
-  let abajo = Infinity;
-  let arriba = -Infinity;
-  let hayTramo = false;
-
-  const anotar = (px: number, py: number): void => {
-    if (px < izquierda) izquierda = px;
-    if (px > derecha) derecha = px;
-    if (py < abajo) abajo = py;
-    if (py > arriba) arriba = py;
+  // Estado mutable de la tortuga compartido por todo el recorrido, incluidos los
+  // cuerpos de las repeticiones. Parte de (0,0) con rumbo 0 apuntando hacia +y.
+  const estado = {
+    x: 0,
+    y: 0,
+    rumbo: 0, // grados, 0 hacia +y
+    izquierda: Infinity,
+    derecha: -Infinity,
+    abajo: Infinity,
+    arriba: -Infinity,
+    hayTramo: false,
   };
 
-  for (const instruccion of programa.instrucciones) {
-    if (instruccion.tipo !== 'invocacionComando') continue;
-    const valor = argumentoNumerico(instruccion);
+  recorrer(programa.instrucciones, estado);
 
-    switch (instruccion.nombre) {
-      case 'AVANZA':
-      case 'RETROCEDE': {
-        if (valor === null) break;
-        const signo = instruccion.nombre === 'AVANZA' ? 1 : -1;
-        const rad = (rumbo * Math.PI) / 180;
-        const desdeX = x;
-        const desdeY = y;
-        x += Math.sin(rad) * valor * signo;
-        y += Math.cos(rad) * valor * signo;
-        // Un tramo dibuja: anotar sus dos extremos.
-        anotar(desdeX, desdeY);
-        anotar(x, y);
-        hayTramo = true;
-        break;
+  if (!estado.hayTramo) return null;
+  return {
+    izquierda: estado.izquierda,
+    derecha: estado.derecha,
+    abajo: estado.abajo,
+    arriba: estado.arriba,
+  };
+}
+
+interface EstadoCaja {
+  x: number;
+  y: number;
+  rumbo: number;
+  izquierda: number;
+  derecha: number;
+  abajo: number;
+  arriba: number;
+  hayTramo: boolean;
+}
+
+/**
+ * Recorre una lista de instrucciones mutando el estado de la tortuga. Los nodos
+ * `repeticion` se ejecutan `veces` veces sobre su `cuerpo` —con la misma
+ * geometría que `motor/tortuga.ts`— porque el mundo 3 es todo REPITE anidado y
+ * una caja que ignorara la repetición daría una figura vacía o degenerada. El
+ * mundo 0/1/2 queda idéntico: sus candidatos sin REPITE recorren exactamente las
+ * mismas ramas de siempre.
+ */
+function recorrer(instrucciones: readonly Instruccion[], estado: EstadoCaja): void {
+  for (const instruccion of instrucciones) {
+    if (instruccion.tipo === 'repeticion') {
+      const veces = instruccion.veces.tipo === 'numeroLiteral' ? instruccion.veces.valor : 0;
+      for (let i = 0; i < veces; i++) {
+        recorrer(instruccion.cuerpo, estado);
       }
-      case 'GIRADERECHA':
-        if (valor !== null) rumbo = normalizar(rumbo + valor);
-        break;
-      case 'GIRAIZQUIERDA':
-        if (valor !== null) rumbo = normalizar(rumbo - valor);
-        break;
-      // CENTRO y BORRAPANTALLA no aparecen en los candidatos de esta spec.
-      default:
-        break;
+      continue;
     }
+    if (instruccion.tipo === 'invocacionComando') {
+      aplicarComando(instruccion, estado);
+    }
+    // Otros nodos (procedimientos, condicionales…) no aparecen en los candidatos
+    // de los generadores, que solo usan AVANZA/RETROCEDE/giros y REPITE.
   }
+}
 
-  if (!hayTramo) return null;
-  return { izquierda, derecha, abajo, arriba };
+/**
+ * Aplica un comando de movimiento o giro al estado de la tortuga, con la misma
+ * geometría que `motor/tortuga.ts`. Un AVANZA/RETROCEDE anota los dos extremos
+ * del tramo en la caja; un giro solo cambia el rumbo.
+ */
+function aplicarComando(comando: InvocacionComando, estado: EstadoCaja): void {
+  const valor = argumentoNumerico(comando);
+  if (valor === null) return;
+
+  switch (comando.nombre) {
+    case 'AVANZA':
+    case 'RETROCEDE': {
+      const signo = comando.nombre === 'AVANZA' ? 1 : -1;
+      const rad = (estado.rumbo * Math.PI) / 180;
+      const desdeX = estado.x;
+      const desdeY = estado.y;
+      estado.x += Math.sin(rad) * valor * signo;
+      estado.y += Math.cos(rad) * valor * signo;
+      anotarEnCaja(estado, desdeX, desdeY);
+      anotarEnCaja(estado, estado.x, estado.y);
+      estado.hayTramo = true;
+      break;
+    }
+    case 'GIRADERECHA':
+      estado.rumbo = normalizar(estado.rumbo + valor);
+      break;
+    case 'GIRAIZQUIERDA':
+      estado.rumbo = normalizar(estado.rumbo - valor);
+      break;
+    // CENTRO y BORRAPANTALLA no aparecen en los candidatos de esta spec.
+    default:
+      break;
+  }
+}
+
+/** Expande la caja envolvente del estado para incluir el punto (px, py). */
+function anotarEnCaja(estado: EstadoCaja, px: number, py: number): void {
+  if (px < estado.izquierda) estado.izquierda = px;
+  if (px > estado.derecha) estado.derecha = px;
+  if (py < estado.abajo) estado.abajo = py;
+  if (py > estado.arriba) estado.arriba = py;
 }
 
 /** Extrae el argumento numérico literal de una invocación de aridad 1, o null. */

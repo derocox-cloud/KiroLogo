@@ -57,6 +57,8 @@ describe('errores.ts', () => {
         'limiteLineasEditor',
         'limiteCaracteresEditor',
         'progresoNoSeGuarda',
+        // límite duro (1)
+        'limiteDuroExcedido',
         // azar y semillas (8)
         'codigoSemillaLongitud',
         'codigoSemillaSimbolo',
@@ -82,7 +84,7 @@ describe('errores.ts', () => {
         'divergenciaExcesoFinal',
       ];
       
-      expect(todosIds).toHaveLength(48);
+      expect(todosIds).toHaveLength(49);
     });
     
     it('SeveridadError es "jugador" o "programacion"', () => {
@@ -353,6 +355,45 @@ describe('errores.ts', () => {
         expect(error.id).toBe('progresoNoSeGuarda');
         expect(error.severidad).toBe('jugador');
         expect(error.mensaje).toBe('No voy a poder guardar tu progreso en este navegador, pero puedes seguir jugando.');
+      });
+    });
+
+    // ========================================================================
+    // Property 3: El mensaje de bloqueo nombra la cuenta, empuja a anidar y no
+    // revela el presupuesto
+    // Validates: Requirements 2.1, 2.2, 2.3
+    // ========================================================================
+    describe('limiteDuroExcedido (Property 3)', () => {
+      it('nombra usadas (N), límite (M) y la diferencia (N−M), menciona REPITE y no revela el presupuesto', () => {
+        const error = crearError('limiteDuroExcedido', { usadas: 8, limite: 5 });
+        expect(error.id).toBe('limiteDuroExcedido');
+        expect(error.severidad).toBe('jugador');
+        // Nombra la cuenta exacta: usadas, límite y diferencia (R2.1).
+        expect(error.mensaje).toContain('8');
+        expect(error.mensaje).toContain('5');
+        expect(error.mensaje).toContain('3');
+        // Empuja a anidar REPITE (R2.2).
+        expect(error.mensaje).toContain('REPITE');
+        // No revela la figura, la referencia ni la palabra «presupuesto» (R2.3).
+        expect(error.mensaje).not.toContain('presupuesto');
+      });
+
+      it('devuelve solicitudDeErrorInvalida cuando usadas es igual al límite', () => {
+        const error = crearError('limiteDuroExcedido', { usadas: 5, limite: 5 });
+        expect(error.id).toBe('solicitudDeErrorInvalida');
+        expect(error.severidad).toBe('programacion');
+      });
+
+      it('devuelve solicitudDeErrorInvalida cuando usadas es menor que el límite', () => {
+        const error = crearError('limiteDuroExcedido', { usadas: 3, limite: 5 });
+        expect(error.id).toBe('solicitudDeErrorInvalida');
+        expect(error.severidad).toBe('programacion');
+      });
+
+      it('devuelve solicitudDeErrorInvalida cuando usadas no es entero', () => {
+        const error = crearError('limiteDuroExcedido', { usadas: 8.5, limite: 5 });
+        expect(error.id).toBe('solicitudDeErrorInvalida');
+        expect(error.severidad).toBe('programacion');
       });
     });
     

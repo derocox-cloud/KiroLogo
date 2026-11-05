@@ -29,6 +29,7 @@ import { analizar, nombresDeProcedimientos } from './lenguaje/parser.js';
 import { esErrorParaJugador, crearError, type ErrorKiroLogo } from './lenguaje/errores.js';
 import { comandosDelMundo } from './lenguaje/vocabulario.js';
 import { ejecutar, type Operacion, type ResultadoEjecucion } from './lenguaje/interprete.js';
+import { contarInstrucciones } from './lenguaje/conteo.js';
 
 import { ESTADO_INICIAL } from './motor/tortuga.js';
 import { extraerSegmentos, type Segmento } from './motor/segmentos.js';
@@ -758,6 +759,8 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     contenedor: centro,
     mundo: reto.nivel.mundo,
     presupuestoEstrella: reto.presupuestoEstrella,
+    limiteDuro: reto.limiteDuro,
+    limiteDuroActivo: reto.limiteDuroActivo,
     pedirMensajeLimite: (limite: LimiteAlcanzado, _valor: number) => {
       void _valor;
       const error =
@@ -1070,7 +1073,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       semillaEfectiva: reto.semillaEfectiva,
       pistas,
     });
-    editor.presentarReto(reto.presupuestoEstrella);
+    editor.presentarReto(reto.presupuestoEstrella, reto.limiteDuro, reto.limiteDuroActivo);
     // Sincroniza el mundo del análisis y del vocabulario con el nivel en curso.
     // montarReto corre en el arranque y en cada cambiarANivel, así que el mundo
     // queda siempre al día; en el primer montaje es un no-op porque ya coincide.
@@ -1224,6 +1227,23 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     if (programa === null || erroresJugador.length > 0) {
       globo.mostrarMensajes(erroresJugador.length > 0 ? erroresJugador : errores);
       return;
+    }
+
+    // Guarda de límite duro (requisito 1.3): activa desde el mundo 3. Si el
+    // conteo del jugador supera el límite, Kiro detiene ANTES de dibujar y
+    // explica. El conteo es el mismo `contarInstrucciones` que alimentan el
+    // contador del editor y la estrella de economía (única fuente del
+    // presupuesto). Corta antes de marcar ejecución, ceder la demostración,
+    // reiniciar la capa del jugador y ejecutar el intérprete: no se emite
+    // ninguna operación de tortuga y el intento queda como estaba.
+    if (reto.limiteDuroActivo) {
+      const c = contarInstrucciones(programa);
+      if (c.exito && c.instrucciones > reto.limiteDuro) {
+        globo.mostrarMensajes([
+          crearError('limiteDuroExcedido', { usadas: c.instrucciones, limite: reto.limiteDuro }),
+        ]);
+        return;
+      }
     }
 
     // Programa correcto: cede la demostración y reinicia la capa del jugador.
