@@ -79,6 +79,11 @@
         "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
         "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
         "timestamp": 1794279684855
+      },
+      {
+        "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
+        "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
+        "timestamp": 1794279694697
       }
     ],
     "3.4 Verificar que la prueba de exploración de la condición del defecto ahora pasa": [
@@ -86,6 +91,16 @@
         "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
         "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
         "timestamp": 1794276166246
+      },
+      {
+        "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
+        "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
+        "timestamp": 1794279694783
+      },
+      {
+        "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
+        "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
+        "timestamp": 1794280504612
       }
     ],
     "3.5 Verificar que las comprobaciones de preservación siguen pasando": [
@@ -93,6 +108,16 @@
         "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
         "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
         "timestamp": 1794276166266
+      },
+      {
+        "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
+        "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
+        "timestamp": 1794280505183
+      },
+      {
+        "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
+        "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
+        "timestamp": 1794280566744
       }
     ],
     "4. Checkpoint - Verificación final con la suite completa": [
@@ -100,6 +125,23 @@
         "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
         "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
         "timestamp": 1794276166287
+      },
+      {
+        "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
+        "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
+        "timestamp": 1794280567547
+      },
+      {
+        "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
+        "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
+        "timestamp": 1794281016905
+      }
+    ],
+    "3. Arreglo de las pruebas 3.1 intermitentes por timeout (estrategia en orden estricto, un ciclo RED → GREEN → REFACTOR por paso, midiendo entre paso y paso)": [
+      {
+        "executionId": "1275adfd-edee-4134-a752-2ea8e005a91f",
+        "chatSessionId": "sess_b8ffb78d-c93e-4b21-82e2-409a61261878",
+        "timestamp": 1794280566763
       }
     ]
   }

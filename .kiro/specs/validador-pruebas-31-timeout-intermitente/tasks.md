@@ -49,7 +49,7 @@ Issue #27, rama `fix/27-timeout-pruebas-validador`. Único archivo a modificar: 
   - **EXPECTED OUTCOME**: las comprobaciones de preservación PASAN sobre el código sin arreglar (confirma la línea base a preservar) y se demostró que detectan una alteración
   - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
-- [ ] 3. Arreglo de las pruebas 3.1 intermitentes por timeout (estrategia en orden estricto, un ciclo RED → GREEN → REFACTOR por paso, midiendo entre paso y paso)
+- [x] 3. Arreglo de las pruebas 3.1 intermitentes por timeout (estrategia en orden estricto, un ciclo RED → GREEN → REFACTOR por paso, midiendo entre paso y paso)
 
   - [x] 3.1 Paso 1: `crearFiguraArb` y figuras ligeras (ciclo TDD completo)
     - **RED (escribir y ver fallar ANTES de tocar `figuraArb`)**:
@@ -98,7 +98,7 @@ Issue #27, rama `fix/27-timeout-pruebas-validador`. Único archivo a modificar: 
     - _Preservation: semillas y aserciones de las 3.1 intactas; resto de pruebas sin cambios_
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.2_
 
-  - [-] 3.3 Paso 3 (ÚLTIMO RECURSO, SOLO si 3.1 y 3.2 no bastan): timeout de 120 s (ciclo TDD completo)
+  - [x] 3.3 Paso 3 (ÚLTIMO RECURSO, SOLO si 3.1 y 3.2 no bastan): timeout de 120 s (ciclo TDD completo)
     - **RED (ver fallar ANTES de cambiar el timeout)**:
       - Con los pasos 1 y 2 aplicados, ejecutar `npm test -- --maxWorkers=2 --reporter=verbose` y VER fallar al menos una de las dos pruebas 3.1 por la razón correcta: «Test timed out in 60000ms» (no una aserción ni un error de importación); repetir hasta 3 corridas
       - Escribir la guarda comiteable de que el timeout es explícito por prueba y no global: `grep -rn "testTimeout" vitest.config.* vite.config.*` sin resultados, y las dos 3.1 declaran su timeout como argumento de `it`
@@ -115,7 +115,7 @@ Issue #27, rama `fix/27-timeout-pruebas-validador`. Único archivo a modificar: 
     - _Preservation: timeouts explícitos por prueba, sin timeout global_
     - _Requirements: 2.3, 2.4, 2.5, 3.5_
 
-  - [~] 3.4 Verificar que la prueba de exploración de la condición del defecto ahora pasa
+  - [x] 3.4 Verificar que la prueba de exploración de la condición del defecto ahora pasa
     - **Property 1: Expected Behavior** - Las pruebas 3.1 terminan con margen bajo su timeout
     - **IMPORTANT**: Repetir la MISMA medición de la tarea 1; no escribir una medición nueva
     - Comparar la tabla final con la línea base: aislada ≤ 50 % del timeout vigente, bajo carga ≤ 100 %, 3 de 3 corridas en verde
@@ -125,7 +125,7 @@ Issue #27, rama `fix/27-timeout-pruebas-validador`. Único archivo a modificar: 
     - Sin commit propio (solo verificación)
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6_
 
-  - [~] 3.5 Verificar que las comprobaciones de preservación siguen pasando
+  - [x] 3.5 Verificar que las comprobaciones de preservación siguen pasando
     - **Property 2: Preservation** - Comportamiento fuera de las pruebas 3.1 y de sus aserciones
     - **IMPORTANT**: Repetir las MISMAS comprobaciones de la tarea 2; no escribir nuevas
     - La prueba de huella confirma que `crearFiguraArb()` y `figuraArb` generan la muestra sembrada con semilla 804 idéntica a la original
@@ -138,7 +138,7 @@ Issue #27, rama `fix/27-timeout-pruebas-validador`. Único archivo a modificar: 
     - Sin commit propio (solo verificación)
     - _Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6_
 
-- [~] 4. Checkpoint - Verificación final con la suite completa
+- [x] 4. Checkpoint - Verificación final con la suite completa
   - Ejecutar en este orden, todo en verde: `npm ci`, `npm run typecheck`, `npm run build`
   - Ejecutar `npm test -- --maxWorkers=2` tres veces consecutivas, sin fallos de timeout en ninguna
   - Revisar el historial de la rama: un commit por ciclo completo, en español, explicando el por qué, sin atribución de IA; cada commit deja la suite en verde
