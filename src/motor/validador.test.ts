@@ -880,6 +880,29 @@ describe('Feature: 08-diseno-visual, Property 1: el veredicto de presentación n
     );
   }, 120_000);
 
+  // Iteraciones de las dos pruebas 3.1 (issue #27). Cada iteración llama a
+  // `validar` dos veces (línea base y repetición) y cada llamada cuesta casi lo
+  // mismo con cualquier figura (~82 ms), así que el tiempo total escala con este
+  // número. Con 100 las pruebas tardaban ~17 s aisladas pero ~70 s con la CPU
+  // compartida ~4x (superaban los 60 s). Con 50 tardan ~35 s en esa contención
+  // (70 daba ~50 s, poco margen). La propiedad es determinista (compara `validar`
+  // consigo misma) y la semilla es fija, así que 50 iteraciones cubren lo mismo
+  // que las 100 en motivos; no se baja de 40 (precedente de otras pruebas).
+  const NUM_RUNS_31 = 50;
+
+  // Presupuesto de ejecución de las pruebas 3.1: modelo de costo medido en la
+  // tarea 1 del issue #27. Es determinista (aritmética pura, sin cronómetro),
+  // por lo que no es intermitente: documenta por qué NUM_RUNS_31 tiene su valor.
+  const COSTE_MS_POR_VALIDAR = 82;
+  const LLAMADAS_POR_ITERACION = 2;
+  const FACTOR_CONTENCION = 4;
+  const LIMITE_MS_31 = 60_000;
+
+  it('el presupuesto de las pruebas 3.1 cabe en su timeout bajo contención', () => {
+    const peorCasoMs = NUM_RUNS_31 * LLAMADAS_POR_ITERACION * COSTE_MS_POR_VALIDAR * FACTOR_CONTENCION;
+    expect(peorCasoMs).toBeLessThanOrEqual(LIMITE_MS_31);
+  });
+
   // Huella de `figuraArb` con la semilla 804 (issue #27). La prueba de arriba
   // depende de que esta semilla genere exactamente estas figuras; si alguien
   // cambia los límites o el orden de los generadores de `figuraArb` (por
@@ -949,7 +972,7 @@ describe('Feature: 08-diseno-visual, Property 1: el veredicto de presentación n
     const FIJA: NormalizacionNivel = { traslacion: 'fija', rotacion: 'fija', escala: 'exacta' };
 
     // ------------------------------------------------------------------------
-    // 3.1 — Veredicto idéntico (property-based, ≥ 100 iteraciones).
+    // 3.1 — Veredicto idéntico (property-based, NUM_RUNS_31 iteraciones).
     //
     // Blinda la estrella de precisión: `excesoPorcentaje`, `coincide` y `motivo`
     // deben quedar estables. Como línea base sobre el código SIN arreglar se usa
@@ -962,7 +985,7 @@ describe('Feature: 08-diseno-visual, Property 1: el veredicto de presentación n
     // tres campos concretos de `validar` (no de `veredictoParaMostrar`) queden
     // estables frente a la futura salida `excesoVisual`.
     // ------------------------------------------------------------------------
-    it('3.1 · excesoPorcentaje, coincide y motivo de validar son estables (deterministas) con figuraArb × figuraArb (≥ 100 iteraciones)', () => {
+    it('3.1 · excesoPorcentaje, coincide y motivo de validar son estables (deterministas) con figuraArb × figuraArb (NUM_RUNS_31 iteraciones)', () => {
       fc.assert(
         fc.property(figuraArb, figuraArb, (jugador, objetivo) => {
           // Línea base: el comportamiento observable de HOY sobre estas entradas.
@@ -983,7 +1006,7 @@ describe('Feature: 08-diseno-visual, Property 1: el veredicto de presentación n
           expect(typeof base.coincide).toBe('boolean');
           expect(['coincide', 'excesoDeTrazo', 'iouInsuficiente', 'sinEstelaDelJugador']).toContain(base.motivo);
         }),
-        { seed: 2802, numRuns: 100 },
+        { seed: 2802, numRuns: NUM_RUNS_31 },
       );
     }, 60_000);
 
@@ -1159,7 +1182,7 @@ describe('Feature: 08-diseno-visual, Property 1: el veredicto de presentación n
 
     // ------------------------------------------------------------------------
     // 3.1 — Veredicto OFICIAL idéntico, incluido el IoU (property-based,
-    // ≥ 100 iteraciones).
+    // NUM_RUNS_31 iteraciones).
     //
     // La estrella de precisión y la calificación salen del veredicto OFICIAL
     // (`validar` con la normalización del nivel). El arreglo del Caso 2 toca SOLO
@@ -1173,7 +1196,7 @@ describe('Feature: 08-diseno-visual, Property 1: el veredicto de presentación n
     // este SÍ, porque el arreglo del Caso 2 vive justo al lado del IoU (el
     // desempate lo lee) y hay que blindar que el IoU del oficial no se roza.
     // ------------------------------------------------------------------------
-    it('3.1 · el veredicto oficial (excesoPorcentaje/coincide/motivo/iou) es estable con figuraArb × figuraArb (≥ 100 iteraciones)', () => {
+    it('3.1 · el veredicto oficial (excesoPorcentaje/coincide/motivo/iou) es estable con figuraArb × figuraArb (NUM_RUNS_31 iteraciones)', () => {
       fc.assert(
         fc.property(figuraArb, figuraArb, (jugador, objetivo) => {
           // Línea base: el comportamiento observable de HOY sobre estas entradas.
@@ -1195,7 +1218,7 @@ describe('Feature: 08-diseno-visual, Property 1: el veredicto de presentación n
           expect(typeof base.coincide).toBe('boolean');
           expect(['coincide', 'excesoDeTrazo', 'iouInsuficiente', 'sinEstelaDelJugador']).toContain(base.motivo);
         }),
-        { seed: 20_241, numRuns: 100 },
+        { seed: 20_241, numRuns: NUM_RUNS_31 },
       );
     }, 60_000);
 

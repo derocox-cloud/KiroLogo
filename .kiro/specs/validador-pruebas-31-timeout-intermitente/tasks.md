@@ -51,7 +51,7 @@ Issue #27, rama `fix/27-timeout-pruebas-validador`. Único archivo a modificar: 
 
 - [ ] 3. Arreglo de las pruebas 3.1 intermitentes por timeout (estrategia en orden estricto, un ciclo RED → GREEN → REFACTOR por paso, midiendo entre paso y paso)
 
-  - [~] 3.1 Paso 1: `crearFiguraArb` y figuras ligeras (ciclo TDD completo)
+  - [x] 3.1 Paso 1: `crearFiguraArb` y figuras ligeras (ciclo TDD completo)
     - **RED (escribir y ver fallar ANTES de tocar `figuraArb`)**:
       - Añadir en `src/motor/validador.test.ts` el punto de enganche de prueba `figurasDe31Arb` (alias de `figuraArb`) y hacer que las dos pruebas 3.1 lo usen; no cambia comportamiento y se comitea junto al resto del ciclo
       - (a) Pruebas de `crearFiguraArb` que fallan porque la fábrica aún no existe: equivalencia sembrada con semilla 804 de `crearFiguraArb()` contra la huella/figuras literales de la tarea 2 (el `figuraArb` original); límites de tramos (1 a `maxTramos`) y de rango (coordenadas dentro de ±`rango`) con `crearFiguraArb({ maxTramos: 2, rango: 80 })`; polilínea conexa (cada tramo parte del destino del anterior); `minLength: 1`; el caso límite de un tramo de longitud 0 sigue siendo generable/válido
@@ -77,7 +77,7 @@ Issue #27, rama `fix/27-timeout-pruebas-validador`. Único archivo a modificar: 
     - _Preservation: la prueba de la línea ~835 conserva figuraArb, semilla 804, 100 iteraciones y timeout 120 s; aserciones y semillas de las 3.1 intactas_
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.2, 3.3_
 
-  - [~] 3.2 Paso 2 (SOLO si 3.1 no basta): bajar `numRuns` (ciclo TDD completo)
+  - [x] 3.2 Paso 2 (SOLO si 3.1 no basta): bajar `numRuns` (ciclo TDD completo)
     - Condición de uso: tras el paso 1 y su GREEN medido, la duración aislada supera el 50 % del timeout, o bajo carga supera el 100 %, o la cobertura impide reducir más las figuras
     - **RED (escribir y ver fallar ANTES de cambiar `numRuns`)**:
       - Extraer `numRuns` de las dos pruebas a una constante de prueba (`NUM_RUNS_31`) cuyo valor sigue siendo 100 y hacer que ambas la usen (sin cambio de comportamiento)
@@ -98,7 +98,7 @@ Issue #27, rama `fix/27-timeout-pruebas-validador`. Único archivo a modificar: 
     - _Preservation: semillas y aserciones de las 3.1 intactas; resto de pruebas sin cambios_
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 3.2_
 
-  - [~] 3.3 Paso 3 (ÚLTIMO RECURSO, SOLO si 3.1 y 3.2 no bastan): timeout de 120 s (ciclo TDD completo)
+  - [-] 3.3 Paso 3 (ÚLTIMO RECURSO, SOLO si 3.1 y 3.2 no bastan): timeout de 120 s (ciclo TDD completo)
     - **RED (ver fallar ANTES de cambiar el timeout)**:
       - Con los pasos 1 y 2 aplicados, ejecutar `npm test -- --maxWorkers=2 --reporter=verbose` y VER fallar al menos una de las dos pruebas 3.1 por la razón correcta: «Test timed out in 60000ms» (no una aserción ni un error de importación); repetir hasta 3 corridas
       - Escribir la guarda comiteable de que el timeout es explícito por prueba y no global: `grep -rn "testTimeout" vitest.config.* vite.config.*` sin resultados, y las dos 3.1 declaran su timeout como argumento de `it`
