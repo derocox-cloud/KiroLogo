@@ -880,6 +880,49 @@ describe('Feature: 08-diseno-visual, Property 1: el veredicto de presentación n
     );
   }, 120_000);
 
+  // Huella de `figuraArb` con la semilla 804 (issue #27). La prueba de arriba
+  // depende de que esta semilla genere exactamente estas figuras; si alguien
+  // cambia los límites o el orden de los generadores de `figuraArb` (por
+  // ejemplo al aligerar las figuras de las pruebas 3.1), la cobertura de esa
+  // prueba cambiaría sin avisar. Esta huella lo hace ruidoso.
+  const HUELLA_FIGURA_ARB_804 = '53837680';
+  const PRIMERAS_FIGURAS_ARB_804: Array<Array<[number, number, number, number]>> = [
+    [
+      [117, -150, -87, 80],
+      [-87, 80, -31, -117],
+      [-31, -117, 147, 147],
+    ],
+    [
+      [147, 116, -3, -23],
+      [-3, -23, 24, -101],
+    ],
+    [
+      [-1, 3, 149, -113],
+      [149, -113, -128, 15],
+      [-128, 15, -137, -143],
+    ],
+  ];
+
+  /** Hash FNV-1a de 32 bits, estable y sin dependencias, sobre el JSON de la muestra. */
+  function huellaDe(valor: unknown): string {
+    const texto = JSON.stringify(valor);
+    let h = 0x811c9dc5;
+    for (let i = 0; i < texto.length; i++) {
+      h ^= texto.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return h.toString(16).padStart(8, '0');
+  }
+
+  it('figuraArb conserva su muestra sembrada (semilla 804)', () => {
+    const muestra = fc.sample(figuraArb, { seed: 804, numRuns: 100 });
+    const literales = muestra
+      .slice(0, 3)
+      .map((fig) => fig.map((s): [number, number, number, number] => [s.desde.x, s.desde.y, s.hasta.x, s.hasta.y]));
+    expect(literales).toEqual(PRIMERAS_FIGURAS_ARB_804);
+    expect(huellaDe(muestra)).toBe(HUELLA_FIGURA_ARB_804);
+  });
+
   // ==========================================================================
   // Bugfix: diff-visual-coincidencia-exceso · Tarea 2
   // Tests de preservación (observation-first, ANTES del arreglo).

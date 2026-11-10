@@ -32,7 +32,7 @@ Issue #27, rama `fix/27-timeout-pruebas-validador`. Único archivo a modificar: 
   - Marcar la tarea completa cuando la medición esté hecha y registrada
   - _Requirements: 1.1, 1.2, 1.3, 1.4_
 
-- [~] 2. Escribir las pruebas de preservación como pruebas de caracterización (ANTES de aplicar el arreglo)
+- [x] 2. Escribir las pruebas de preservación como pruebas de caracterización (ANTES de aplicar el arreglo)
   - **Property 2: Preservation** - Comportamiento fuera de las pruebas 3.1 y de sus aserciones
   - **IMPORTANT**: Seguir la metodología de observación primero; son pruebas de caracterización, por lo que PASAN sobre el código sin arreglar. Para cumplir el ciclo, su RED se obtiene por mutación: se rompe a propósito lo protegido y se ve que la prueba falla por la razón correcta
   - Observar sobre el código SIN arreglar: la prueba de la línea ~835 (semilla 804, 100 iteraciones, timeout 120 s) pasa; registrar su duración aislada
