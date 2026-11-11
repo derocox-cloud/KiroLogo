@@ -1936,7 +1936,8 @@ describe('21.3 · estructura de archivos', () => {
       if (!ruta.endsWith('.test.ts')) continue;
       const relativo = rel(ruta);
       if (AYUDAS_ADMITIDAS.has(relativo)) continue;
-      const radical = relativo.replace(/\.test\.ts$/, '').replace(/\.propiedad$/, '');
+      // `.propiedad` y `.senales` son sufijos de pruebas que acompañan al mismo módulo.
+      const radical = relativo.replace(/\.test\.ts$/, '').replace(/\.(propiedad|senales)$/, '');
       const moduloEsperado = join(RAIZ_SRC, radical + '.ts');
       if (!ARCHIVOS_TS.includes(moduloEsperado)) {
         infracciones.push(`${relativo} no acompaña a ${radical}.ts`);
@@ -3628,11 +3629,14 @@ describe('main · un error de ejecución se explica en el globo y no se califica
       expect(app.estado().veredicto).toBeNull();
       expect(estrellas()).toEqual(['pendiente', 'pendiente', 'pendiente']);
       expect(app.textoGlobo()).not.toContain('Resultado');
-      // No se guarda progreso del nivel.
+      // No se guarda el resultado del intento. El nivel puede tener registro, pero solo con
+      // la señal de la demostración que Kiro hizo al entrar (R11.2): sin estrellas ni conteo.
       const guardado = JSON.parse(almacen.getItem(CLAVE_PROGRESO) ?? '{"niveles":{}}') as {
-        niveles?: Record<string, unknown>;
+        niveles?: Record<string, { estrellas?: Record<string, boolean>; mejorConteo?: number | null }>;
       };
-      expect(guardado.niveles?.['2.1']).toBeUndefined();
+      const registro = guardado.niveles?.['2.1'];
+      expect(Object.values(registro?.estrellas ?? {})).not.toContain(true);
+      expect(registro?.mejorConteo ?? null).toBeNull();
       // El anuncio habla de un error, no de que terminó bien ni de «seguridad».
       const anuncio = document.getElementById('anuncios')!.textContent ?? '';
       expect(anuncio).toMatch(/error/i);

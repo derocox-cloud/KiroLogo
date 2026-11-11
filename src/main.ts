@@ -81,6 +81,7 @@ import { crearPanelComandos } from './ui/panel-comandos.js';
 import { crearGloboKiro, type GloboKiro } from './ui/globo-kiro.js';
 import { crearControles, type Controles } from './ui/controles.js';
 import { crearDemostracion, type Demostracion, type RelojEspera } from './ui/demostracion.js';
+import { crearReproduccionParalelo, type ReproduccionParalelo } from './ui/reproduccion-paralelo.js';
 import { crearPanelSemilla, type PanelSemilla } from './ui/panel-semilla.js';
 import { crearMenuMundos, type MenuMundos } from './ui/menu-mundos.js';
 import { crearGuia, type Guia } from './ui/guia.js';
@@ -588,6 +589,19 @@ function elegirRetoInicial(
  * arranca por su cuenta: el arranque de producción la invoca tras la guarda de
  * `document`.
  */
+/**
+ * Ejecuta la escritura de una señal de progreso. Si la persistencia falla deja rastro en
+ * consola y sigue: perder una señal de insignia no debe interrumpir la acción del jugador
+ * (R11.11). Es el mismo patrón que ya usa `progreso.guardar` al concluir un intento.
+ */
+function registrarSenal(escribir: () => void): void {
+  try {
+    escribir();
+  } catch (e) {
+    console.error('No se pudo registrar la señal de progreso.', e);
+  }
+}
+
 export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   const documento = deps.documento;
   const contenedor = deps.contenedor ?? (documento.getElementById('aplicacion') as HTMLElement | null) ?? documento.body;
@@ -752,7 +766,12 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   });
 
   // Globo de Kiro.
-  const globo: GloboKiro = crearGloboKiro({ contenedor: centro, anunciar });
+  const globo: GloboKiro = crearGloboKiro({
+    contenedor: centro,
+    anunciar,
+    // `reto` es mutable: se lee en el momento de la pista, no al crear el globo.
+    alAbrirPista: () => registrarSenal(() => progreso.marcarPistaAbierta(reto.nivel.id)),
+  });
 
   // Editor.
   const editor: Editor = crearEditor({
@@ -809,6 +828,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       darPaso: () => darPaso(),
       reiniciar: () => reiniciar(),
       verDemostracion: () => verDemostracion(),
+      verEnParalelo: () => verEnParalelo(),
       cambiarVelocidad: (v: Velocidad) => cambiarVelocidad(v),
     },
   });
@@ -898,6 +918,17 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       },
     });
   }
+
+  // Reproducción en paralelo: las dos tortugas (Kiro y el jugador) sobre la capa de
+  // personajes del lado del jugador, que es donde el jugador compara su recorrido.
+  const reproduccionParalelo: ReproduccionParalelo = crearReproduccionParalelo({
+    lienzo: lienzoJugador,
+    reloj,
+    leerTemaKiro: lectores.personajes,
+    leerTemaJugador: lectores.personajes,
+    movimientoReducido: () => movimiento.reducido(),
+    anunciar,
+  });
 
   // Panel de semilla: pide otro reto o reproduce un código, por callbacks.
   const panelSemilla: PanelSemilla = crearPanelSemilla({
@@ -1095,7 +1126,18 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       globo.celebrar(`${reto.nivel.titulo}: escribe un programa que reproduzca la figura de Kiro.`);
     }
 
-    if (opciones.lanzarDemostracion && demostracion) demostracion.reproducir();
+    if (opciones.lanzarDemostracion) lanzarDemostracion('reproducir');
+  }
+
+  /**
+   * Lanza la demostración y registra una vista por cada una lanzada, incluida la que Kiro
+   * hace sola al entrar al nivel (R11.2). Es el único punto por donde se lanza.
+   */
+  function lanzarDemostracion(modo: 'reproducir' | 'repetir'): void {
+    if (!demostracion) return;
+    if (modo === 'reproducir') demostracion.reproducir();
+    else demostracion.repetir();
+    registrarSenal(() => progreso.registrarVistaDemostracion(reto.nivel.id));
   }
 
   /**
@@ -1124,6 +1166,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     reto = r.reto;
     estadoApp = { reto, astJugador: null, operacionesJugador: [], veredicto: null, calificacion: null };
     ejecutando = false;
+    controles.marcarIntentoEjecutado(false);
     controles.marcarFinDeSecuencia();
     marcador.restablecer();
     comparacion.restablecer();
@@ -1282,6 +1325,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       calificacion: null,
     };
     modoPaso = false;
+    controles.marcarIntentoEjecutado(true);
 
     // Anima el intento. Con movimiento reducido, velocidad inmediata o sin
     // operaciones el animador termina aquí mismo y el intento se concluye al
@@ -1426,7 +1470,20 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   }
 
   function verDemostracion(): void {
-    if (demostracion) demostracion.repetir();
+    lanzarDemostracion('repetir');
+  }
+
+  /**
+   * Reproduce a la vez el recorrido de Kiro y el del jugador. Sin intento no hay nada que
+   * comparar. La señal se registra al INICIAR (R11.3), antes de reproducir, de modo que un
+   * nivel aprobado después queda marcado como posterior (R11.4).
+   * (El diseño preguntaba por `operacionesJugador === null`; en el código real esa lista
+   * nace vacía, así que el intento se reconoce por `astJugador`.)
+   */
+  function verEnParalelo(): void {
+    if (estadoApp.astJugador === null) return;
+    registrarSenal(() => progreso.marcarReproduccionParalelaUsada());
+    reproduccionParalelo.reproducir(reto.operaciones, estadoApp.operacionesJugador, ESTADO_INICIAL);
   }
 
   function cambiarVelocidad(v: Velocidad): void {

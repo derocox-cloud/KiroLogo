@@ -941,6 +941,9 @@ textarea {
 .kl-control-demostracion {
   grid-column: span 2;
 }
+.kl-control-paralelo {
+  grid-column: 1 / -1;
+}
 
 /* Estado deshabilitado: por atributo disabled y por clase, para el mismo aspecto.
    Se ve «apagado» por forma (sin sombra alta, sin relieve) y no solo por color. */
@@ -1375,7 +1378,8 @@ textarea {
     grid-column: span 3;
   }
 
-  .kl-control-demostracion {
+  .kl-control-demostracion,
+  .kl-control-paralelo {
     grid-column: 1 / -1;
   }
 

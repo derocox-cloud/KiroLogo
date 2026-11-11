@@ -40,6 +40,11 @@ export interface DependenciasGlobo {
   readonly contenedor: HTMLElement;
   /** Publica el texto en la región `aria-live` `polite`, sin mover el foco. */
   readonly anunciar: (texto: string) => void;
+  /**
+   * Se invoca cada vez que se muestra un escalón de pista, nunca con el aviso de que
+   * ya no quedan más. Opcional: quien no lo necesita no tiene que proveerlo.
+   */
+  readonly alAbrirPista?: () => void;
 }
 
 // ============================================================================
@@ -178,6 +183,7 @@ export function crearGloboKiro(deps: DependenciasGlobo): GloboKiro {
     const pista = identidad.pistas[indice] ?? '';
     escalones += 1; // aumenta en 1 solo al mostrar un escalón por primera vez
     fijarContenido(`Pista ${NOMBRES_ESCALON[indice]}: ${pista}`);
+    deps.alAbrirPista?.();
   }
 
   function pedirPistaPublica(): void {
