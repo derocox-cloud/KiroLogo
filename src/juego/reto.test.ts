@@ -10,6 +10,7 @@ import { validar } from '../motor/validador.js';
 import { extraerSegmentos } from '../motor/segmentos.js';
 import { contarInstrucciones } from '../lenguaje/conteo.js';
 import { CATALOGO } from '../niveles/catalogo.js';
+import { TIMEOUT_TRES_ESTRELLAS } from '../pruebas/tiempos.js';
 
 // ============================================================================
 // Ejemplos del nivel 0.1 (16.1)
@@ -208,7 +209,7 @@ describe('Property 25: regresión del catálogo', () => {
 
     // Informa todos los fallos antes de terminar.
     expect(fallos, fallos.join('\n')).toHaveLength(0);
-  }, 120_000);
+  }, TIMEOUT_TRES_ESTRELLAS);
 });
 
 // ============================================================================
@@ -354,7 +355,7 @@ describe('Tarea 12.2: regresión del catálogo del mundo 3 sobre 200 semillas', 
 
     // Informa todos los fallos antes de terminar.
     expect(fallos, fallos.join('\n')).toHaveLength(0);
-  }, 120_000);
+  }, TIMEOUT_TRES_ESTRELLAS);
 
   it('los niveles autorados 3.1 y 3.4 ganan las tres estrellas vía resolverReto (R4.7)', () => {
     for (const id of ['3.1', '3.4']) {
