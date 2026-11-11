@@ -45,6 +45,36 @@ fin y sin volver atrás. Cada reto se identifica por una semilla derivada con el
 partir de una semilla raíz, de modo que toda la secuencia es reproducible por su raíz. El desafío va
 rotando entre los niveles generados del mundo. Es retroactivo: los mundos 0, 1 y 2 también lo tienen.
 
+**La sugerencia del mensaje de bloqueo depende del mundo** — El límite duro está activo desde el mundo
+3, así que también bloquea en los mundos 4 y 5. Una sola sugerencia («anida `REPITE`») sería falsa o
+inútil allí. El catálogo de errores define una sugerencia por mundo: mundo 3, anidar `REPITE`; mundo 4,
+usar parámetros; mundo 5, usar recursión. Son solo textos: esta spec no agrega parámetros ni recursión
+al lenguaje (requisito 10).
+
+**Las tres señales de las insignias transversales se conectan de verdad** — `Progreso` ya expone las
+señales (pista abierta, vista de la demostración, uso de la reproducción en paralelo) y `insignias.ts`
+ya las lee, pero hoy la interfaz no las escribe, así que *Depurador*, *Sin pistas* y *Buen ojo* no
+pueden otorgarse nunca en el juego real. Esta spec cablea cada señal desde la interfaz y exige pruebas
+de punta a punta: acción del jugador en la pantalla → señal en `Progreso` → insignia otorgada.
+
+**El desafío infinito tiene acceso mínimo en la interfaz** — La lógica de `src/juego/desafio-infinito.ts`
+existe y se prueba, pero ninguna pantalla la usa. Esta spec añade solo el acceso mínimo: un control
+que aparece cuando el desafío está disponible, inicia la secuencia, entrega el siguiente reto y no
+ofrece retroceder. No incluye puntuación, tablas, historial ni diseño elaborado.
+
+**Las insignias de concepto y las transversales tienen tipos distintos** — `MUNDO_DE_INSIGNIA` hoy es
+un `Record<string, number>` que obliga a un `as IdInsignia[]` en `insigniasDelMundo`. Se separan los
+tipos: las de concepto (con mundo) y las transversales (sin mundo), de modo que el compilador impida
+consultar el mundo de una transversal.
+
+**La regresión de tres estrellas de 3.2 y 3.3 comparte timeout con el resto** — Las regresiones de 200
+semillas del mundo 2 usan una constante `TIMEOUT_TRES_ESTRELLAS` de 180 s; las de 3.2 y 3.3 en
+`reto.test.ts` usan 120 s literales y quedan justas en máquinas lentas. Se unifican en una constante
+compartida de 180 s.
+
+**Entrega** — La rama se actualiza con `git merge origin/main`, sin rebase, y el PR se fusiona con
+merge commit, según las reglas de control de versiones del proyecto.
+
 ### Patrones EARS en español
 
 | Patrón | Forma en este documento | EARS |
@@ -83,6 +113,21 @@ rotando entre los niveles generados del mundo. Es retroactivo: los mundos 0, 1 y
   ella se derivan de forma determinista las semillas de cada reto de la secuencia.
 - **Insignia_Simetria**: insignia de concepto del mundo 3, otorgada cuando todos los niveles del mundo
   3 tienen sus tres estrellas.
+- **Senales_Transversales**: las tres señales anónimas que `Progreso` guarda para las insignias
+  transversales: pista abierta por nivel, vistas de la demostración por nivel y uso de la reproducción
+  en paralelo.
+- **Interfaz**: la pantalla de KiroLogo armada por `src/main.ts` y los módulos de `src/ui/`.
+- **Control_Desafio_Infinito**: control mínimo de la Interfaz que inicia el `Desafio_Infinito` de un
+  mundo disponible y entrega el siguiente reto.
+- **Insignia_De_Concepto**: insignia ligada a un mundo (`secuencia`, `iteracion`, `descomposicion`,
+  `simetria`).
+- **Insignia_Transversal**: insignia sin mundo (`depurador`, `minimalista`, `sinPistas`, `buenOjo`).
+- **Metodos_De_Senal**: los siete métodos que la interfaz `Progreso` añadió para las
+  `Senales_Transversales`: `reproduccionParalelaUsada`, `marcarReproduccionParalelaUsada`,
+  `aprobadoTrasReproduccionParalelaEn`, `pistaAbiertaEn`, `marcarPistaAbierta`,
+  `vistasDemostracionDe` y `registrarVistaDemostracion`.
+- **Timeout_Tres_Estrellas**: constante compartida de 180 000 ms para las regresiones de tres
+  estrellas sobre 200 semillas.
 - **Presupuesto_Referencia**: conteo de instrucciones del programa de referencia según
   `src/lenguaje/conteo.ts`. Es el `presupuestoEstrella` del nivel; no se escribe a mano.
 
@@ -109,11 +154,13 @@ rotando entre los niveles generados del mundo. Es retroactivo: los mundos 0, 1 y
 #### Acceptance Criteria
 
 1. CUANDO el conteo del programa del jugador (`N`) excede el `Limite_Duro` (`M`) estando activo, EL Catalogo_Errores DEBERÁ producir el `Mensaje_Limite_Excedido` incluyendo el conteo usado `N`, el límite `M` y la diferencia `N − M`.
-2. EL Mensaje_Limite_Excedido DEBERÁ sugerir anidar `REPITE` dentro de otro `REPITE` como camino para bajar el conteo.
-3. EL Mensaje_Limite_Excedido NO DEBERÁ revelar la figura del reto, el programa de referencia ni el valor de `presupuestoEstrella`.
-4. EL Mensaje_Limite_Excedido DEBERÁ definirse en el `Catalogo_Errores` (`src/lenguaje/errores.ts`), y ningún otro módulo DEBERÁ escribir el texto de este mensaje como literal suelto.
-5. CUANDO el Contador_Editor muestra el conteo del programa mientras el jugador escribe, Y ese conteo excede el `Limite_Duro` del reto en curso estando activo, EL Contador_Editor DEBERÁ señalar que el programa quedará bloqueado antes de que el jugador ejecute.
-6. MIENTRAS el conteo del programa en el editor es menor o igual que el `Limite_Duro` del reto en curso, EL Contador_Editor NO DEBERÁ señalar bloqueo.
+2. CUANDO el Mensaje_Limite_Excedido se produce para un reto del mundo 3, EL Catalogo_Errores DEBERÁ incluir la sugerencia de anidar `REPITE` dentro de otro `REPITE` como camino para bajar el conteo.
+3. CUANDO el Mensaje_Limite_Excedido se produce para un reto del mundo 4, EL Catalogo_Errores DEBERÁ incluir la sugerencia de usar parámetros.
+4. CUANDO el Mensaje_Limite_Excedido se produce para un reto del mundo 5, EL Catalogo_Errores DEBERÁ incluir la sugerencia de usar recursión.
+5. EL Mensaje_Limite_Excedido NO DEBERÁ revelar la figura del reto, el programa de referencia ni el valor de `presupuestoEstrella`.
+6. EL Mensaje_Limite_Excedido DEBERÁ definirse en el `Catalogo_Errores` (`src/lenguaje/errores.ts`), y ningún otro módulo DEBERÁ escribir el texto de este mensaje, ni sus sugerencias por mundo, como literal suelto.
+7. CUANDO el Contador_Editor muestra el conteo del programa mientras el jugador escribe, Y ese conteo excede el `Limite_Duro` del reto en curso estando activo, EL Contador_Editor DEBERÁ señalar que el programa quedará bloqueado antes de que el jugador ejecute.
+8. MIENTRAS el conteo del programa en el editor es menor o igual que el `Limite_Duro` del reto en curso, EL Contador_Editor NO DEBERÁ señalar bloqueo.
 
 ### Requirement 3: Normalización fija desde el mundo 3
 
@@ -219,3 +266,93 @@ rotando entre los niveles generados del mundo. Es retroactivo: los mundos 0, 1 y
 3. CUANDO se ejecutan los retos de referencia de los niveles de los mundos 0, 1 y 2, EL sistema DEBERÁ producir exactamente el mismo comportamiento que antes de esta spec (mismas operaciones, mismos presupuestos, mismas estrellas).
 4. ESTA spec NO DEBERÁ construir el mapa de insignias completo, que pertenece a una spec posterior; se limita a las reglas de otorgamiento verificables por pruebas.
 5. CUANDO se agrega un nivel del mundo 3, EL sistema DEBERÁ hacerlo como dato en `src/niveles/`, sin lógica de juego nueva fuera de los generadores.
+
+### Requirement 11: Conexión de las señales transversales en la interfaz
+
+**User Story:** Como jugador, quiero que abrir una pista, ver la demostración y usar la reproducción en paralelo cuenten de verdad para las insignias, para que *Depurador*, *Sin pistas* y *Buen ojo* se puedan ganar jugando.
+
+#### Acceptance Criteria
+
+1. CUANDO el jugador abre una pista en un nivel, LA Interfaz DEBERÁ invocar `marcarPistaAbierta` de `Progreso` con el identificador de ese nivel.
+2. CUANDO la Interfaz muestra la demostración de un nivel, LA Interfaz DEBERÁ invocar `registrarVistaDemostracion` de `Progreso` con el identificador de ese nivel, una vez por cada demostración mostrada.
+3. CUANDO el jugador inicia la reproducción en paralelo, LA Interfaz DEBERÁ invocar `marcarReproduccionParalelaUsada` de `Progreso`.
+4. CUANDO el jugador aprueba un nivel con precisión después de haber iniciado la reproducción en paralelo, EL sistema DEBERÁ registrar esa aprobación de modo que `aprobadoTrasReproduccionParalelaEn` devuelva verdadero para ese nivel.
+5. CUANDO el jugador abre una pista en un nivel de un mundo, EL sistema DEBERÁ no otorgar la insignia *Sin pistas* de ese mundo.
+6. CUANDO el jugador completa un mundo sin abrir pistas y la Interfaz registró cada demostración vista, EL sistema DEBERÁ otorgar la insignia *Sin pistas* de ese mundo.
+7. CUANDO el jugador resuelve un nivel tras ver su demostración exactamente una vez, EL sistema DEBERÁ otorgar la insignia *Buen ojo*.
+8. CUANDO el jugador aprueba 5 niveles tras haber usado la reproducción en paralelo, EL sistema DEBERÁ otorgar la insignia *Depurador*.
+9. EL conjunto de pruebas DEBERÁ incluir, para cada una de las tres señales, una prueba de punta a punta que parta de la acción del jugador en la Interfaz y verifique la señal guardada en `Progreso`.
+10. EL conjunto de pruebas DEBERÁ incluir, para *Depurador*, *Sin pistas* y *Buen ojo*, una prueba de punta a punta que parta de la acción del jugador en la Interfaz y verifique la insignia otorgada.
+11. SI `Progreso` falla al persistir una señal, ENTONCES LA Interfaz DEBERÁ continuar funcionando sin interrumpir la acción del jugador.
+
+### Requirement 12: Acceso mínimo al desafío infinito en la interfaz
+
+**User Story:** Como jugador que completó un mundo, quiero un botón para iniciar el desafío infinito de ese mundo, para poder usar una función que hoy existe pero no puedo alcanzar.
+
+#### Acceptance Criteria
+
+1. MIENTRAS el `Desafio_Infinito` de un mundo está disponible, LA Interfaz DEBERÁ mostrar el Control_Desafio_Infinito de ese mundo.
+2. MIENTRAS el `Desafio_Infinito` de un mundo no está disponible, LA Interfaz DEBERÁ no mostrar el Control_Desafio_Infinito de ese mundo.
+3. CUANDO el jugador activa el Control_Desafio_Infinito, LA Interfaz DEBERÁ iniciar el `Desafio_Infinito` con una `Semilla_Raiz` y cargar el primer reto de la secuencia.
+4. CUANDO el jugador aprueba un reto del `Desafio_Infinito`, LA Interfaz DEBERÁ ofrecer el siguiente reto de la secuencia.
+5. MIENTRAS un `Desafio_Infinito` está en curso, LA Interfaz DEBERÁ no ofrecer ningún control para retroceder a un reto anterior.
+6. CUANDO la Interfaz inicia un `Desafio_Infinito`, LA Interfaz DEBERÁ mostrar la `Semilla_Raiz` en formato compartible mediante `src/azar/codigo-semilla.ts`.
+7. EL Control_Desafio_Infinito DEBERÁ ser operable solo con teclado y exponer un nombre accesible en español.
+8. EL conjunto de pruebas DEBERÁ incluir una prueba de punta a punta que complete un mundo, active el Control_Desafio_Infinito y verifique que se carga un reto generado de ese mundo.
+
+### Requirement 13: Pista de bloqueo por mundo
+
+**User Story:** Como jugador bloqueado por el límite duro, quiero una sugerencia acorde al concepto del mundo en que estoy, para que el mensaje me oriente en vez de repetirme siempre lo mismo.
+
+#### Acceptance Criteria
+
+1. EL Catalogo_Errores DEBERÁ definir una sugerencia de bloqueo para cada mundo con límite duro activo: mundo 3 (anidar `REPITE`), mundo 4 (parámetros) y mundo 5 (recursión).
+2. CUANDO se produce el Mensaje_Limite_Excedido para un mundo con sugerencia definida, EL Catalogo_Errores DEBERÁ componer el mensaje con la sugerencia de ese mundo.
+3. SI se produce el Mensaje_Limite_Excedido para un mundo sin sugerencia definida, ENTONCES EL Catalogo_Errores DEBERÁ componer el mensaje con la sugerencia del mundo 3.
+4. EL conjunto de pruebas DEBERÁ verificar, para los mundos 3, 4 y 5, que el mensaje incluye la cuenta exacta (`N`, `M`, `N − M`) y la sugerencia de su mundo.
+5. EL conjunto de pruebas DEBERÁ verificar que el mensaje de cada mundo no contiene el `presupuestoEstrella` ni texto del programa de referencia.
+
+### Requirement 14: Tipos separados de las insignias
+
+**User Story:** Como mantenedor, quiero que el compilador distinga las insignias de concepto de las transversales, para eliminar el `Record<string, number>` y el `as IdInsignia[]` que ocultan errores.
+
+#### Acceptance Criteria
+
+1. EL módulo `src/juego/insignias.ts` DEBERÁ declarar un tipo para `Insignia_De_Concepto` y otro para `Insignia_Transversal`, y definir `IdInsignia` como su unión.
+2. EL registro `MUNDO_DE_INSIGNIA` DEBERÁ tener como claves exclusivamente los identificadores de `Insignia_De_Concepto`.
+3. CUANDO se intenta consultar `MUNDO_DE_INSIGNIA` con el identificador de una `Insignia_Transversal`, EL compilador de TypeScript DEBERÁ rechazar la consulta.
+4. EL código de `insigniasDelMundo` DEBERÁ recorrer los identificadores de `Insignia_De_Concepto` sin usar aserciones de tipo (`as`).
+5. CUANDO se ejecutan las pruebas de insignias existentes, EL sistema DEBERÁ producir los mismos resultados que antes del cambio de tipos.
+
+### Requirement 15: Regresión de 3.2 y 3.3 con tiempo compartido
+
+**User Story:** Como mantenedor, quiero que las regresiones de 200 semillas de 3.2 y 3.3 tengan el mismo tiempo máximo que las del mundo 2, para que no fallen por lentitud de la máquina.
+
+#### Acceptance Criteria
+
+1. EL repositorio DEBERÁ definir Timeout_Tres_Estrellas en un único módulo compartido por las pruebas, con valor 180 000 ms.
+2. LAS regresiones de tres estrellas sobre 200 semillas de los niveles 3.2 y 3.3 en `src/juego/reto.test.ts` DEBERÁN usar Timeout_Tres_Estrellas.
+3. LAS regresiones de tres estrellas sobre 200 semillas del mundo 2 en `src/juego/generadores-mundo-2.test.ts` DEBERÁN usar Timeout_Tres_Estrellas en lugar de una constante local.
+4. EL repositorio DEBERÁ no contener literales de timeout distintos de Timeout_Tres_Estrellas en las regresiones de tres estrellas sobre 200 semillas de los mundos 2 y 3.
+
+### Requirement 16: Documentación de los métodos de señal de Progreso
+
+**User Story:** Como mantenedor, quiero documentados los siete métodos que `Progreso` añadió para las señales transversales, para entender qué guarda cada uno y quién lo escribe.
+
+#### Acceptance Criteria
+
+1. LA documentación del proyecto DEBERÁ describir cada uno de los Metodos_De_Senal: qué señal registra, quién la escribe, quién la lee y qué insignia habilita.
+2. LA documentación DEBERÁ indicar que las señales son anónimas y no registran datos personales del jugador.
+3. LA documentación DEBERÁ indicar el efecto sobre `localStorage` de cada método de escritura y que `marcarReproduccionParalelaUsada` y `aprobadoTrasReproduccionParalelaEn` no retroceden una vez verdaderos.
+4. LA documentación DEBERÁ estar escrita en español.
+
+### Requirement 17: Integración de la rama y fusión
+
+**User Story:** Como mantenedor, quiero que la rama se actualice con merge y el PR se fusione con merge commit, para conservar un historial rastreable consistente con los PR anteriores.
+
+#### Acceptance Criteria
+
+1. CUANDO se actualiza la rama de esta spec con los cambios de `main`, EL equipo DEBERÁ ejecutar `git merge origin/main` sin rebase.
+2. CUANDO el PR de esta spec se fusiona, EL equipo DEBERÁ usar merge commit, sin squash ni rebase.
+3. ANTES de aprobar el PR, EL equipo DEBERÁ verificar en verde `npm ci`, `npm run typecheck`, `npm run build` y `npm test -- --maxWorkers=2`.
+4. ANTES de aprobar el PR, EL equipo DEBERÁ revisar las reglas duras del steering: sin `Math.random` fuera del PRNG, sin `eval` ni `new Function`, `base: '/'` intacto, dominio en español sin alias en inglés y dependencias nuevas fijadas con licencia compatible con MIT.

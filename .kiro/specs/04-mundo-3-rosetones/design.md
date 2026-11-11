@@ -5,644 +5,410 @@
 ## Overview
 
 Esta spec enseña **iteración anidada** y **simetría rotacional**: un `REPITE` dentro de otro
-`REPITE`. No agrega ningún comando al lenguaje —ese es el mensaje del mundo— y la mayor parte del
-andamiaje que necesita **ya existe** en el código y solo hay que activarlo o extenderlo.
+`REPITE`. No agrega ningún comando al lenguaje y la mayor parte del andamiaje **ya existe** en el
+código. Este documento se alinea con los requisitos 2 y 11 a 17 actualizados, y parte del estado real
+del repositorio, verificado por lectura del código, no de lo que decía la versión anterior.
 
-Lo que ya está resuelto y esta spec **consume sin reinventar**:
+### Estado verificado del código
 
-- **El límite duro** ya se calcula en `src/juego/reto.ts`. `resolverReto` fija
-  `presupuestoEstrella = contarInstrucciones(referencia)`, `limiteDuro = presupuestoEstrella + margen`
-  (con `margen = nivel.margenLimiteDuro ?? MARGEN_LIMITE_DURO_POR_OMISION`, donde la constante vale
-  `3`) y `limiteDuroActivo = nivel.mundo >= PRIMER_MUNDO_CON_LIMITE_DURO` (la constante vale `3`).
-  Los tres campos ya viajan en el `Reto`. Lo que **falta** es *usarlos*: hoy nadie bloquea la
-  ejecución cuando el conteo del jugador excede `limiteDuro`.
-- **La normalización fija** ya la soporta entero `src/motor/validador.ts`. `validar(..., normalizacion)`
-  con `traslacion: 'fija'` no traslada ninguna figura y con `rotacion: 'fija'` compara solo el ángulo 0
-  (`comparar(objetivoBase, mascaraJugador)`), aplicando la dilatación de disco 8 existente. La
-  tolerancia de dilatación **no se toca**. Lo que falta es que los niveles del mundo 3 **declaren**
-  esa normalización en sus datos.
-- **La estrella de abstracción `usaRepiteAnidado`** ya está implementada en `src/juego/abstraccion.ts`
-  (`hayRepeticionAnidada`: un nodo `repeticion` con otra `repeticion` entre sus descendientes, sobre el
-  AST, nunca sobre el texto). `src/juego/estrellas.ts` ya la evalúa vía `analizar(astJugador, exigencias)`.
-  Lo que falta es que los niveles declaren `abstraccion: [{ clave: 'usaRepiteAnidado' }]`.
-- **El contador del editor** ya vive en `src/ui/editor.ts`, parsea y cuenta con `contarInstrucciones`,
-  y ya marca el exceso **de presupuesto**. Lo que falta es anticipar el **bloqueo por límite duro**.
-- **El PRNG determinista** (`src/azar/prng.ts`, `crearPrng(semilla)`) y las guardas de ejecución del
-  intérprete ya existen. El desafío infinito deriva semillas con ese PRNG, nunca con `Math.random`.
-- **Las insignias de concepto** ya se derivan solo del progreso en `src/juego/insignias.ts`
-  (`mundoCompletoConTresEstrellas`). *Simetría* es una entrada más del mismo patrón.
+| Pieza | Estado hoy | Qué falta |
+|---|---|---|
+| `reto.ts`: `presupuestoEstrella`, `limiteDuro`, `limiteDuroActivo` | Hecho | Nada (R1.1, R1.2) |
+| Guarda de límite duro en `main.ts` (`ejecutarPrograma`) | Hecha: corta antes de `ejecutando = true`, usa `contarInstrucciones` | Pasar el mundo al mensaje (R13) |
+| Aviso de bloqueo en `ui/editor.ts` (`presentarReto(presupuesto, limiteDuro, activo)`) | Hecho | Nada (R2.7, R2.8) |
+| `errores.ts`: `limiteDuroExcedido` | Existe con `{ usadas, limite }` y **una sola sugerencia** (anidar `REPITE`) | Parámetro `mundo` y sugerencia por mundo (R2.2, R13) |
+| `juego/desafio-infinito.ts` (`nivelesGeneradosDelMundo`, `desafioDisponible`, `retoDesafio`, `derivarSemilla`) | Lógica hecha y probada. «Disponible» = mundo con generados y todos sus niveles con precisión | **Ninguna pantalla la usa** (R12) |
+| `juego/insignias.ts`: `simetria` y las 4 transversales | Hechas como predicados puros del progreso | `MUNDO_DE_INSIGNIA` sigue siendo `Record<string, number>` y `insigniasDelMundo` usa `as IdInsignia[]` (R14) |
+| `juego/progreso.ts`: los 7 `Metodos_De_Senal` | Hechos, persistentes e idempotentes. `guardar` ya calcula `aprobadoTrasReproduccionParalela` | Nadie los llama |
+| Niveles 3.x, generadores `roseton-m3` y `flor-m3`, `MUNDO_3` en el catálogo | Por confirmar contra R3 a R6 en la fase de tareas | Ver §Niveles y generadores |
 
-Lo que **sí hay que construir o ampliar** en esta spec:
+**Hallazgo central, confirmado con búsqueda en todo `src/`:** `marcarPistaAbierta`,
+`registrarVistaDemostracion` y `marcarReproduccionParalelaUsada` **no se invocan desde ningún módulo
+de producción**. Solo aparecen su declaración y su implementación en `progreso.ts` y las llamadas de
+`progreso.test.ts` e `insignias.test.ts`. Ni `main.ts` ni nada de `src/ui/` los usa. Por eso
+*Depurador*, *Sin pistas* y *Buen ojo* no se pueden otorgar jugando.
 
-1. **Bloqueo por límite duro** en el camino de ejecución (`src/main.ts`, `ejecutarPrograma`): antes de
-   animar, si `limiteDuroActivo` y el conteo del jugador supera `limiteDuro`, Kiro detiene y explica,
-   sin emitir una sola operación de tortuga.
-2. **Aviso anticipado en el editor** (`src/ui/editor.ts`): el contador señala que el programa quedará
-   bloqueado cuando su conteo supere el límite duro del reto en curso estando activo.
-3. **Un mensaje de bloqueo centralizado** en `src/lenguaje/errores.ts` (`limiteDuroExcedido`), que
-   nombra `N`, `M` y `N − M` y empuja a anidar `REPITE`, sin revelar la figura ni el presupuesto.
-4. **Los cuatro niveles del mundo 3** como datos en `src/niveles/mundo-3-rosetones.ts` (3.1 y 3.4
-   autorados; 3.2 y 3.3 generados), con `normalizacion` fija y `abstraccion: [{ clave: 'usaRepiteAnidado' }]`.
-5. **Dos generadores del mundo 3** en `src/niveles/generadores/` (contrato `Generador` de
-   `src/niveles/tipos.ts`), que producen AST, encuadran y no degeneran, con presupuesto calculado.
-6. **El desafío infinito** como módulo nuevo `src/juego/desafio-infinito.ts`, que deriva una secuencia
-   determinista de retos de los niveles generados de un mundo, rota entre ellos y no retrocede; con su
-   disponibilidad derivada del desbloqueo.
-7. **La insignia de concepto *Simetría*** y **las cuatro transversales** (*Depurador*, *Minimalista*,
-   *Sin pistas*, *Buen ojo*), extendiendo `src/juego/insignias.ts`, derivadas del progreso.
+Hay además un segundo hueco que condiciona el diseño de R11.3: **la reproducción en paralelo no está
+montada en la pantalla.** `crearReproduccionParalelo` existe en `ui/reproduccion-paralelo.ts`, pero
+`main.ts` no la instancia. Solo importa `compararOperaciones` para mostrar el mensaje de divergencia
+bajo el lienzo. Hoy el jugador no tiene ninguna acción que «inicie la reproducción en paralelo», así
+que no hay dónde enganchar la señal. El diseño añade esa acción (§4).
 
-**El trabajo es activar y extender, no rediseñar.** No se toca el lexer, el parser, la forma del AST,
-la pila del intérprete, la regla de conteo, el análisis de abstracción ni el algoritmo del validador
-(R10.1, R10.2). Los mundos 0 a 2 quedan idénticos (R10.3).
+Qué se construye, entonces:
+
+1. Sugerencia de bloqueo **por mundo** en `errores.ts` (R2.2, R13).
+2. Cableado de las tres señales desde la interfaz, más la acción «Ver en paralelo» (R11).
+3. Control mínimo del desafío infinito (R12).
+4. Separación de tipos de las insignias (R14).
+5. Constante compartida de timeout (R15).
+6. Documentación de los métodos de señal (R16).
+7. Lo que el estado de la tabla marque pendiente de los requisitos 1 a 10.
 
 ## Architecture
 
-### Dónde entra el límite duro en el flujo de un intento
-
-El límite duro es una guarda **previa a la ejecución**, no una penalización posterior. Se inserta en
-`ejecutarPrograma` de `src/main.ts`, entre el análisis del texto y la carga del animador:
+### Flujo del intento con límite duro (ya implementado)
 
 ```
 texto del jugador
       │
       ▼
-  analizarTextoJugador  ── errores de análisis ──► globo (texto exacto, sin ejecutar)   [ya existe]
+  analizarTextoJugador ── errores ──► globo (sin ejecutar)
       │ programa OK
       ▼
-  ┌─────────────────────────────────────────────────────────────┐
-  │ NUEVO: guarda de límite duro                                  │
-  │   si reto.limiteDuroActivo                                    │
-  │      y contarInstrucciones(programa) > reto.limiteDuro:       │
-  │        globo.mostrarMensajes([ limiteDuroExcedido(N, M) ])    │
-  │        NO marca ejecución, NO cede la demo, NO reinicia capa, │
-  │        NO ejecuta el intérprete, NO carga el animador         │
-  │        return  ◄── no se emite ninguna operación de tortuga   │
-  └─────────────────────────────────────────────────────────────┘
-      │ dentro del límite (o límite inactivo)
-      ▼
-  marcarEjecucionEnCurso · reiniciar capa jugador · ejecutar · animar   [ya existe]
+  guarda de límite duro                  (main.ts, ya existe)
+   si reto.limiteDuroActivo y contarInstrucciones(programa) > reto.limiteDuro:
+      globo.mostrarMensajes([ limiteDuroExcedido({ usadas, limite, mundo }) ])   ◄── cambia: añade `mundo`
+      return   (no se emite ninguna operación, no se toca la capa del jugador)
       │
       ▼
-  concluirIntento ── validar · calificar · guardar · comentar           [ya existe]
+  marcarEjecucionEnCurso · reiniciar capa · ejecutar · animar · concluirIntento
 ```
 
-Clave de R1.3: la guarda corta **antes** de `animador.reiniciar`/`cargar`/`reproducir`, así que la
-estela del jugador no se borra ni se dibuja nada nuevo. El intento que ya estaba en pantalla queda
-intacto; Kiro solo habla.
+`concluirIntento` ya llama a `progreso.guardar(...)`. Como `guardar` fija
+`aprobadoTrasReproduccionParalela` mirando la bandera global, **R11.4 se cumple sin tocar `guardar`**
+siempre que `marcarReproduccionParalelaUsada` se haya invocado antes: el orden de las llamadas es lo
+que importa.
 
-El conteo que usa la guarda es el **mismo** `contarInstrucciones(programa)` que alimenta el contador
-del editor y la estrella de economía: `src/lenguaje/conteo.ts` es la única fuente del presupuesto, de
-modo que el número que el jugador ve mientras escribe es exactamente el que bloquea (R2 del steering
-`estructura`).
+### Una sola fuente para la sugerencia por mundo (fusión de R2.3, R2.4 y R13.1)
 
-### Mundos 0 a 2: sin cambio de comportamiento
-
-Como `limiteDuroActivo` es `nivel.mundo >= 3`, la guarda nunca dispara en los mundos 0 a 2: un
-programa que excede el presupuesto se ejecuta, se dibuja y simplemente no gana la estrella de economía
-(R1.5), que es lo que `calificar` ya hace hoy. No hay ninguna rama nueva para esos mundos (R10.3).
-
-### El contador del editor anticipa el bloqueo
-
-```
-tecleo del jugador
-      │ (rebote 120 ms)
-      ▼
-  analizarTexto (lexer + parser + conteo)                    [ya existe]
-      │ conteo
-      ▼
-  actualizarContador
-      ├─ conteo > presupuesto            ► «Te pasaste del presupuesto»   [ya existe]
-      └─ NUEVO: limiteDuroActivo
-            y conteo > limiteDuro        ► «Este programa no se podrá ejecutar: pasa del límite»
-```
-
-El editor recibe el límite duro y si está activo como datos del reto en curso (igual que ya recibe
-`presupuestoEstrella`), y añade el aviso de bloqueo por texto —no solo color— cuando el conteo lo
-supera (R2.5). Mientras el conteo sea ≤ límite, no se señala bloqueo (R2.6).
-
-### Capa de niveles del mundo 3
-
-Igual molde que el mundo 2: un archivo `src/niveles/mundo-3-rosetones.ts` exporta `MUNDO_3`, con dos
-niveles autorados (`referencia: Programa`) y dos generados (`idGenerador` + `parametros`).
-`src/niveles/catalogo.ts` pasa a `CATALOGO = [...MUNDO_0, ...MUNDO_1, ...MUNDO_2, ...MUNDO_3]`.
-
-La diferencia de datos frente a los mundos 0–2 es la **normalización**: los cuatro niveles declaran
-`{ traslacion: 'fija', rotacion: 'fija', escala: 'exacta' }` (R3.5). El resto del flujo
-(`resolverReto`, demostración, validación) no cambia: el mismo intérprete ejecuta la referencia y de
-ahí salen demostración y segmentos objetivo.
-
-### Generadores del mundo 3: contrato `Generador`
-
-Los generados del mundo 3 usan el contrato **`Generador`** de `src/niveles/tipos.ts`
-(`(entrada: EntradaGenerador) => ResultadoGeneracion`), el mismo que los del mundo 0, no el
-`FnGenerador` por semilla de los mundos 1 y 2. Esta elección es deliberada: el contrato `Generador`
-lleva el lazo de reintento con `intentosMaximos` y devuelve `semillaEfectiva` y un error del catálogo
-al agotar intentos, que es justo lo que piden R5.6 y R5.7 (descartar la semilla degenerada o no
-encuadrada y pasar a la siguiente). `reto.ts` ya resuelve ese contrato primero, vía
-`buscarGenerador(idGenerador)` del registro `src/niveles/generadores/registro.ts`, antes de caer al
-registro por semilla. Se agregan dos archivos en `src/niveles/generadores/` (`rosetón.ts` y
-`flor.ts`) y sus dos entradas al registro.
-
-```
-reto.ts  resolverReto(idNivel, semilla)
-   │
-   ├─ nivel generado → idGenerador
-   │       │
-   │       ▼
-   │   buscarGenerador(idGenerador)           [registro.ts]
-   │       │ Generador | null
-   │       ├─ null → registro por semilla (mundos 1/2)   [no aplica al mundo 3]
-   │       └─ Generador → generador({ semilla, parametros, intentosMaximos })
-   │                         │ ResultadoGeneracion
-   │                         ├─ exito:false → propaga error del catálogo
-   │                         └─ exito:true  → referencia (AST) + semillaEfectiva
-   ▼
-  ejecuta la referencia UNA vez → presupuestoEstrella = conteo, limiteDuro, segmentos
-```
-
-Un `Generador` solo puede importar de `lenguaje/` y `azar/` (regla de `tipos.ts` y de `estructura`).
-Para verificar encuadre necesita ejecutar el AST y medir su caja; como no puede importar de `motor/`,
-construye los puntos del recorrido con su propia aritmética de polígono (igual que `anchoPoligono` en
-`generadores-mundo-2.ts`, que camina el contorno con seno/coseno sin tocar el motor). La figura se
-mide sobre esos puntos: ancho y alto de la caja alineada a los ejes, exigiendo ambos ≥ 200 px
-(no degenerada, R5.6) y la caja dentro de `[−400, 400]` en los dos ejes (encuadrada, R5.7).
-
-### Desafío infinito: una secuencia determinista derivada de una raíz
-
-El desafío infinito es **puro y sin estado propio persistido**: una función que, dada la raíz y el
-índice del reto en la secuencia, devuelve `(idNivel, semilla)`. No guarda la secuencia; la recalcula.
-Así dos corridas con la misma raíz producen exactamente la misma secuencia (R7.4) y basta con guardar
-`(mundo, raíz, índiceActual)` para reanudar.
-
-```
-Semilla_Raiz (R)              nivelesGeneradosDelMundo(m) = [g0, g1, ...]   (orden del catálogo)
-     │
-     ▼
-  prng raíz = crearPrng(R)
-     │
-     paso i (0,1,2,...):
-        idNivel   = g[ i mod cantidadGenerados ]        ← rota entre los generados (R7.6)
-        semilla_i = derivar(R, i)                        ← determinista, vía PRNG del proyecto (R7.3)
-```
-
-`derivar(R, i)` produce una semilla del dominio `[0, 2³²−1]` a partir de `R` e `i` usando `crearPrng`;
-es determinista y reproducible. El índice solo avanza: la API no ofrece retroceder (R7.5). La
-disponibilidad se deriva del desbloqueo (ver §9), no de un flag propio.
-
-## Components and Interfaces
-
-### 1. `src/juego/reto.ts` — sin cambios
-
-Ya calcula y expone `presupuestoEstrella`, `limiteDuro` y `limiteDuroActivo` (R1.1, R1.2). Las
-constantes `MARGEN_LIMITE_DURO_POR_OMISION = 3` y `PRIMER_MUNDO_CON_LIMITE_DURO = 3` ya están. No se
-toca; solo se **consume** lo que ya produce.
-
-### 2. `src/lenguaje/errores.ts` — AMPLIAR el catálogo
-
-Se agrega un `IdError` nuevo con sus parámetros y su mensaje, única fuente del texto (R2.4):
+Los criterios 3 y 4 del requisito 2 (sugerencia de parámetros en el mundo 4 y de recursión en el 5) y
+el criterio 1 del requisito 13 (una sugerencia por mundo con límite activo) describen **la misma regla**.
+El diseño la implementa **una sola vez**: una tabla en el catálogo de errores, consultada por el
+mensaje.
 
 ```typescript
-// en IdError:
-| 'limiteDuroExcedido'
-
-// en ParametrosPorError:
-readonly limiteDuroExcedido: { readonly usadas: number; readonly limite: number };
+// src/lenguaje/errores.ts
+const SUGERENCIA_DE_BLOQUEO_POR_MUNDO: Readonly<Record<number, string>> = {
+  3: 'Prueba a poner un REPITE dentro de otro REPITE para repetir un grupo entero de una sola vez.',
+  4: 'Prueba a usar parámetros para que un mismo procedimiento sirva para varios tamaños.',
+  5: 'Prueba a usar recursión: un procedimiento que se llama a sí mismo con un valor menor.',
+};
+const MUNDO_DE_SUGERENCIA_POR_OMISION = 3;
 ```
 
-El mensaje (severidad `'jugador'`) nombra `N`, `M` y `N − M` y empuja a anidar `REPITE`, sin nombrar
-la figura, la referencia ni `presupuestoEstrella` (R2.1, R2.2, R2.3):
+- Mundo con entrada en la tabla: el mensaje usa esa sugerencia (R13.2).
+- Mundo sin entrada (por ejemplo un mundo futuro): usa la del mundo 3 (R13.3).
+- Los mundos 0 a 2 nunca llegan al mensaje, porque la guarda no se activa. Si llegaran, también caería
+  en el valor por omisión.
+- Los textos son **solo texto**: esta spec no agrega parámetros ni recursión al lenguaje (R10.2).
 
-```
-Tu programa usa {usadas} instrucciones y el máximo para este reto es {limite}: te sobran
-{usadas − limite}. Prueba a poner un REPITE dentro de otro REPITE para repetir un grupo entero
-de una sola vez.
-```
+`ParametrosPorError['limiteDuroExcedido']` pasa a `{ usadas: number; limite: number; mundo: number }`.
+`crearError` valida que `usadas`, `limite` y `mundo` sean enteros y que `usadas > limite`, igual que
+hoy. La diferencia `usadas − limite` se calcula al componer el texto, no se recibe. El mensaje **nunca**
+incluye `presupuestoEstrella` (R2.5): la guarda solo le entrega `limite`.
 
-`crearError('limiteDuroExcedido', { usadas, limite })` valida que `usadas` y `limite` sean enteros y
-`usadas > limite` (si no, `solicitudDeErrorInvalida`, igual que el resto del catálogo). La diferencia
-`usadas − limite` se calcula al construir el mensaje, no se pasa como parámetro (una sola fuente de
-verdad para la cuenta).
+### Cableado de las señales transversales (R11)
 
-### 3. `src/main.ts` — AMPLIAR `ejecutarPrograma` con la guarda de límite duro
-
-Tras obtener `programa` válido y **antes** de ceder la demostración y reiniciar la capa del jugador:
+Cada señal se escribe en el punto exacto de `main.ts` o de `ui/` donde ocurre la acción, a través de
+un único envoltorio que protege al jugador de un fallo de persistencia:
 
 ```typescript
-// Guarda de límite duro (R1.3): activa desde el mundo 3. Si el conteo del jugador
-// supera el límite, Kiro detiene ANTES de dibujar y explica. No se emite ninguna
-// operación de tortuga, no se toca la capa del jugador, no se ejecuta el intérprete.
-if (reto.limiteDuroActivo) {
-  const c = contarInstrucciones(programa);
-  if (c.exito && c.instrucciones > reto.limiteDuro) {
-    globo.mostrarMensajes([
-      crearError('limiteDuroExcedido', { usadas: c.instrucciones, limite: reto.limiteDuro }),
-    ]);
-    return;
+// main.ts
+/** Ejecuta una escritura de señal; si falla, deja rastro en consola y sigue (R11.11). */
+function registrarSenal(escribir: () => void): void {
+  try {
+    escribir();
+  } catch (e) {
+    console.error('No se pudo registrar la señal de progreso.', e);
   }
 }
 ```
 
-Queda antes de `ejecutando = true`, de `controles.marcarEjecucionEnCurso()`, de
-`demostracion.cederAEjecucion()` y de `animador.reiniciar(...)`, de modo que un programa bloqueado
-deja todo el estado del intento como estaba (R1.3). Un conteo `≤ limiteDuro`, o un nivel con
-`limiteDuroActivo` falso, pasa de largo y ejecuta como hoy (R1.4, R1.6, R1.7).
+(Es el mismo patrón que ya usa `progreso.guardar` en `concluirIntento`.)
 
-### 4. `src/ui/editor.ts` — AMPLIAR el aviso del contador
+| Señal | Acción del jugador | Dónde se engancha | Llamada |
+|---|---|---|---|
+| Pista abierta (R11.1) | Pulsa «Pedir pista» y se muestra un escalón | `globo-kiro.ts` recibe un callback opcional `alAbrirPista`, invocado en `pedirPista` solo cuando se muestra un escalón (no con el aviso «ya te di todas») | `progreso.marcarPistaAbierta(reto.nivel.id)` |
+| Demostración vista (R11.2) | Se lanza la demostración | `main.ts`: dos puntos, `montarReto` con `lanzarDemostracion` (`reproducir`) y `verDemostracion` (`repetir`) | `progreso.registrarVistaDemostracion(reto.nivel.id)`, **una vez por demostración lanzada** |
+| Reproducción en paralelo usada (R11.3) | Pulsa «Ver en paralelo» | Acción nueva en `controles.ts` y `main.ts` (ver abajo) | `progreso.marcarReproduccionParalelaUsada()`, **antes** de que el jugador pueda apretar «Ejecutar» y aprobar |
 
-`DependenciasEditor` recibe el límite duro y si está activo del reto en curso, igual que ya recibe
-`presupuestoEstrella`:
+Detalles de cada enganche:
 
-```typescript
-export interface DependenciasEditor {
-  // … lo existente …
-  readonly presupuestoEstrella: number;
-  readonly limiteDuro: number;          // NUEVO
-  readonly limiteDuroActivo: boolean;   // NUEVO
-}
-```
+**Pista.** `DependenciasGlobo` gana `readonly alAbrirPista?: () => void`. Es opcional para no romper
+las pruebas existentes del globo. `main.ts` lo cablea con el nivel en curso leído **en el momento de la
+llamada** (`reto` es mutable al cambiar de nivel), igual que el resto de callbacks. El aviso «Ya te di
+todas las pistas de este reto» no cuenta como abrir una pista: la bandera ya estaba puesta y
+`marcarPistaAbierta` es idempotente de todos modos.
 
-`presentarReto` pasa a recibir también estos dos valores (o el editor los guarda mutables como ya hace
-con `presupuesto`). En `actualizarContador`, además del aviso de presupuesto existente, se añade el de
-bloqueo cuando `limiteDuroActivo && estado.conteo > limiteDuro` (R2.5): un `span` con texto en español
-(«Este programa no se podrá ejecutar: pasa del límite») y una clase para el estilo, y el nombre
-accesible (`aria-label`) incorpora la misma frase. Mientras el conteo sea ≤ límite, no aparece (R2.6).
-El aviso de bloqueo es independiente del de presupuesto: en el mundo 3 un conteo entre
-`presupuesto + 1` y `limiteDuro` muestra «te pasaste del presupuesto» pero **no** el de bloqueo.
+**Demostración.** Se centraliza en una función `lanzarDemostracion(modo: 'reproducir' | 'repetir')`
+dentro de `main.ts`. Llama al método de `Demostracion` y luego `registrarSenal(() =>
+progreso.registrarVistaDemostracion(reto.nivel.id))`. Consecuencia de R11.2, a tener presente: la
+demostración que Kiro lanza sola al entrar al nivel **cuenta como una vista**, igual que cada «Volver a
+ver la demostración». Para *Buen ojo* esto significa «solo la que se lanzó al entrar, sin repetir».
+Volver a entrar al mismo nivel o pedir otro reto suma otra vista, porque `montarReto` lanza otra
+demostración. Es la lectura literal del requisito y se deja anotada para que no sorprenda.
 
-### 5. `src/motor/validador.ts` — sin cambios
+**Reproducción en paralelo (acción nueva).** El módulo `ui/reproduccion-paralelo.ts` ya hace el trabajo
+de dibujo; falta montarlo y darle un disparador.
 
-`validar` ya trata `traslacion: 'fija'` (sin trasladar) y `rotacion: 'fija'` (solo ángulo 0) y aplica
-la dilatación de disco 8 existente (R3.1, R3.2). Una figura correcta pero desplazada o rotada respecto
-de la referencia, más allá de la tolerancia de dilatación, cae por IoU insuficiente y no gana la
-precisión (R3.3, R3.4) — comportamiento que `comparar` ya produce con la normalización fija. No se
-toca la tolerancia ni el algoritmo.
-
-### 6. `src/niveles/mundo-3-rosetones.ts` — NUEVO
-
-Mismo molde que `mundo-2-composicion.ts`: `parsearReferencia(texto)` con `{ mundo: 3 }` para los
-autorados, semillas fijas, y el array `MUNDO_3`.
+- `controles.ts`: `AccionId` gana `'paralelo'` con texto «Ver en paralelo» y nombre accesible «Ver mi
+  recorrido y el de Kiro en paralelo». `CallbacksControles` gana `verEnParalelo: () => void`.
+  Arranca **deshabilitada** y se habilita cuando existe un intento ejecutado del reto en curso; mientras
+  hay una ejecución en curso se deshabilita, como `demostracion`.
+- `main.ts`: instancia `crearReproduccionParalelo` con las dependencias que ya declara (lienzo
+  paralelo, reloj, temas de Kiro y del jugador, `movimientoReducido`, `anunciar`) y define
+  `verEnParalelo()`:
 
 ```typescript
-// 3.1 — rosetón de 36 cuadrados (R4.1). Presupuesto por Conteo, nunca a mano (R4.2).
-export const REFERENCIA_3_1: Programa =
-  parsearReferencia('REPITE 36 [REPITE 4 [AV 100 GD 90] GD 10]');
-
-// 3.4 — mandala de círculos (R4.3). Completa sin disparar la guarda de 200 000 pasos (R4.4).
-export const REFERENCIA_3_4: Programa =
-  parsearReferencia('REPITE 8 [GD 45 REPITE 6 [REPITE 90 [AV 2 GD 2] GD 90]]');
-
-const NORMALIZACION_M3: NormalizacionNivel = { traslacion: 'fija', rotacion: 'fija', escala: 'exacta' };
-
-export const NIVEL_3_1: Nivel = {
-  id: '3.1', mundo: 3, titulo: 'Rosetón de cuadrados', concepto: 'simetria',
-  origen: { tipo: 'autorado', referencia: REFERENCIA_3_1, semilla: 301 },
-  normalizacion: NORMALIZACION_M3,
-  abstraccion: [{ clave: 'usaRepiteAnidado' }],              // R4.5, R6.1
-  pistas: [ /* conceptual, matemática, esqueleto; advierten posición/rumbo de partida (R3.6) */ ],
-};
-
-export const NIVEL_3_2: Nivel = {
-  id: '3.2', mundo: 3, titulo: 'Rosetón de polígonos', concepto: 'simetria',
-  origen: { tipo: 'generado', idGenerador: 'roseton-m3', parametros: {} },
-  normalizacion: NORMALIZACION_M3,
-  abstraccion: [{ clave: 'usaRepiteAnidado' }],              // R5.8, R6.1
-  pistas: [ /* … advierten posición/rumbo (R3.6) … */ ],
-};
-
-export const NIVEL_3_3: Nivel = {
-  id: '3.3', mundo: 3, titulo: 'Flor con giro', concepto: 'simetria',
-  origen: { tipo: 'generado', idGenerador: 'flor-m3', parametros: {} },
-  normalizacion: NORMALIZACION_M3,
-  abstraccion: [{ clave: 'usaRepiteAnidado' }],
-  pistas: [ /* … */ ],
-};
-
-export const NIVEL_3_4: Nivel = {
-  id: '3.4', mundo: 3, titulo: 'Mandala', concepto: 'simetria',
-  origen: { tipo: 'autorado', referencia: REFERENCIA_3_4, semilla: 304 },
-  normalizacion: NORMALIZACION_M3,
-  abstraccion: [{ clave: 'usaRepiteAnidado' }],
-  pistas: [ /* … */ ],
-};
-
-export const MUNDO_3: readonly Nivel[] = [NIVEL_3_1, NIVEL_3_2, NIVEL_3_3, NIVEL_3_4];
+function verEnParalelo(): void {
+  if (estadoApp.operacionesJugador === null) return;      // sin intento no hay nada que comparar
+  registrarSenal(() => progreso.marcarReproduccionParalelaUsada());   // R11.3
+  reproduccionParalelo.reproducir(reto.operaciones, estadoApp.operacionesJugador, ESTADO_INICIAL);
+}
 ```
 
-Ningún nivel escribe un número de presupuesto (R4.2, R4.6, R5.5): lo calcula `resolverReto` por el
-Conteo sobre la referencia. `margenLimiteDuro` se omite, así que rige el margen por omisión (3). El
-enunciado (las pistas y el título) advierte que la posición y el rumbo de partida importan (R3.6).
+Se registra la señal **al iniciar**, no al terminar la animación: R11.3 dice «inicia». Por la forma de
+`guardar`, un nivel aprobado **después** de este momento queda marcado como posterior (R11.4); uno
+aprobado antes no se reescribe, porque la bandera por nivel no retrocede (§R11.4 en
+`progreso.ts`). Esta spec no cambia esa semántica.
 
-### 7. `src/niveles/generadores/rosetón.ts` y `flor.ts` — NUEVOS (contrato `Generador`)
+### Desafío infinito en la interfaz (R12)
 
-Ambos respetan la firma `Generador` de `tipos.ts` y solo importan de `lenguaje/` (lexer, parser,
-conteo, impresor si hace falta) y `azar/` (`crearPrng`). Producen AST (R5 del steering `estructura`):
-construyen el texto KiroLogo, lo parsean con `{ mundo: 3 }` y devuelven el `Programa`.
-
-**3.2 — `roseton-m3`.** Rosetón de copias de un polígono regular girado entre copias:
+La lógica pura vive en `juego/desafio-infinito.ts` y **no cambia**. Se añade un módulo de interfaz
+pequeño y un poco de estado en `main.ts`.
 
 ```
-REPITE c [ REPITE n [ AV L GD 360/n ] GD 360/c ]
+              ┌──────────────────────────────────────────────────────────┐
+ progreso ───►│ desafioDisponible(reto.nivel.mundo, progreso)             │
+              └──────────────┬───────────────────────────────────────────┘
+                             │ verdadero → el control se muestra; falso → se oculta (R12.1, R12.2)
+                             ▼
+   [Desafío infinito]  ──activa──►  raíz = semillaNuevaParaNivel(...)      (la misma entropía de arranque
+        (botón)                      índice = 0                              que ya usa «Otro reto»; sin Math.random)
+                                     reto = retoDesafio(mundo, raíz, 0)
+                                     cambiarANivel(reto.idNivel, reto.semilla)
+                                     muestra codificar(raíz).código         (R12.6)
+   aprobado el reto  ──────────►  el botón pasa a «Siguiente reto»          (R12.4)
+   «Siguiente reto»  ──activa──►  índice += 1 → retoDesafio(mundo, raíz, índice) → cambiarANivel(...)
 ```
 
-- `c ∈ {6, 8, 9, 12, 18, 36}` (copias), vía `prng.elegir` (R5.1).
-- `n ∈ {3, 4, 5, 6}` (lados de la figura interna), vía `prng.elegir` (R5.1). `360/n` es entero
-  (120, 90, 72, 60): ángulo derivable (R5.4).
-- `L` múltiplo de 20 (R5.4), vía `prng.multiplo`, en un rango acotado para encuadrar.
-- `360/c` es entero para todos los valores de `c` del conjunto (60, 45, 40, 30, 20, 10): ángulo
-  derivable (R5.4).
-- Forma: un `REPITE` de copias que contiene el `REPITE` de la figura interna y el giro entre copias
-  (R5.2). El AST tiene `REPITE` anidado, así que su referencia gana `usaRepiteAnidado` (R5.8, R5.9).
-
-**3.3 — `flor-m3`.** Flor con un giro previo al avance en cada pétalo (R5.3):
-
-```
-REPITE c [ REPITE n [ GD a AV L ] GD 360/c ]
-```
-
-- `c` (pétalos) de un conjunto cuyo `360/c` sea entero; `n` (segmentos por pétalo); `a` ángulo
-  derivable (`360/k` con `k` de 3 a 12, o múltiplo de 15); `L` múltiplo de 20 (R5.4).
-- Forma exacta pedida por R5.3: `REPITE c [REPITE n [GD a AV L] GD 360/c]`. También anidado (R5.8).
-
-**Lazo de reintento (los dos).** Dentro de `entrada.intentosMaximos`, con
-`prng = crearPrng(entrada.semilla + intento)`: elegir parámetros, construir y parsear el texto, medir
-la caja envolvente sobre el recorrido calculado; si la figura es degenerada (ancho o alto < 200 px,
-R5.6) o no encuadra (caja fuera de `[−400, 400]`, R5.7), **descartar** y probar la semilla siguiente.
-Al aceptar, devolver `{ exito: true, referencia, semillaEfectiva: entrada.semilla + intento, descartes }`.
-Al agotar los intentos, `{ exito: false, error: crearError('generadorSinCandidato', {}), intentos }`.
-El presupuesto lo calcula `resolverReto` por el Conteo sobre la `referencia`, nunca el generador
-(R5.5).
-
-### 8. `src/niveles/generadores/registro.ts` — AMPLIAR
+`src/ui/control-desafio.ts` (nuevo, mismo molde que `panel-semilla.ts`):
 
 ```typescript
-import { generarRoseton } from './rosetón.js';
-import { generarFlor } from './flor.js';
+export interface CallbacksControlDesafio {
+  readonly iniciar: () => void;
+  readonly siguiente: () => void;
+}
+export interface ControlDesafio {
+  readonly raiz: HTMLElement;
+  readonly boton: HTMLButtonElement;
+  /** Oculta el control o lo muestra como «Desafío infinito» / «Siguiente reto». */
+  presentar(estado:
+    | { fase: 'oculto' }
+    | { fase: 'disponible'; mundo: number }
+    | { fase: 'enCurso'; mundo: number; codigoRaiz: string; puedeAvanzar: boolean }): void;
+}
+```
 
-const GENERADORES: Readonly<Record<string, Generador>> = {
-  camino: generarCamino,
-  zigzag: generarZigzag,
-  'roseton-m3': generarRoseton,   // NUEVO (3.2)
-  'flor-m3': generarFlor,         // NUEVO (3.3)
+- Es un `<button>` nativo: operable con Enter y Espacio y alcanzable con `Tab` (R12.7). Su nombre
+  accesible es «Iniciar el desafío infinito del mundo N» o «Ir al siguiente reto del desafío infinito».
+- **No existe ningún control de retroceso** (R12.5): la interfaz del módulo solo tiene `iniciar` y
+  `siguiente`. El estado en `main.ts` es `{ mundo, raiz, indice } | null` y solo se incrementa.
+- Mientras está en curso, muestra el código de la raíz obtenido con `codificar` de
+  `azar/codigo-semilla.ts` (R12.6). Si `codificar` devuelve error (semilla fuera de dominio, no debería
+  pasar con una semilla acotada), se omite el código y se avisa con el mensaje del catálogo.
+- «Siguiente reto» solo se habilita cuando el reto en curso del desafío está aprobado (estrella de
+  precisión guardada para ese `idNivel`), leyendo el progreso al terminar cada intento.
+- El estado del desafío se descarta cuando el jugador cambia de nivel por **otro camino** (menú de
+  mundos, otro reto, reproducir código). `cambiarANivel` recibe un indicador interno para distinguir
+  la llamada que viene del control.
+- El control se muestra para el **mundo del nivel en curso**. Es el acceso mínimo que pide el
+  requisito: no hay selector de mundo, ni puntuación, ni historial.
+- Los niveles que entrega `retoDesafio` son generados de un mundo completo, así que ya están
+  desbloqueados y `cambiarANivel` no los rechaza.
+
+### Tipos de insignia separados (R14)
+
+```typescript
+// src/juego/insignias.ts
+export type IdInsigniaDeConcepto = 'secuencia' | 'iteracion' | 'descomposicion' | 'simetria';
+export type IdInsigniaTransversal = 'depurador' | 'minimalista' | 'sinPistas' | 'buenOjo';
+export type IdInsignia = IdInsigniaDeConcepto | IdInsigniaTransversal;
+
+/** Solo las de concepto tienen mundo. Consultar una transversal no compila (R14.2, R14.3). */
+const MUNDO_DE_INSIGNIA: Readonly<Record<IdInsigniaDeConcepto, number>> = {
+  secuencia: 0, iteracion: 1, descomposicion: 2, simetria: 3,
 };
+
+/** Recorrido de las de concepto sin aserciones de tipo (R14.4). */
+const INSIGNIAS_DE_CONCEPTO: readonly IdInsigniaDeConcepto[] =
+  ['secuencia', 'iteracion', 'descomposicion', 'simetria'];
+
+export function insigniasDelMundo(mundo: number, progreso: Progreso): readonly IdInsignia[] {
+  const otorgadas: IdInsignia[] = [];
+  for (const id of INSIGNIAS_DE_CONCEPTO) {
+    if (MUNDO_DE_INSIGNIA[id] === mundo && OTORGADA_DE_CONCEPTO[id](progreso)) otorgadas.push(id);
+  }
+  return otorgadas;
+}
 ```
 
-### 9. `src/juego/desafio-infinito.ts` — NUEVO
+Se evita `Object.keys(...) as IdInsignia[]` recorriendo un arreglo tipado. El riesgo de que el arreglo
+y el `Record` se desincronicen (agregar una insignia a uno y olvidar el otro) se cubre con una prueba
+que compara las claves del `Record` con el arreglo. `OTORGADA_DE_CONCEPTO` es un
+`Record<IdInsigniaDeConcepto, (p: Progreso) => boolean>` que reúne los cuatro predicados existentes.
 
-Módulo puro de `juego/`: puede importar de `niveles/` (catálogo), `azar/` (PRNG) y `juego/`
-(`desbloqueo`). No persiste estado propio más allá de `(mundo, raíz, índice)`, que la navegación
-guarda.
+Para que las pruebas de punta a punta de R11.10 puedan verificar la insignia **otorgada** sin añadir
+estado, se agrega un predicado derivado:
 
 ```typescript
-import { crearPrng, SEMILLA_MINIMA, SEMILLA_MAXIMA } from '../azar/prng.js';
-import { CATALOGO } from '../niveles/catalogo.js';
-import { mundoDesbloqueado } from './desbloqueo.js';
-import type { Progreso } from './progreso.js';
-import type { Mundo } from '../lenguaje/vocabulario.js';
-
-/** Los niveles GENERADOS de un mundo, en el orden del catálogo. */
-export function nivelesGeneradosDelMundo(mundo: Mundo): readonly string[] {
-  return CATALOGO.filter((n) => n.mundo === mundo && n.origen.tipo === 'generado').map((n) => n.id);
-}
-
-/**
- * ¿Está disponible el desafío infinito del mundo? Disponible solo si el mundo está
- * COMPLETO (el siguiente mundo desbloqueado ⇒ todos sus niveles aprobados) y tiene
- * al menos un nivel generado (R7.1, R7.2, R7.8).
- */
-export function desafioDisponible(mundo: Mundo, progreso: Progreso): boolean {
-  if (nivelesGeneradosDelMundo(mundo).length === 0) return false;   // R7.8
-  return mundoDesbloqueado((mundo + 1) as Mundo, progreso);          // mundo completo ⇒ siguiente abierto
-}
-
-export interface RetoDesafio {
-  readonly idNivel: string;
-  readonly semilla: number;
-}
-
-/**
- * El reto en el índice `i` de la secuencia del mundo, derivado de la raíz. Rota
- * entre los niveles generados (R7.6) y deriva la semilla con el PRNG del proyecto
- * (R7.3). Determinista: misma (mundo, raíz, i) ⇒ mismo reto (R7.4). El índice solo
- * crece; no hay retroceso (R7.5).
- */
-export function retoDesafio(mundo: Mundo, raiz: number, indice: number): RetoDesafio {
-  const generados = nivelesGeneradosDelMundo(mundo);
-  const idNivel = generados[indice % generados.length]!;
-  const semilla = derivarSemilla(raiz, indice);
-  return { idNivel, semilla };
-}
-
-/** Semilla determinista del paso `i` a partir de la raíz, en el dominio de semillas. */
-function derivarSemilla(raiz: number, indice: number): number {
-  // crearPrng es determinista; se avanza (indice + 1) veces para separar los pasos.
-  const prng = crearPrng(raiz);
-  let v = 0;
-  for (let k = 0; k <= indice; k++) v = prng.siguiente();
-  return Math.floor(v * (SEMILLA_MAXIMA - SEMILLA_MINIMA + 1)) + SEMILLA_MINIMA;
-}
+export function insigniasTransversalesOtorgadas(progreso: Progreso): readonly IdInsigniaTransversal[];
 ```
 
-El avance de un reto al siguiente es `indice + 1`: la API nunca ofrece `indice − 1`, así que no se
-puede retroceder (R7.5). Es retroactivo: cualquier mundo con niveles generados (0, 1, 2 y 3) tiene
-desafío; `nivelesGeneradosDelMundo` lo determina por datos, sin casos especiales (R7.7, R7.8). La
-raíz es una semilla del dominio del PRNG; se puede obtener del código-semilla compartible existente.
+Es una función pura del progreso. Las pruebas recargan `cargarProgreso(almacen)` con el mismo
+almacén que usó la aplicación y le preguntan por ella. No cambia `Aplicacion`. Los resultados de las
+pruebas de insignias existentes no cambian (R14.5).
 
-### 10. `src/juego/insignias.ts` — AMPLIAR (Simetría + cuatro transversales)
+### Timeout compartido (R15)
 
-**Simetría** sigue exactamente el patrón de las tres insignias de concepto ya presentes:
+Se crea `src/pruebas/tiempos.ts` (módulo solo para pruebas, sin dependencias):
 
 ```typescript
-export type IdInsignia =
-  | 'secuencia' | 'iteracion' | 'descomposicion'
-  | 'simetria'                                    // NUEVO (concepto, mundo 3)
-  | 'depurador' | 'minimalista' | 'sinPistas' | 'buenOjo';  // NUEVO (transversales)
-
-const MUNDO_DE_INSIGNIA /* solo conceptos */ = { secuencia: 0, iteracion: 1, descomposicion: 2, simetria: 3 };
-
-export function insigniaSimetriaOtorgada(progreso: Progreso): boolean {
-  return mundoCompletoConTresEstrellas(3, progreso);   // R8.1, R8.2
-}
+/** Tiempo máximo de las regresiones de tres estrellas sobre 200 semillas. */
+export const TIMEOUT_TRES_ESTRELLAS = 180_000;
 ```
 
-`insigniasDelMundo(3, progreso)` devuelve `['simetria']` cuando corresponde, reusando
-`mundoCompletoConTresEstrellas`. Al derivarse solo del progreso y el catálogo, se otorga exactamente
-una vez y se mantiene (R8.3, R8.4).
+- `generadores-mundo-2.test.ts` borra su constante local `TIMEOUT_TRES_ESTRELLAS` e importa esta.
+- `reto.test.ts` sustituye los dos `120_000` de las regresiones 3.2 y 3.3 (líneas ~211 y ~357) por la
+  constante.
+- Los `120_000` de `camino.test.ts`, `zigzag.test.ts`, `validador.test.ts` y `main.test.ts` **no son**
+  regresiones de tres estrellas de los mundos 2 y 3, así que quedan fuera de R15.4.
 
-**Las cuatro transversales** se derivan del progreso. Las reglas que hoy el `Progreso` ya permite
-calcular se implementan directamente; las que necesitan señales que el progreso aún no registra
-(haber usado la reproducción en paralelo, haber abierto una pista, cuántas veces se vio la
-demostración) exigen **extender `src/juego/progreso.ts`** con contadores anónimos por nivel, mínimos y
-derivables. Esta spec se limita a las **reglas de otorgamiento verificables por pruebas**, no al mapa
-de insignias (R10.4), así que las funciones reciben el progreso y devuelven un booleano:
+El archivo vive en `src/pruebas/` y no junto a un módulo, porque lo comparten pruebas de `juego/` y de
+`niveles/`. Es la única excepción a «las pruebas van junto al módulo que prueban», y se justifica por
+ser una constante, no una prueba. Esta ubicación se puede cambiar sin tocar nada más.
 
-| Insignia | Regla (R9) | Señal que necesita del progreso |
+### Capa de niveles y generadores del mundo 3
+
+Sin cambios de diseño respecto de los requisitos 3 a 6, que no se modificaron:
+
+- `src/niveles/mundo-3-rosetones.ts` exporta `MUNDO_3` con 3.1 y 3.4 autorados (`REPITE 36 [REPITE 4
+  [AV 100 GD 90] GD 10]` y `REPITE 8 [GD 45 REPITE 6 [REPITE 90 [AV 2 GD 2] GD 90]]`) y 3.2 y 3.3
+  generados (`roseton-m3` y `flor-m3`).
+- Los cuatro declaran `normalizacion: { traslacion: 'fija', rotacion: 'fija', escala: 'exacta' }` y
+  `abstraccion: [{ clave: 'usaRepiteAnidado' }]`, y sus pistas advierten que la posición y el rumbo de
+  partida importan (R3.5, R3.6).
+- Los generadores usan el contrato `Generador` de `src/niveles/tipos.ts` y se registran en
+  `generadores/registro.ts`. Solo importan de `lenguaje/` y `azar/`. Miden la caja de la figura con su
+  propia aritmética de polígono, porque no pueden importar de `motor/`.
+- `rosetón`: `REPITE c [REPITE n [AV L GD 360/n] GD 360/c]` con `c ∈ {6, 8, 9, 12, 18, 36}` y
+  `n ∈ {3, 4, 5, 6}`. `flor`: `REPITE c [REPITE n [GD a AV L] GD 360/c]`. Longitudes múltiplos de 20.
+- Reintento dentro de `intentosMaximos` con semilla `semilla + intento`: se descarta lo degenerado
+  (ancho o alto < 200 px) y lo no encuadrado (fuera de `[−400, 400]`). Al agotar los intentos devuelve
+  `generadorSinCandidato`.
+- El presupuesto lo calcula `resolverReto` con `contarInstrucciones` sobre la referencia; nunca se
+  escribe a mano (R4.2, R4.6, R5.5).
+
+## Components and Interfaces
+
+| Módulo | Cambio | Requisitos |
 |---|---|---|
-| *Minimalista* | estrella de economía en 10 niveles (R9.2) | ya disponible: contar niveles con `estrellasDe(id).economia` |
-| *Simetría* y conceptos | tres estrellas por mundo | ya disponible |
-| *Depurador* | aprobar 5 niveles tras haber usado la reproducción en paralelo (R9.1) | nuevo: marcar que se usó la reproducción en paralelo, y contar aprobaciones posteriores |
-| *Sin pistas* | completar un mundo sin abrir ninguna pista en sus niveles (R9.3) | nuevo: marcar por nivel si se abrió una pista |
-| *Buen ojo* | resolver un nivel visto la demostración una sola vez (R9.4) | nuevo: contar vistas de demostración por nivel del intento en curso |
+| `src/lenguaje/errores.ts` | `limiteDuroExcedido` gana `mundo`; tabla `SUGERENCIA_DE_BLOQUEO_POR_MUNDO` con fallback al mundo 3 | 2.1 a 2.6, 13 |
+| `src/main.ts` | pasa `mundo` a `limiteDuroExcedido`; `registrarSenal`; `lanzarDemostracion`; `verEnParalelo`; estado del desafío; cableado del control | 2, 11, 12 |
+| `src/ui/globo-kiro.ts` | callback opcional `alAbrirPista` | 11.1 |
+| `src/ui/controles.ts` | acción `paralelo` («Ver en paralelo») y `verEnParalelo` | 11.3 |
+| `src/ui/control-desafio.ts` | **nuevo**: botón del desafío infinito | 12 |
+| `src/ui/reproduccion-paralelo.ts` | sin cambios; solo se instancia en `main.ts` | 11.3 |
+| `src/juego/desafio-infinito.ts` | sin cambios | 7, 12 |
+| `src/juego/insignias.ts` | tipos separados, `INSIGNIAS_DE_CONCEPTO`, `insigniasTransversalesOtorgadas` | 14, 11.10 |
+| `src/juego/progreso.ts` | sin cambios de lógica; documentación de los 7 métodos | 16 |
+| `src/pruebas/tiempos.ts` | **nuevo**: `TIMEOUT_TRES_ESTRELLAS` | 15 |
+| `docs/` | descripción de los 7 `Metodos_De_Senal` (ver abajo) | 16 |
+| `src/niveles/mundo-3-rosetones.ts`, `generadores/rosetón.ts`, `flor.ts`, `registro.ts`, `catalogo.ts` | niveles y generadores del mundo 3 | 3 a 6 |
 
-```typescript
-export function insigniaMinimalistaOtorgada(progreso: Progreso): boolean;   // R9.2
-export function insigniaDepuradorOtorgada(progreso: Progreso): boolean;     // R9.1
-export function insigniaSinPistasOtorgada(progreso: Progreso): boolean;     // R9.3
-export function insigniaBuenOjoOtorgada(progreso: Progreso): boolean;       // R9.4
-```
+### Documentación de los métodos de señal (R16)
 
-Cada una es un predicado puro sobre el progreso guardado, de modo que verificarlas es reproducible
-por pruebas (R9.6) y, al no tener estado propio, se mantienen otorgadas exactamente una vez (R9.5).
-Las señales nuevas del progreso son anónimas (banderas y contadores por `idNivel`), encajan en el
-formato versión 2 y conservan la lectura tolerante y la migración existentes.
+Se agrega una sección en español a `docs/` (en `docs/README.md` o en un archivo nuevo `docs/senales-de-progreso.md`,
+a decidir en las tareas) con una tabla de los siete métodos:
 
-### 11. `src/niveles/catalogo.ts` — AMPLIAR
+| Método | Señal | Quién la escribe | Quién la lee | Insignia | Efecto en `localStorage` |
+|---|---|---|---|---|---|
+| `marcarPistaAbierta(id)` | pista abierta en el nivel | `main.ts` vía `alAbrirPista` | `pistaAbiertaEn` | Sin pistas | persiste solo la primera vez |
+| `pistaAbiertaEn(id)` | lectura | — | `insignias.ts` | Sin pistas | ninguno |
+| `registrarVistaDemostracion(id)` | +1 vista | `main.ts` | `vistasDemostracionDe` | Buen ojo | persiste en cada llamada |
+| `vistasDemostracionDe(id)` | lectura | — | `insignias.ts` | Buen ojo | ninguno |
+| `marcarReproduccionParalelaUsada()` | bandera global | `main.ts` vía «Ver en paralelo» | `reproduccionParalelaUsada`, `guardar` | Depurador | persiste solo la primera vez; **no retrocede** |
+| `reproduccionParalelaUsada()` | lectura | — | `guardar` | Depurador | ninguno |
+| `aprobadoTrasReproduccionParalelaEn(id)` | aprobación posterior | `guardar` | `insignias.ts` | Depurador | se escribe dentro de `guardar`; **no retrocede** |
 
-```typescript
-import { MUNDO_3 } from './mundo-3-rosetones.js';
-export const CATALOGO: readonly Nivel[] = [...MUNDO_0, ...MUNDO_1, ...MUNDO_2, ...MUNDO_3];
-```
-
-`mundos.ts` ya declara el mundo 3 («Rosetones», insignia «Simetría»); no se toca.
+Debe además decir que las señales son anónimas y no registran datos personales (R16.2).
 
 ## Data Models
 
-### Reto (sin cambios de forma)
-
-`presupuestoEstrella`, `limiteDuro` y `limiteDuroActivo` ya existen en `Reto`. El mundo 3 es el primero
-donde `limiteDuroActivo` es `true` en la práctica.
-
-### Normalización de los niveles del mundo 3
+### Parámetros del error de bloqueo
 
 ```typescript
-const NORMALIZACION_M3: NormalizacionNivel = { traslacion: 'fija', rotacion: 'fija', escala: 'exacta' };
+readonly limiteDuroExcedido: {
+  readonly usadas: number;   // entero, conteo del jugador (N)
+  readonly limite: number;   // entero, limiteDuro (M), con usadas > limite
+  readonly mundo: number;    // entero, mundo del reto, elige la sugerencia
+};
 ```
 
-Los cuatro niveles la declaran idéntica (R3.5). Es estructuralmente compatible con la
-`NormalizacionNivel` que el validador ya consume.
-
-### Forma de los cuatro `Nivel` del mundo 3
-
-| id | título | origen | normalización | abstracción |
-|---|---|---|---|---|
-| 3.1 | Rosetón de cuadrados | autorado, `REFERENCIA_3_1` | fija/fija/exacta | `[{ clave: 'usaRepiteAnidado' }]` |
-| 3.2 | Rosetón de polígonos | generado `roseton-m3` | fija/fija/exacta | `[{ clave: 'usaRepiteAnidado' }]` |
-| 3.3 | Flor con giro | generado `flor-m3` | fija/fija/exacta | `[{ clave: 'usaRepiteAnidado' }]` |
-| 3.4 | Mandala | autorado, `REFERENCIA_3_4` | fija/fija/exacta | `[{ clave: 'usaRepiteAnidado' }]` |
-
-Todos con `mundo: 3`, `concepto: 'simetria'`, `pistas: [conceptual, matemática, esqueleto]` que
-advierten que la posición y el rumbo de partida importan.
-
-### Programas de referencia autorados
-
-- 3.1: `REPITE 36 [REPITE 4 [AV 100 GD 90] GD 10]` (R4.1).
-- 3.4: `REPITE 8 [GD 45 REPITE 6 [REPITE 90 [AV 2 GD 2] GD 90]]` (R4.3). Pasos de tortuga ≈
-  `8 · 6 · 90 = 4320` avances, muy por debajo de la guarda de 200 000 (R4.4).
-
-### Secuencia del desafío infinito
+### Estado del desafío en `main.ts` (no persistente)
 
 ```typescript
-interface RetoDesafio { idNivel: string; semilla: number }   // derivado de (mundo, raíz, índice)
+interface DesafioEnCurso { readonly mundo: Mundo; readonly raiz: number; indice: number }
+let desafio: DesafioEnCurso | null = null;
 ```
 
-No se persiste la secuencia: se recalcula de `(mundo, raíz, índice)`. La navegación guarda esa terna
-para reanudar; el reto concreto sale de `retoDesafio(...)`.
+Se recalcula el reto con `retoDesafio(mundo, raiz, indice)`; no se guarda la secuencia (R7.4).
 
-### Identificadores de insignia
+### Señales en `Progreso` (sin cambios)
 
-```typescript
-type IdInsignia =
-  | 'secuencia' | 'iteracion' | 'descomposicion' | 'simetria'
-  | 'depurador' | 'minimalista' | 'sinPistas' | 'buenOjo';
-```
+`pistaAbierta: boolean` y `vistasDemostracion: number` por nivel; `aprobadoTrasReproduccionParalela:
+boolean` por nivel; `reproduccionParalelaUsada: boolean` global. Son anónimas y encajan en el formato
+versión 2 con lectura tolerante.
 
 ## Error Handling
 
-Todos los mensajes viven en `src/lenguaje/errores.ts`; ningún otro módulo arma el texto (R2.4). El
-intérprete, el validador y el validador geométrico no cambian su manejo de errores.
-
-| Situación | Dónde se detecta | `IdError` | Mensaje |
-|---|---|---|---|
-| Programa del jugador excede `limiteDuro` estando activo | `main.ts` `ejecutarPrograma`, antes de animar | `limiteDuroExcedido` (NUEVO) | `Tu programa usa N instrucciones y el máximo para este reto es M: te sobran N−M. Prueba a poner un REPITE dentro de otro REPITE para repetir un grupo entero de una sola vez.` (R2.1, R2.2, R2.3) |
-| Generador del mundo 3 agota intentos | `rosetón.ts`/`flor.ts`, al superar `intentosMaximos` | `generadorSinCandidato` (EXISTE) | `[programación] El generador no encontró una figura válida…` |
-| Id de generador no registrado | `reto.ts` (ya existente) | `generadorDesconocido` (EXISTE) | `[programación] No hay un generador registrado…` |
-
-El mensaje de bloqueo:
-- **incluye** `N` (usadas), `M` (límite) y `N − M` (sobran) (R2.1);
-- **sugiere** anidar `REPITE` dentro de otro `REPITE` (R2.2);
-- **no revela** la figura, el programa de referencia ni el valor de `presupuestoEstrella` (R2.3).
-
-El único `IdError` nuevo a declarar es `limiteDuroExcedido`.
+| Situación | Dónde | Resultado |
+|---|---|---|
+| Programa supera `limiteDuro` activo | guarda en `main.ts` | `limiteDuroExcedido` con `N`, `M`, `N − M` y la sugerencia del mundo; no se ejecuta nada |
+| Mundo sin sugerencia definida | `errores.ts` | usa la del mundo 3 (R13.3) |
+| `usadas ≤ limite` o parámetros no enteros | `crearError` | `solicitudDeErrorInvalida`, como el resto del catálogo |
+| Falla `localStorage` al escribir una señal | `registrarSenal` | `console.error`; la acción del jugador continúa (R11.11) |
+| «Ver en paralelo» sin intento ejecutado | `verEnParalelo` | no hace nada; el botón está deshabilitado |
+| `codificar` rechaza la raíz del desafío | `control-desafio` | se omite el código compartible; el desafío sigue |
+| Generador del mundo 3 agota intentos | generadores | `generadorSinCandidato` |
 
 ## Testing Strategy
 
-### Tests unitarios por módulo
+Dual: pruebas de propiedad (mínimo 100 iteraciones, `fast-check` si ya es una dependencia del
+proyecto; en caso contrario, generación con el PRNG propio) y pruebas de ejemplo. Cada propiedad
+lleva la etiqueta **Feature: 04-mundo-3-rosetones, Property N**.
 
-- **`errores.test.ts`** — `limiteDuroExcedido` con `{ usadas: 8, limite: 5 }` produce un mensaje que
-  contiene `8`, `5` y `3`, menciona `REPITE` y **no** menciona la figura ni `presupuesto` (R2.1–R2.3);
-  parámetros inválidos (`usadas ≤ limite`, no enteros) caen en `solicitudDeErrorInvalida`.
-- **`main.test.ts`** — con un reto del mundo 3 (`limiteDuroActivo`), un programa cuyo conteo supera
-  `limiteDuro` **no** emite ninguna operación de tortuga, no cede la demostración ni reinicia la capa
-  del jugador, y muestra `limiteDuroExcedido` (R1.3); un programa con conteo ≤ `limiteDuro` ejecuta
-  normal (R1.4); un programa con conteo igual a `presupuestoEstrella` ejecuta (R1.6); un rodeo
-  equivalente con conteo `presupuesto + k`, `k ≤ 3`, ejecuta por caber en el límite (R1.7). Con un
-  reto de mundo 0–2 el mismo exceso ejecuta y solo no da economía (R1.5, R10.3).
-- **`editor.test.ts`** — con `limiteDuroActivo` y conteo > `limiteDuro`, el contador muestra el aviso
-  de bloqueo por texto (no solo color) y el `aria-label` lo nombra (R2.5); con conteo ≤ `limiteDuro`,
-  no hay aviso de bloqueo (R2.6); con `limiteDuroActivo` falso, nunca hay aviso de bloqueo.
-- **`abstraccion.test.ts`** (ya existe `usaRepiteAnidado`) — un AST con `REPITE` dentro de `REPITE`
-  cumple `usaRepiteAnidado`; una lista plana de `REPITE` consecutivos no lo cumple (R6.2, R6.3, R6.4).
-- **`validador.test.ts`** (normalización fija ya soportada) — una figura correcta pero trasladada y
-  otra rotada, con normalización fija, no alcanzan IoU ≥ 0.90 y niegan la precisión (R3.3, R3.4); la
-  tolerancia de dilatación es la misma que la de los mundos 0–2 (R3.2).
-- **`desafio-infinito.test.ts`** — `retoDesafio(m, raíz, i)` es determinista: misma terna ⇒ mismo
-  `(idNivel, semilla)` (R7.4); recorrer `i = 0..k` rota entre los niveles generados del mundo en orden
-  (R7.6); `desafioDisponible` es falso en un mundo incompleto (R7.2) y en un mundo sin niveles
-  generados (R7.8), y verdadero en un mundo completo con generados (R7.1); los mundos 0, 1, 2 y 3 son
-  retroactivos (R7.7). No existe API para retroceder (R7.5).
-- **`insignias.test.ts`** — *Simetría* se otorga solo con las tres estrellas en los cuatro niveles del
-  mundo 3 (R8.1, R8.2), se mantiene una sola vez (R8.3, R8.4); cada transversal es un predicado puro
-  sobre el progreso guardado, otorgado exactamente una vez (R9.1–R9.6).
+**Unitarias y de ejemplo**
 
-### Tests de niveles autorados — `src/niveles/mundo-3-rosetones.test.ts`
+- `errores.test.ts`: mundos 3, 4 y 5 incluyen su sugerencia; un mundo sin entrada usa la del 3; `N`, `M`
+  y `N − M` aparecen; parámetros inválidos caen en `solicitudDeErrorInvalida`.
+- `globo-kiro.test.ts`: `alAbrirPista` se invoca al mostrar cada escalón y **no** con «Ya te di todas».
+- `controles.test.ts`: la acción `paralelo` nace deshabilitada, se habilita con un intento y se
+  deshabilita durante la ejecución.
+- `control-desafio.test.ts`: oculto / disponible / en curso; sin control de retroceso; operable con
+  teclado; nombre accesible en español.
+- `insignias.test.ts`: las claves de `MUNDO_DE_INSIGNIA` igualan `INSIGNIAS_DE_CONCEPTO`; los resultados
+  existentes no cambian (R14.5). Una prueba de tipos (`// @ts-expect-error`) comprueba que consultar el
+  mundo de una transversal no compila (R14.3).
+- Lectura del repositorio (R15.4): una prueba que falla si en las regresiones de 200 semillas de
+  los mundos 2 y 3 aparece un literal de timeout distinto de la constante.
 
-- 3.1 y 3.4 parsean sin error; su `presupuestoEstrella` sale de `contarInstrucciones` sobre su
-  referencia, sin número a mano (R4.2, R4.6).
-- La referencia de 3.4 se ejecuta hasta el final sin activar la guarda de 200 000 pasos (R4.4).
-- Los cuatro niveles declaran `normalizacion` fija (R3.5) y `usaRepiteAnidado` (R4.5, R6.1).
+**De punta a punta (R11.9, R11.10, R12.8)** sobre `crearAplicacion` con un almacén en memoria y
+`Progreso` recargado desde él:
 
-### Test de regresión del catálogo (steering `validacion-geometrica` y `tecnologia`)
+1. Pedir una pista → `pistaAbiertaEn(nivel)` verdadero (R11.1).
+2. Entrar a un nivel / pulsar «Ver la demostración» → `vistasDemostracionDe(nivel)` crece en uno por
+   demostración (R11.2).
+3. Ejecutar un intento, pulsar «Ver en paralelo» → `reproduccionParalelaUsada()` verdadero (R11.3).
+4. Aprobar 5 niveles tras el paso 3 → `insigniasTransversalesOtorgadas` incluye `depurador` (R11.8).
+5. Completar un mundo sin abrir pistas → incluye `sinPistas`; abrir una pista en cualquier nivel del
+   mundo lo impide (R11.5, R11.6).
+6. Resolver un nivel con una sola demostración vista → incluye `buenOjo` (R11.7).
+7. Completar un mundo, activar el control del desafío y comprobar que se carga un reto generado de ese
+   mundo (R12.8).
 
-Obligatorio: **todo reto del catálogo aprueba su propio nivel con las tres estrellas**, ejecutando su
-programa de referencia. Para 3.1 y 3.4 se verifica precisión + economía + abstracción (`usaRepiteAnidado`)
-contra su propio nivel (R4.7). Para 3.2 y 3.3, sobre **al menos 200 semillas consecutivas** (R5.9).
-
-### Tests de generadores (property-based sobre ≥ 200 semillas) — `src/niveles/generadores/*.test.ts`
-
-Uno por generador (`roseton-m3`, `flor-m3`):
-
-```typescript
-for (let s = 0; s < 200; s++) {
-  const r = generarRoseton({ semilla: s, parametros: {}, intentosMaximos: 200 });
-  expect(r.exito).toBe(true);
-  if (!r.exito) continue;
-  // encuadrada y no degenerada (caja ≥ 200 y dentro de [−400, 400]) (R5.6, R5.7)
-  expect(encuadraYNoEsDegenerada(r.referencia)).toBe(true);
-  // la referencia gana las tres estrellas contra su nivel, incl. usaRepiteAnidado (R5.9, R5.8)
-  expect(apruebaTresEstrellas(r.referencia, '3.2')).toBe(true);
-}
-```
-
-Para `roseton-m3`: `c ∈ {6,8,9,12,18,36}` y figura interna de 3 a 6 lados (R5.1); forma
-`REPITE c [REPITE n [...] GD 360/c]` (R5.2). Para `flor-m3`: forma
-`REPITE c [REPITE n [GD a AV L] GD 360/c]` (R5.3). En los dos: solo ángulos derivables y longitudes
-múltiplos de 20 (R5.4); el presupuesto del nivel sale del Conteo sobre la referencia, nunca a mano
-(R5.5); AST con `REPITE` anidado (R5.8).
-
-### Determinismo (steering `tecnologia`)
-
-- La misma `Semilla_Raiz` produce la misma secuencia de retos del desafío infinito (R7.3, R7.4), y
-  cada reto derivado es reproducible por su `(idNivel, semilla)`.
-- Todo el azar (generadores y desafío) pasa por `crearPrng`; ninguna ruta usa `Math.random`.
+**Regresión obligatoria del catálogo** (steering `tecnologia`): todo reto aprueba su nivel con las tres
+estrellas; los generados, sobre al menos 200 semillas, con `TIMEOUT_TRES_ESTRELLAS`.
 
 ## Correctness Properties
 
@@ -651,149 +417,176 @@ válidas del sistema: una afirmación formal sobre lo que el sistema debe hacer.
 puente entre la especificación legible por personas y las garantías de corrección verificables por
 máquina.*
 
+La reflexión sobre redundancias fundió: la sugerencia por mundo de R2.2 a R2.4 con la de R13.1 a R13.3
+(Property 3); la forma del rosetón y la de la flor (Property 11); el determinismo y la rotación del
+desafío (Property 13); y las condiciones de las insignias transversales con las de R11.5 a R11.8
+(Property 18).
+
 ### Property 1: La guarda de límite duro ejecuta si y solo si el conteo cabe
 
-Para todo reto del mundo 3 (con `limiteDuroActivo` verdadero) y todo programa válido del jugador, la
-ejecución emite operaciones de tortuga si y solo si el conteo del programa es menor o igual que
-`limiteDuro`; si el conteo lo excede, no se emite ninguna operación y no se dibuja ninguna estela.
+Para todo reto con `limiteDuroActivo` verdadero y todo programa válido del jugador, la ejecución emite
+operaciones de tortuga si y solo si el conteo del programa es menor o igual que `limiteDuro`. Si lo
+excede, no se emite ninguna operación y no se dibuja ninguna estela.
 
 **Validates: Requirements 1.3, 1.4, 1.6, 1.7**
 
 ### Property 2: En los mundos 0 a 2 el exceso de presupuesto ejecuta sin economía
 
-Para todo reto de los mundos 0 a 2 (con `limiteDuroActivo` falso) y todo programa válido cuyo conteo
-es estrictamente mayor que `presupuestoEstrella`, la ejecución produce operaciones y la estrella de
-economía no se otorga.
+Para todo reto de los mundos 0 a 2 y todo programa válido cuyo conteo es estrictamente mayor que
+`presupuestoEstrella`, la ejecución produce operaciones y la estrella de economía no se otorga.
 
 **Validates: Requirements 1.5, 10.3**
 
-### Property 3: El mensaje de bloqueo nombra la cuenta, empuja a anidar y no revela el presupuesto
+### Property 3: El mensaje de bloqueo nombra la cuenta y usa la sugerencia de su mundo
 
-Para todo par de enteros `N > M`, el `Mensaje_Limite_Excedido` contiene `N`, `M` y `N − M`, menciona
-anidar `REPITE` dentro de otro `REPITE`, y no contiene la palabra «presupuesto» ni el valor de
-`presupuestoEstrella`.
+Para todo mundo con límite duro activo y todo par de enteros `N > M`, el `Mensaje_Limite_Excedido`
+contiene `N`, `M` y `N − M`, y contiene la sugerencia definida para ese mundo (anidar `REPITE` en el 3,
+usar parámetros en el 4, usar recursión en el 5). Para todo mundo sin sugerencia definida, contiene la
+del mundo 3.
 
-**Validates: Requirements 2.1, 2.2, 2.3**
+**Validates: Requirements 2.1, 2.2, 2.3, 2.4, 13.1, 13.2, 13.3, 13.4**
 
-### Property 4: El contador del editor señala bloqueo si y solo si el conteo supera el límite activo
+### Property 4: El mensaje de bloqueo no revela la figura ni el presupuesto
 
-Para todo conteo mostrado en el editor con el límite duro activo, el contador señala el bloqueo (por
-texto y en el nombre accesible) si y solo si ese conteo es estrictamente mayor que el `limiteDuro` del
-reto en curso.
+Para todo mundo, todo par `N > M` y todo nivel, el texto del `Mensaje_Limite_Excedido` no contiene el
+valor de `presupuestoEstrella`, ni la palabra «presupuesto», ni texto del programa de referencia.
 
-**Validates: Requirements 2.5, 2.6**
+**Validates: Requirements 2.5, 13.5**
 
-### Property 5: La normalización fija niega la precisión a una figura trasladada o rotada
+### Property 5: El contador del editor señala bloqueo si y solo si el conteo supera el límite activo
+
+Para todo conteo mostrado con el límite duro activo, el contador señala el bloqueo, por texto y en su
+nombre accesible, si y solo si el conteo es estrictamente mayor que el `limiteDuro` del reto en curso.
+
+**Validates: Requirements 2.7, 2.8**
+
+### Property 6: La normalización fija niega la precisión a una figura trasladada o rotada
 
 Para toda figura que coincide con la referencia y toda traslación o rotación aplicada más allá de la
 tolerancia de dilatación, validar con `Normalizacion_Fija` no otorga la estrella de precisión.
 
 **Validates: Requirements 3.3, 3.4**
 
-### Property 6: El presupuesto de todo nivel del mundo 3 es el conteo de su referencia
+### Property 7: El presupuesto de todo nivel del mundo 3 es el conteo de su referencia
 
 Para todo nivel del mundo 3 (autorado o generado, sobre cualquier semilla), el `presupuestoEstrella`
-resultante es igual al conteo de instrucciones de su programa de referencia, sin ningún número de
-presupuesto escrito a mano en los datos del nivel.
+es igual al conteo de instrucciones de su programa de referencia, sin ningún número de presupuesto
+escrito a mano en los datos del nivel.
 
 **Validates: Requirements 4.6, 5.5**
 
-### Property 7: Toda referencia del mundo 3 aprueba su propio nivel con las tres estrellas
+### Property 8: Toda referencia del mundo 3 aprueba su propio nivel con las tres estrellas
 
-Para todo nivel del mundo 3 —y, en los generados, para toda semilla sobre al menos 200 consecutivas—
-el programa de referencia obtiene las tres estrellas (precisión, economía y abstracción por
-`usaRepiteAnidado`) al validarse contra su propio nivel.
+Para todo nivel del mundo 3 y, en los generados, para toda semilla de al menos 200 consecutivas, el
+programa de referencia obtiene las tres estrellas al validarse contra su propio nivel.
 
 **Validates: Requirements 4.7, 5.9**
 
-### Property 8: El reto generado aceptado encuadra y no degenera
+### Property 9: El reto generado aceptado encuadra y no degenera
 
 Para toda semilla, el reto que un `Generador_M3` acepta tiene una caja envolvente alineada a los ejes
-con ancho y alto mayores o iguales que 200 px y contenida en el rango `[−400, 400]` en ambos ejes.
+con ancho y alto mayores o iguales que 200 px y contenida en `[−400, 400]` en ambos ejes.
 
 **Validates: Requirements 5.6, 5.7**
 
-### Property 9: Los generadores emiten solo números adivinables
+### Property 10: Los generadores emiten solo números adivinables
 
-Para toda semilla, el programa de referencia que produce un `Generador_M3` usa únicamente longitudes
-múltiplos de 20 y ángulos derivables (`360/n` con `n` de 3 a 12, o múltiplos de 15).
+Para toda semilla, la referencia de un `Generador_M3` usa únicamente longitudes múltiplos de 20 y
+ángulos derivables (`360/n` con `n` de 3 a 12, o múltiplos de 15).
 
 **Validates: Requirements 5.4**
 
-### Property 10: La forma del rosetón generado es un REPITE anidado con giro entre copias
+### Property 11: Los generadores producen la forma anidada pedida
 
-Para toda semilla, el programa de referencia del nivel 3.2 tiene la forma de un `REPITE` de copias
-—con un número de copias en `{6, 8, 9, 12, 18, 36}` y una figura interna de 3 a 6 lados— que contiene
-el `REPITE` de la figura interna y el giro entre copias.
+Para toda semilla, la referencia del nivel 3.2 es un `REPITE` de copias (con `c` en
+`{6, 8, 9, 12, 18, 36}`) que contiene el `REPITE` de una figura de 3 a 6 lados y el giro entre copias,
+y la del nivel 3.3 tiene la forma `REPITE c [REPITE n [GD a AV L] GD 360/c]`.
 
-**Validates: Requirements 5.1, 5.2**
+**Validates: Requirements 5.1, 5.2, 5.3**
 
-### Property 11: La forma de la flor generada es la plantilla con giro previo al avance
+### Property 12: La estrella de abstracción depende solo de si el AST tiene un REPITE anidado
 
-Para toda semilla, el programa de referencia del nivel 3.3 tiene la forma
-`REPITE c [REPITE n [GD a AV L] GD 360/c]`.
-
-**Validates: Requirements 5.3**
-
-### Property 12: La estrella de abstracción se otorga si y solo si hay REPITE anidado, analizando el AST
-
-Para todo intento del jugador que gana la precisión en un nivel del mundo 3, la estrella de
-abstracción se otorga si y solo si su AST contiene un nodo `REPITE` entre los descendientes de otro
-nodo `REPITE`; dos textos distintos con el mismo AST obtienen el mismo veredicto de abstracción.
+Para todo intento que gana la precisión en un nivel del mundo 3, la estrella de abstracción se otorga
+si y solo si su AST contiene un `REPITE` entre los descendientes de otro `REPITE`. Dos textos distintos
+con el mismo AST obtienen el mismo veredicto.
 
 **Validates: Requirements 6.2, 6.3, 6.4**
 
-### Property 13: El desafío infinito es determinista por su raíz
+### Property 13: El desafío infinito es determinista por su raíz y rota entre los generados
 
-Para todo mundo con niveles generados, toda raíz y todo índice, el reto derivado `(idNivel, semilla)`
-es el mismo en cualquier recálculo; dos recorridos de la secuencia con la misma raíz producen
-exactamente la misma sucesión de retos.
+Para todo mundo con niveles generados, toda raíz y todo índice `i`, el reto `(idNivel, semilla)` es el
+mismo en cualquier recálculo, dos recorridos con la misma raíz producen la misma sucesión, y el
+`idNivel` es el que ocupa la posición `i mod cantidadDeGenerados` en el orden del catálogo.
 
-**Validates: Requirements 7.3, 7.4**
+**Validates: Requirements 7.3, 7.4, 7.6**
 
-### Property 14: La secuencia del desafío rota entre los niveles generados del mundo
-
-Para todo mundo con niveles generados y todo índice `i` de la secuencia, el `idNivel` del reto es el
-que ocupa la posición `i mod cantidadDeGenerados` en el orden del catálogo.
-
-**Validates: Requirements 7.6**
-
-### Property 15: El desafío está disponible si y solo si el mundo está completo y tiene generados
+### Property 14: El desafío está disponible si y solo si el mundo está completo y tiene generados
 
 Para todo mundo y todo progreso, el `Desafio_Infinito` está disponible si y solo si el mundo tiene al
-menos un nivel generado y todos sus niveles están aprobados.
+menos un nivel generado y todos sus niveles tienen la estrella de precisión.
 
 **Validates: Requirements 7.1, 7.2, 7.8**
 
-### Property 16: La insignia Simetría se otorga si y solo si el mundo 3 tiene las tres estrellas
+### Property 15: La insignia Simetría se otorga si y solo si el mundo 3 tiene las tres estrellas
 
-Para todo progreso, la `Insignia_Simetria` se otorga si y solo si cada uno de los cuatro niveles del
-mundo 3 tiene otorgadas sus tres estrellas de forma simultánea.
+Para todo progreso, la `Insignia_Simetria` se otorga si y solo si cada nivel del mundo 3 tiene sus tres
+estrellas de forma simultánea.
 
 **Validates: Requirements 8.1, 8.2**
 
-### Property 17: El otorgamiento de toda insignia es función pura e idempotente del progreso
+### Property 16: El otorgamiento de toda insignia es función pura e idempotente del progreso
 
-Para todo progreso, el otorgamiento de cada insignia (la de concepto *Simetría* y las cuatro
-transversales) depende solo del progreso y del catálogo, sin estado propio persistido, de modo que
-evaluarlo repetidamente sobre el mismo progreso da siempre el mismo resultado booleano, sin crear una
-segunda instancia.
+Para todo progreso, el otorgamiento de cada insignia (de concepto o transversal) depende solo del
+progreso y del catálogo; evaluarlo repetidamente da siempre el mismo resultado y nunca crea una segunda
+instancia.
 
 **Validates: Requirements 8.3, 8.4, 9.5, 9.6**
 
-### Property 18: Cada insignia transversal se deriva de su señal en el progreso
+### Property 17: Cada insignia transversal se deriva de su señal en el progreso
 
-Para todo progreso, cada insignia transversal se otorga exactamente cuando su condición se cumple
-sobre el progreso guardado: *Depurador* con 5 niveles aprobados tras usar la reproducción en paralelo;
-*Minimalista* con la estrella de economía en 10 niveles; *Sin pistas* al completar un mundo sin abrir
-ninguna pista; *Buen ojo* al resolver un nivel con la demostración vista una sola vez.
+Para todo progreso, cada transversal se otorga exactamente cuando se cumple su condición: *Depurador*
+con 5 niveles aprobados tras usar la reproducción en paralelo; *Minimalista* con economía en 10
+niveles; *Sin pistas* al completar un mundo sin pista abierta en ninguno de sus niveles; *Buen ojo* al
+resolver un nivel con exactamente una demostración vista. Abrir una pista en un nivel de un mundo
+impide *Sin pistas* en ese mundo.
 
-**Validates: Requirements 9.1, 9.2, 9.3, 9.4**
+**Validates: Requirements 9.1, 9.2, 9.3, 9.4, 11.5, 11.6, 11.7, 11.8**
 
-### Propiedades no derivadas (criterios no aptos para prueba de propiedad)
+### Property 18: Cada acción del jugador escribe su señal en el nivel correcto
 
-Los siguientes criterios se verifican por ejemplo, por configuración o como pruebas de no-regresión,
-no como propiedades universales: 1.6 (ejemplo, subsumido por la Property 1); 2.4, 7.5, 10.1, 10.2,
-10.4, 10.5 (restricciones de arquitectura/alcance, verificadas por inspección y por la suite
-existente); 3.1, 3.2, 3.5, 3.6, 4.1, 4.2, 4.3, 4.4, 4.5, 5.8, 6.1, 7.7 (datos declarativos o
-ejemplos concretos sobre el catálogo). La Testing Strategy detalla cómo se cubre cada uno.
+Para todo nivel del catálogo y toda secuencia de acciones del jugador en la interfaz, abrir una pista
+marca la pista abierta solo de ese nivel; cada demostración mostrada suma exactamente una vista a ese
+nivel; y iniciar la reproducción en paralelo marca la bandera global. Un nivel aprobado con precisión
+después de iniciar la reproducción en paralelo devuelve verdadero en `aprobadoTrasReproduccionParalelaEn`.
+
+**Validates: Requirements 11.1, 11.2, 11.3, 11.4**
+
+### Property 19: Un fallo al persistir una señal no interrumpe la acción del jugador
+
+Para toda señal cuyo método de escritura lance una excepción, la acción de la interfaz que la dispara
+(pedir pista, ver la demostración, ver en paralelo) completa su efecto visible y no propaga el error.
+
+**Validates: Requirements 11.11**
+
+### Property 20: El control del desafío es visible si y solo si el desafío está disponible
+
+Para todo progreso y todo nivel en curso, la interfaz muestra el `Control_Desafio_Infinito` si y solo si
+`desafioDisponible(mundo del nivel, progreso)` es verdadero.
+
+**Validates: Requirements 12.1, 12.2**
+
+### Property 21: La raíz del desafío se comparte sin pérdida
+
+Para toda `Semilla_Raiz` válida, el código que la interfaz muestra al iniciar el desafío, decodificado
+con `decodificar`, devuelve la misma raíz.
+
+**Validates: Requirements 12.6**
+
+### Criterios sin propiedad
+
+Se verifican por ejemplo, por inspección o por el compilador, no como propiedades universales: 2.6, 7.5,
+10.1, 10.2, 10.4 y 10.5 (restricciones de arquitectura y alcance); 3.1, 3.2, 3.5, 3.6, 4.1 a 4.5, 5.8 y
+6.1 (datos declarativos del catálogo); 7.7 (ejemplo sobre el catálogo); 11.9, 11.10 y 12.8 (exigencias
+sobre el conjunto de pruebas, cubiertas en la Testing Strategy); 12.3, 12.4, 12.5 y 12.7 (ejemplos de
+interfaz); 14.1 a 14.5 (compilador y no regresión); 15.1 a 15.4 (configuración de pruebas); 16.1 a 16.4
+(documentación) y 17.1 a 17.4 (proceso del equipo).
