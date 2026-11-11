@@ -21,27 +21,29 @@ import type { Progreso } from './progreso.js';
  * Las insignias de esta spec: cuatro por concepto (una por mundo) y cuatro
  * transversales, que premian formas de jugar en lugar de completar un mundo.
  */
-export type IdInsignia =
-  | 'secuencia'
-  | 'iteracion'
-  | 'descomposicion'
-  | 'simetria'
-  | 'depurador'
-  | 'minimalista'
-  | 'sinPistas'
-  | 'buenOjo';
+export type IdInsigniaDeConcepto = 'secuencia' | 'iteracion' | 'descomposicion' | 'simetria';
+export type IdInsigniaTransversal = 'depurador' | 'minimalista' | 'sinPistas' | 'buenOjo';
+export type IdInsignia = IdInsigniaDeConcepto | IdInsigniaTransversal;
 
 /**
  * El mundo al que pertenece cada insignia **por concepto**. Las transversales
- * NO se mapean por mundo (no tienen uno): se derivan de señales del progreso, y
- * por eso quedan fuera de este registro y de `insigniasDelMundo`.
+ * NO tienen mundo: se derivan de señales del progreso, y por eso su identificador
+ * no es clave de este registro y consultarlo no compila (R14.2, R14.3).
  */
-const MUNDO_DE_INSIGNIA: Readonly<Record<string, number>> = {
+export const MUNDO_DE_INSIGNIA: Readonly<Record<IdInsigniaDeConcepto, number>> = {
   secuencia: 0,
   iteracion: 1,
   descomposicion: 2,
   simetria: 3,
 };
+
+/** Recorrido tipado de las insignias de concepto, sin aserciones de tipo (R14.4). */
+export const INSIGNIAS_DE_CONCEPTO: readonly IdInsigniaDeConcepto[] = [
+  'secuencia',
+  'iteracion',
+  'descomposicion',
+  'simetria',
+];
 
 // ============================================================================
 // Helpers
@@ -190,6 +192,14 @@ export function insigniaBuenOjoOtorgada(progreso: Progreso): boolean {
 // Insignias por mundo
 // ============================================================================
 
+/** Los predicados de las insignias de concepto, indexados por su identificador. */
+const OTORGADA_DE_CONCEPTO: Readonly<Record<IdInsigniaDeConcepto, (progreso: Progreso) => boolean>> = {
+  secuencia: insigniaSecuenciaOtorgada,
+  iteracion: insigniaIteracionOtorgada,
+  descomposicion: insigniaDescomposicionOtorgada,
+  simetria: insigniaSimetriaOtorgada,
+};
+
 /**
  * Las insignias otorgadas de un mundo. Hoy el mundo 0 tiene *Secuencia*, el
  * mundo 1 tiene *Iteración*, el mundo 2 tiene *Descomposición* y el mundo 3
@@ -201,20 +211,25 @@ export function insigniaBuenOjoOtorgada(progreso: Progreso): boolean {
  */
 export function insigniasDelMundo(mundo: number, progreso: Progreso): readonly IdInsignia[] {
   const otorgadas: IdInsignia[] = [];
-  for (const id of Object.keys(MUNDO_DE_INSIGNIA) as IdInsignia[]) {
-    if (MUNDO_DE_INSIGNIA[id] !== mundo) continue;
-    if (id === 'secuencia' && insigniaSecuenciaOtorgada(progreso)) {
-      otorgadas.push(id);
-    }
-    if (id === 'iteracion' && insigniaIteracionOtorgada(progreso)) {
-      otorgadas.push(id);
-    }
-    if (id === 'descomposicion' && insigniaDescomposicionOtorgada(progreso)) {
-      otorgadas.push(id);
-    }
-    if (id === 'simetria' && insigniaSimetriaOtorgada(progreso)) {
-      otorgadas.push(id);
-    }
+  for (const id of INSIGNIAS_DE_CONCEPTO) {
+    if (MUNDO_DE_INSIGNIA[id] === mundo && OTORGADA_DE_CONCEPTO[id](progreso)) otorgadas.push(id);
   }
+  return otorgadas;
+}
+
+/**
+ * Las insignias transversales otorgadas hoy. Es una función pura del progreso
+ * (sin estado propio), de modo que las pruebas de punta a punta recargan el
+ * progreso del almacén y le preguntan aquí si una insignia quedó otorgada
+ * (R9.5, R9.6, R11.10).
+ *
+ * @param progreso Progreso del jugador
+ */
+export function insigniasTransversalesOtorgadas(progreso: Progreso): readonly IdInsigniaTransversal[] {
+  const otorgadas: IdInsigniaTransversal[] = [];
+  if (insigniaDepuradorOtorgada(progreso)) otorgadas.push('depurador');
+  if (insigniaMinimalistaOtorgada(progreso)) otorgadas.push('minimalista');
+  if (insigniaSinPistasOtorgada(progreso)) otorgadas.push('sinPistas');
+  if (insigniaBuenOjoOtorgada(progreso)) otorgadas.push('buenOjo');
   return otorgadas;
 }

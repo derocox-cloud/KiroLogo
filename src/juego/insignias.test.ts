@@ -395,3 +395,90 @@ describe('Property 17: el otorgamiento es función pura e idempotente del progre
     expect(insigniaDepuradorOtorgada(construir())).toBe(insigniaDepuradorOtorgada(construir()));
   });
 });
+
+// ============================================================================
+// Tipos separados de las insignias (spec 04, requisito 14) y predicado derivado
+// ============================================================================
+// Property 16: El otorgamiento de toda insignia es función pura e idempotente
+// del progreso.
+// Property 17: Cada insignia transversal se deriva de su señal en el progreso.
+// Validates: Requirements 8.3, 8.4, 9.1 a 9.6, 11.5 a 11.8, 14.2, 14.3, 14.5
+
+import {
+  INSIGNIAS_DE_CONCEPTO,
+  MUNDO_DE_INSIGNIA,
+  insigniasTransversalesOtorgadas,
+  type IdInsignia,
+  type IdInsigniaDeConcepto,
+  type IdInsigniaTransversal,
+} from './insignias.js';
+
+describe('tipos de insignia separados (R14)', () => {
+  it('las claves de MUNDO_DE_INSIGNIA igualan INSIGNIAS_DE_CONCEPTO (R14.2)', () => {
+    expect(Object.keys(MUNDO_DE_INSIGNIA).sort()).toEqual([...INSIGNIAS_DE_CONCEPTO].sort());
+    expect(new Set(INSIGNIAS_DE_CONCEPTO).size).toBe(INSIGNIAS_DE_CONCEPTO.length);
+  });
+
+  it('consultar el mundo de una transversal no compila (R14.3)', () => {
+    // @ts-expect-error las transversales no tienen mundo: la clave no existe en el Record.
+    const mundo: number | undefined = MUNDO_DE_INSIGNIA['depurador'];
+    expect(mundo).toBeUndefined();
+  });
+
+  it('una transversal no es un IdInsigniaDeConcepto y la unión admite ambas (R14.1)', () => {
+    // @ts-expect-error 'depurador' es transversal, no de concepto.
+    const mala: IdInsigniaDeConcepto = 'depurador';
+    const concepto: IdInsignia = 'simetria';
+    const transversal: IdInsignia = 'buenOjo';
+    expect([mala, concepto, transversal]).toHaveLength(3);
+  });
+
+  it('los resultados de insigniasDelMundo no cambian (R14.5)', () => {
+    const todo = conTresEstrellas(...IDS, ...IDS_MUNDO_1, ...IDS_MUNDO_2, ...IDS_MUNDO_3);
+    expect([0, 1, 2, 3, 4, 5].map((m) => insigniasDelMundo(m, todo))).toEqual([
+      ['secuencia'],
+      ['iteracion'],
+      ['descomposicion'],
+      ['simetria'],
+      [],
+      [],
+    ]);
+    const parcial = conTresEstrellas(...IDS, ...IDS_MUNDO_3.slice(0, -1));
+    expect(insigniasDelMundo(0, parcial)).toEqual(['secuencia']);
+    expect(insigniasDelMundo(3, parcial)).toEqual([]);
+    expect(insigniasDelMundo(0, cargarProgreso(null))).toEqual([]);
+  });
+});
+
+describe('insigniasTransversalesOtorgadas (R9.5, R9.6, R11.10)', () => {
+  it('sin progreso no otorga ninguna', () => {
+    expect(insigniasTransversalesOtorgadas(cargarProgreso(null))).toEqual([]);
+  });
+
+  it('reúne exactamente las transversales cuyo predicado es verdadero', () => {
+    const progreso = cargarProgreso(null);
+    progreso.registrarVistaDemostracion('0.1');
+    progreso.guardar('0.1', 1, calif(true, false, false), 1);
+    expect(insigniasTransversalesOtorgadas(progreso)).toEqual(['buenOjo']);
+  });
+
+  it('otorga las cuatro a la vez cuando todas las señales están presentes', () => {
+    const progreso = cargarProgreso(null);
+    progreso.marcarReproduccionParalelaUsada();
+    for (const id of DIEZ_IDS) progreso.guardar(id, 1, calif(true, true, false), 1);
+    progreso.registrarVistaDemostracion('0.1');
+    const esperado: IdInsigniaTransversal[] = ['depurador', 'minimalista', 'sinPistas', 'buenOjo'];
+    expect([...insigniasTransversalesOtorgadas(progreso)].sort()).toEqual([...esperado].sort());
+  });
+
+  it('es pura e idempotente: no muta el progreso y repetirla da lo mismo', () => {
+    const progreso = cargarProgreso(null);
+    progreso.marcarReproduccionParalelaUsada();
+    for (const id of DIEZ_IDS) progreso.guardar(id, 1, calif(true, true, false), 1);
+    const antes = JSON.stringify(progreso);
+    const primera = insigniasTransversalesOtorgadas(progreso);
+    const segunda = insigniasTransversalesOtorgadas(progreso);
+    expect(segunda).toEqual(primera);
+    expect(JSON.stringify(progreso)).toBe(antes);
+  });
+});
