@@ -71,6 +71,16 @@ export interface ErrorKiroLogo {
  * Parámetros exigidos por cada entrada. Un id sin los suyos no compila.
  * Mapea cada IdError a su objeto de parámetros específico.
  */
+// Única fuente de la sugerencia de bloqueo por mundo (R2.2 a R2.4, R13.1). Son solo texto:
+// no agregan parámetros ni recursión al lenguaje. Nunca mencionan el presupuesto (R2.5).
+const SUGERENCIA_DE_BLOQUEO_POR_MUNDO: Readonly<Record<number, string>> = {
+  3: 'Prueba a poner un REPITE dentro de otro REPITE para repetir un grupo entero de una sola vez.',
+  4: 'Prueba a usar parámetros para que un mismo procedimiento sirva para varios tamaños.',
+  5: 'Prueba a usar recursión: un procedimiento que se llama a sí mismo con un valor menor.',
+};
+// Todo mundo sin entrada (los 0 a 2 no llegan aquí, y los futuros aún no la tienen) cae en esta.
+const MUNDO_DE_SUGERENCIA_POR_OMISION = 3;
+
 export interface ParametrosPorError {
   // léxicos (sin parámetros)
   readonly caracterNoValido: Record<string, never>;
@@ -123,7 +133,11 @@ export interface ParametrosPorError {
   readonly progresoNoSeGuarda: Record<string, never>;
 
   // límite duro de instrucciones
-  readonly limiteDuroExcedido: { readonly usadas: number; readonly limite: number };
+  readonly limiteDuroExcedido: {
+    readonly usadas: number;
+    readonly limite: number;
+    readonly mundo: number;
+  };
   
   // azar y semillas
   readonly codigoSemillaLongitud: Record<string, never>;
@@ -263,10 +277,11 @@ export function crearError<K extends IdError>(
       break;
     case 'limiteDuroExcedido':
       const params14 = parametros as ParametrosPorError['limiteDuroExcedido'];
-      // Ambos conteos son enteros y el programa se pasó de verdad: usadas > límite.
+      // Los tres valores son enteros y el programa se pasó de verdad: usadas > límite.
       if (
         !Number.isInteger(params14.usadas) ||
         !Number.isInteger(params14.limite) ||
+        !Number.isInteger(params14.mundo) ||
         params14.usadas <= params14.limite
       ) {
         return crearError('solicitudDeErrorInvalida', {}, posicion);
@@ -552,10 +567,12 @@ function construirMensaje<K extends IdError>(
     case 'limiteDuroExcedido': {
       const p = parametros as ParametrosPorError['limiteDuroExcedido'];
       const sobran = p.usadas - p.limite;
+      const sugerencia =
+        SUGERENCIA_DE_BLOQUEO_POR_MUNDO[p.mundo] ??
+        SUGERENCIA_DE_BLOQUEO_POR_MUNDO[MUNDO_DE_SUGERENCIA_POR_OMISION]!;
       return (
         `Tu programa usa ${p.usadas} instrucciones y el máximo para este reto es ${p.limite}: ` +
-        `te sobran ${sobran}. Prueba a poner un REPITE dentro de otro REPITE para repetir ` +
-        `un grupo entero de una sola vez.`
+        `te sobran ${sobran}. ${sugerencia}`
       );
     }
     

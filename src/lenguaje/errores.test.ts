@@ -372,40 +372,80 @@ describe('errores.ts', () => {
     // revela el presupuesto
     // Validates: Requirements 2.1, 2.2, 2.3
     // ========================================================================
-    describe('limiteDuroExcedido (Property 3)', () => {
-      it('nombra usadas (N), límite (M) y la diferencia (N−M), menciona REPITE y no revela el presupuesto', () => {
-        const error = crearError('limiteDuroExcedido', { usadas: 8, limite: 5 });
-        expect(error.id).toBe('limiteDuroExcedido');
-        expect(error.severidad).toBe('jugador');
-        // Nombra la cuenta exacta: usadas, límite y diferencia (R2.1).
-        expect(error.mensaje).toContain('8');
-        expect(error.mensaje).toContain('5');
-        expect(error.mensaje).toContain('3');
-        // Empuja a anidar REPITE (R2.2).
-        expect(error.mensaje).toContain('REPITE');
-        // No revela la figura, la referencia ni la palabra «presupuesto» (R2.3).
-        expect(error.mensaje).not.toContain('presupuesto');
+    describe('limiteDuroExcedido (Property 3 y 4)', () => {
+      const SUGERENCIAS: Readonly<Record<number, string>> = {
+        3: 'REPITE dentro de otro REPITE',
+        4: 'parámetros',
+        5: 'recursión',
+      };
+      const paresMayores = fc
+        .tuple(fc.integer({ min: 1, max: 5000 }), fc.integer({ min: 1, max: 5000 }))
+        .map(([m, extra]) => ({ limite: m, usadas: m + extra }));
+
+      it('Property 3: nombra N, M y N−M y usa la sugerencia de su mundo (3, 4 y 5)', () => {
+        fc.assert(
+          fc.property(fc.constantFrom(3, 4, 5), paresMayores, (mundo, { usadas, limite }) => {
+            const error = crearError('limiteDuroExcedido', { usadas, limite, mundo });
+            expect(error.id).toBe('limiteDuroExcedido');
+            expect(error.severidad).toBe('jugador');
+            expect(error.mensaje).toContain(`usa ${usadas} instrucciones`);
+            expect(error.mensaje).toContain(`es ${limite}`);
+            expect(error.mensaje).toContain(`te sobran ${usadas - limite}`);
+            expect(error.mensaje).toContain(SUGERENCIAS[mundo]);
+            // No mezcla las sugerencias de los otros mundos.
+            for (const otro of [3, 4, 5].filter((m) => m !== mundo)) {
+              expect(error.mensaje).not.toContain(SUGERENCIAS[otro]);
+            }
+          }),
+        );
       });
 
-      it('devuelve solicitudDeErrorInvalida cuando usadas es igual al límite', () => {
-        const error = crearError('limiteDuroExcedido', { usadas: 5, limite: 5 });
-        expect(error.id).toBe('solicitudDeErrorInvalida');
-        expect(error.severidad).toBe('programacion');
+      it('un mundo sin entrada en la tabla usa la sugerencia del mundo 3 (R13.3)', () => {
+        fc.assert(
+          fc.property(fc.constantFrom(0, 1, 2, 6, 9, 100), paresMayores, (mundo, { usadas, limite }) => {
+            const error = crearError('limiteDuroExcedido', { usadas, limite, mundo });
+            expect(error.id).toBe('limiteDuroExcedido');
+            expect(error.mensaje).toContain(SUGERENCIAS[3]);
+          }),
+        );
       });
 
-      it('devuelve solicitudDeErrorInvalida cuando usadas es menor que el límite', () => {
-        const error = crearError('limiteDuroExcedido', { usadas: 3, limite: 5 });
-        expect(error.id).toBe('solicitudDeErrorInvalida');
-        expect(error.severidad).toBe('programacion');
+      it('Property 4: nunca revela «presupuesto» ni el presupuestoEstrella del nivel', () => {
+        fc.assert(
+          fc.property(
+            fc.integer({ min: 0, max: 9 }),
+            fc.integer({ min: 1, max: 5000 }),
+            fc.integer({ min: 1, max: 50 }),
+            (mundo, limite, extra) => {
+              const usadas = limite + extra;
+              const mensaje = crearError('limiteDuroExcedido', { usadas, limite, mundo }).mensaje;
+              expect(mensaje.toLowerCase()).not.toContain('presupuesto');
+              // Con el margen de 3 del mundo 3, el presupuesto es limite − 3: solo aparece
+              // en el texto si coincide por casualidad con N, M o N−M.
+              const presupuesto = limite - 3;
+              const numeros = [usadas, limite, extra].map(String);
+              if (!numeros.includes(String(presupuesto))) {
+                expect(mensaje.match(/\d+/g) ?? []).not.toContain(String(presupuesto));
+              }
+            },
+          ),
+        );
       });
 
-      it('devuelve solicitudDeErrorInvalida cuando usadas no es entero', () => {
-        const error = crearError('limiteDuroExcedido', { usadas: 8.5, limite: 5 });
+      it.each([
+        ['usadas igual al límite', { usadas: 5, limite: 5, mundo: 3 }],
+        ['usadas menor que el límite', { usadas: 3, limite: 5, mundo: 3 }],
+        ['usadas no entero', { usadas: 8.5, limite: 5, mundo: 3 }],
+        ['límite no entero', { usadas: 8, limite: 5.5, mundo: 3 }],
+        ['mundo no entero', { usadas: 8, limite: 5, mundo: 3.5 }],
+        ['mundo NaN', { usadas: 8, limite: 5, mundo: Number.NaN }],
+      ])('devuelve solicitudDeErrorInvalida con %s', (_nombre, parametros) => {
+        const error = crearError('limiteDuroExcedido', parametros);
         expect(error.id).toBe('solicitudDeErrorInvalida');
         expect(error.severidad).toBe('programacion');
       });
     });
-    
+
     describe('Errores de azar y semillas', () => {
       it('codigoSemillaLongitud', () => {
         const error = crearError('codigoSemillaLongitud', {});

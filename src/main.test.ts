@@ -42,7 +42,11 @@ vi.mock('./lenguaje/interprete.js', async (importOriginal) => {
 // reto del mundo 3. La guarda no mira `nivel.mundo`, de modo que esto ejercita el
 // mismo camino de código sin inventar un nivel ni un harness nuevo. Apagado por
 // omisión: los demás tests y la resolución normal del reto quedan intactos.
-const forzarLimiteDuro = vi.hoisted(() => ({ activo: false, limiteDuro: 0 }));
+const forzarLimiteDuro = vi.hoisted(() => ({
+  activo: false,
+  limiteDuro: 0,
+  mundo: undefined as number | undefined,
+}));
 
 vi.mock('./juego/reto.js', async (importOriginal) => {
   const real = await importOriginal<typeof import('./juego/reto.js')>();
@@ -53,7 +57,16 @@ vi.mock('./juego/reto.js', async (importOriginal) => {
       if (!r.exito || !forzarLimiteDuro.activo) return r;
       return {
         exito: true as const,
-        reto: { ...r.reto, limiteDuroActivo: true, limiteDuro: forzarLimiteDuro.limiteDuro },
+        reto: {
+          ...r.reto,
+          limiteDuroActivo: true,
+          limiteDuro: forzarLimiteDuro.limiteDuro,
+          // Solo si el test lo pide, se hace pasar el reto por uno de otro mundo.
+          nivel:
+            forzarLimiteDuro.mundo === undefined
+              ? r.reto.nivel
+              : { ...r.reto.nivel, mundo: forzarLimiteDuro.mundo },
+        },
       };
     },
   };
@@ -3860,6 +3873,28 @@ describe('main · guarda de límite duro del mundo 3 (Property 1 — R1.3, R1.4,
   afterEach(() => {
     forzarLimiteDuro.activo = false;
     forzarLimiteDuro.limiteDuro = 0;
+    forzarLimiteDuro.mundo = undefined;
+  });
+
+  it.each([
+    [3, 'REPITE dentro de otro REPITE'],
+    [4, 'parámetros'],
+    [5, 'recursión'],
+    [9, 'REPITE dentro de otro REPITE'],
+  ])('el mensaje de bloqueo usa la sugerencia del mundo %i del reto (R2.2, R13.2)', (mundo, sugerencia) => {
+    forzarLimiteDuro.activo = true;
+    forzarLimiteDuro.limiteDuro = 4;
+    forzarLimiteDuro.mundo = mundo;
+
+    const app = crearApp2();
+    escribir(app, 'AVANZA 20 AVANZA 20 AVANZA 20 AVANZA 20 AVANZA 20');
+    app.ejecutar();
+
+    const texto = app.textoGlobo();
+    expect(texto).toContain('usa 5 instrucciones');
+    expect(texto).toContain(sugerencia);
+    expect(texto.toLowerCase()).not.toContain('presupuesto');
+    expect(app.estado().operacionesJugador.length).toBe(0);
   });
 
   it('con límite duro activo, un conteo mayor que el límite no emite ninguna operación, no cede la demostración ni reinicia la capa, y muestra limiteDuroExcedido (R1.3)', () => {

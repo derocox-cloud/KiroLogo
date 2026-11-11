@@ -1240,7 +1240,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       const c = contarInstrucciones(programa);
       if (c.exito && c.instrucciones > reto.limiteDuro) {
         globo.mostrarMensajes([
-          crearError('limiteDuroExcedido', { usadas: c.instrucciones, limite: reto.limiteDuro }),
+          crearError('limiteDuroExcedido', { usadas: c.instrucciones, limite: reto.limiteDuro, mundo: reto.nivel.mundo }),
         ]);
         return;
       }
