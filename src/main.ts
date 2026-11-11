@@ -27,7 +27,7 @@ import type { Programa } from './lenguaje/ast.js';
 import { analizarLexico } from './lenguaje/lexer.js';
 import { analizar, nombresDeProcedimientos } from './lenguaje/parser.js';
 import { esErrorParaJugador, crearError, type ErrorKiroLogo } from './lenguaje/errores.js';
-import { comandosDelMundo } from './lenguaje/vocabulario.js';
+import { comandosDelMundo, type Mundo } from './lenguaje/vocabulario.js';
 import { ejecutar, type Operacion, type ResultadoEjecucion } from './lenguaje/interprete.js';
 import { contarInstrucciones } from './lenguaje/conteo.js';
 
@@ -73,7 +73,8 @@ import { cargarProgreso, type Progreso } from './juego/progreso.js';
 import { rellenarPistas } from './juego/pistas.js';
 import { nivelDesbloqueado } from './juego/desbloqueo.js';
 import { insigniaSecuenciaOtorgada } from './juego/insignias.js';
-import { decodificar } from './azar/codigo-semilla.js';
+import { desafioDisponible, retoDesafio } from './juego/desafio-infinito.js';
+import { codificar, decodificar } from './azar/codigo-semilla.js';
 import { CATALOGO } from './niveles/catalogo.js';
 
 import { crearEditor, type Editor, type LimiteAlcanzado, type RelojRebote } from './ui/editor.js';
@@ -83,6 +84,7 @@ import { crearControles, type Controles } from './ui/controles.js';
 import { crearDemostracion, type Demostracion, type RelojEspera } from './ui/demostracion.js';
 import { crearReproduccionParalelo, type ReproduccionParalelo } from './ui/reproduccion-paralelo.js';
 import { crearPanelSemilla, type PanelSemilla } from './ui/panel-semilla.js';
+import { crearControlDesafio, type ControlDesafio } from './ui/control-desafio.js';
 import { crearMenuMundos, type MenuMundos } from './ui/menu-mundos.js';
 import { crearGuia, type Guia } from './ui/guia.js';
 import { crearMarcadorEstrellas, type MarcadorEstrellas } from './ui/marcador-estrellas.js';
@@ -939,6 +941,28 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     },
   });
 
+  // Desafío infinito (R12). Estado solo en memoria, nunca persistido: `raiz` e `indice`
+  // son la terna que `retoDesafio` convierte en reto, y solo se avanza con `indice + 1`
+  // (no hay retroceso, R12.5). `aprobado` dice si el reto EN CURSO del desafío ya se
+  // resolvió: no sirve la estrella guardada del nivel, porque el desafío solo se ofrece
+  // con el mundo completo y ese nivel ya la tiene de antes.
+  interface EstadoDesafio {
+    readonly mundo: Mundo;
+    readonly raiz: number;
+    readonly indice: number;
+    readonly codigoRaiz: string | null;
+    aprobado: boolean;
+  }
+  let desafio: EstadoDesafio | null = null;
+
+  const controlDesafio: ControlDesafio = crearControlDesafio({
+    contenedor: ranura('ranura-reto'),
+    callbacks: {
+      iniciar: () => iniciarDesafio(),
+      siguiente: () => siguienteDelDesafio(),
+    },
+  });
+
   // Menú de mundos: navega entre los seis mundos y sus niveles.
   const menuMundos: MenuMundos = crearMenuMundos({
     contenedor: ranura('ranura-ruta'),
@@ -1121,6 +1145,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     });
 
     menuMundos.marcarActual(reto.nivel.id);
+    presentarDesafio();
 
     if (opciones.saludar && globo.texto().trim().length === 0) {
       globo.celebrar(`${reto.nivel.titulo}: escribe un programa que reproduzca la figura de Kiro.`);
@@ -1146,7 +1171,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
    * generador trae un reto nuevo (y el autorado usa su semilla fija). Reinicia
    * el intento y refresca el selector.
    */
-  function cambiarANivel(idNivel: string, semilla?: number): void {
+  function cambiarANivel(idNivel: string, semilla?: number, desafioNuevo: EstadoDesafio | null = null): void {
     if (!nivelDesbloqueado(idNivel, progreso)) {
       globo.celebrar('Ese nivel todavía está bloqueado. Aprueba el anterior para abrirlo.');
       return;
@@ -1158,6 +1183,9 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       console.error('No se pudo resolver el nivel', idNivel, r.error.mensaje);
       return;
     }
+    // Solo el control del desafío pasa un estado nuevo; cualquier otro camino (menú, otro
+    // reto, reproducir un código) llega con `null` y descarta el desafío en curso (R12).
+    desafio = desafioNuevo;
     // Un intento a medio dibujar del nivel anterior se descarta: ni se evalúa ni
     // revela nada en el nivel nuevo. `montarReto` reinicia el animador, que corta la
     // reproducción sin avisar de ningún fin.
@@ -1198,6 +1226,57 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       return;
     }
     cambiarANivel(reto.nivel.id, resultado.semilla);
+  }
+
+  /**
+   * Muestra el control del desafío según el estado: en curso, disponible para el mundo del
+   * nivel en curso (mundo completo con niveles generados) u oculto (R12.1, R12.2).
+   */
+  function presentarDesafio(): void {
+    if (desafio !== null) {
+      controlDesafio.presentar({
+        fase: 'enCurso',
+        mundo: desafio.mundo,
+        codigoRaiz: desafio.codigoRaiz,
+        puedeAvanzar: desafio.aprobado,
+      });
+    } else if (desafioDisponible(reto.nivel.mundo, progreso)) {
+      controlDesafio.presentar({ fase: 'disponible', mundo: reto.nivel.mundo });
+    } else {
+      controlDesafio.presentar({ fase: 'oculto' });
+    }
+  }
+
+  /** Carga el reto del índice del desafío y lo deja como estado vigente (R12.3, R12.4). */
+  function cargarRetoDelDesafio(estado: EstadoDesafio): void {
+    const { idNivel, semilla } = retoDesafio(estado.mundo, estado.raiz, estado.indice);
+    cambiarANivel(idNivel, semilla, estado);
+  }
+
+  /**
+   * Inicia el desafío del mundo del nivel en curso. La raíz sale de la misma entropía de
+   * arranque que «Otro reto» (nunca `Math.random`) y se muestra en formato compartible; si
+   * `codificar` fallara, se omite el código y se avisa con el mensaje del catálogo (R12.6).
+   */
+  function iniciarDesafio(): void {
+    const mundo = reto.nivel.mundo;
+    if (!desafioDisponible(mundo, progreso)) return;
+    const raiz = semillaNuevaParaNivel(reto.nivel.id);
+    const codigo = codificar(raiz);
+    if (!codigo.exito) globo.mostrarMensajes([codigo.error]);
+    cargarRetoDelDesafio({
+      mundo,
+      raiz,
+      indice: 0,
+      codigoRaiz: codigo.exito ? codigo.codigo : null,
+      aprobado: false,
+    });
+  }
+
+  /** Pasa al siguiente reto de la secuencia, solo si el reto en curso ya se aprobó (R12.4). */
+  function siguienteDelDesafio(): void {
+    if (desafio === null || !desafio.aprobado) return;
+    cargarRetoDelDesafio({ ...desafio, indice: desafio.indice + 1, aprobado: false });
   }
 
   /** El id del nivel que sigue a `idNivel` en el orden del catálogo, o null. */
@@ -1415,6 +1494,11 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
 
     // Refresca el menú (estados e insignia) con el progreso ya guardado.
     menuMundos.refrescar();
+
+    // Aprobar el reto en curso del desafío abre «Siguiente reto»; aprobar el último nivel de
+    // un mundo puede dejar disponible su desafío (R12.1, R12.4).
+    if (desafio !== null && calificacion.precision.otorgada) desafio.aprobado = true;
+    presentarDesafio();
 
     // Si este intento completó la insignia Secuencia, lo comunica por el globo.
     if (!insigniaAntes && insigniaSecuenciaOtorgada(progreso)) {

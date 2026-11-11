@@ -1197,6 +1197,61 @@ textarea {
   outline: none;
 }
 
+/* ========== CONTROL DEL DESAFÍO INFINITO (kl-control-desafio, junto al panel de semilla) ========== */
+.kl-control-desafio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.6rem;
+}
+
+/* `hidden` debe ganar al `display` de arriba. */
+.kl-control-desafio[hidden] {
+  display: none;
+}
+
+.kl-control-desafio-boton {
+  padding: 0.4rem 0.9rem;
+  border: var(--borde-grueso, 2px) solid var(--secundario, #7c68c9);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--suave, #e6e0f7);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.kl-control-desafio-boton:hover:not(:disabled) {
+  background: var(--secundario, #7c68c9);
+  color: var(--color-boton-texto, #150f26);
+}
+
+.kl-control-desafio-boton:disabled {
+  border-color: var(--color-borde-panel, #3b3454);
+  color: var(--color-texto-deshabilitado, #8b84a5);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.kl-control-desafio-codigo,
+.kl-control-desafio-nota {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-texto-secundario, #aaa4c0);
+}
+
+.kl-control-desafio-valor {
+  padding: 0.1rem 0.6rem;
+  border-radius: 0.5rem;
+  background: var(--tinta-950, #0f0d16);
+  font-family: var(--fuente-codigo, monospace);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--suave, #e6e0f7);
+}
+
 /* ========== MARCADOR DE ESTRELLAS (kl-marcador) ========== */
 .kl-marcador {
   display: grid;
