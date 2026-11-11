@@ -1936,8 +1936,8 @@ describe('21.3 · estructura de archivos', () => {
       if (!ruta.endsWith('.test.ts')) continue;
       const relativo = rel(ruta);
       if (AYUDAS_ADMITIDAS.has(relativo)) continue;
-      // `.propiedad`, `.senales` y `.desafio` son sufijos de pruebas que acompañan al mismo módulo.
-      const radical = relativo.replace(/\.test\.ts$/, '').replace(/\.(propiedad|senales|desafio)$/, '');
+      // `.propiedad`, `.senales`, `.desafio` y `.docs` son sufijos de pruebas que acompañan al mismo módulo.
+      const radical = relativo.replace(/\.test\.ts$/, '').replace(/\.(propiedad|senales|desafio|docs)$/, '');
       const moduloEsperado = join(RAIZ_SRC, radical + '.ts');
       if (!ARCHIVOS_TS.includes(moduloEsperado)) {
         infracciones.push(`${relativo} no acompaña a ${radical}.ts`);
