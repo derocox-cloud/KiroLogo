@@ -338,12 +338,12 @@ insignias y la verificación integral.
     - Los retos de referencia de los mundos 0, 1 y 2 producen las mismas operaciones, presupuestos y
       estrellas que antes de esta spec (R10.3).
 
-- [ ] 13. Sugerencia de bloqueo por mundo — `src/lenguaje/errores.ts` y `src/main.ts` (AMPLIAR)
+- [x] 13. Sugerencia de bloqueo por mundo — `src/lenguaje/errores.ts` y `src/main.ts` (AMPLIAR)
 
   Fusiona R2.2 a R2.4 con R13 en una sola tabla del catálogo de errores. La tarea 1 dejó
   `limiteDuroExcedido` con una única sugerencia (anidar `REPITE`); aquí gana el parámetro `mundo`.
 
-  - [ ] 13.1 Añadir `mundo` y la tabla `SUGERENCIA_DE_BLOQUEO_POR_MUNDO`
+  - [x] 13.1 Añadir `mundo` y la tabla `SUGERENCIA_DE_BLOQUEO_POR_MUNDO`
     - `ParametrosPorError['limiteDuroExcedido']` pasa a `{ usadas; limite; mundo }`, los tres enteros.
       `crearError` valida los tres y que `usadas > limite`; si no, `solicitudDeErrorInvalida`.
     - Tabla `Readonly<Record<number, string>>` con entradas para los mundos 3 (anidar `REPITE`), 4
@@ -354,7 +354,7 @@ insignias y la verificación integral.
       texto de la referencia (R2.5). Ningún otro módulo escribe estos textos (R2.6).
     - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 13.1, 13.2, 13.3_
 
-  - [ ]* 13.2 Tests del mensaje por mundo en `src/lenguaje/errores.test.ts`
+  - [x]* 13.2 Tests del mensaje por mundo en `src/lenguaje/errores.test.ts`
     - **Property 3: El mensaje de bloqueo nombra la cuenta y usa la sugerencia de su mundo**
     - **Property 4: El mensaje de bloqueo no revela la figura ni el presupuesto**
     - **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 13.1, 13.2, 13.3, 13.4, 13.5**
@@ -365,32 +365,32 @@ insignias y la verificación integral.
       `solicitudDeErrorInvalida`. Actualizar los tests de la tarea 1.2 a la nueva firma.
     - _Requirements: 2.1 a 2.5, 13.4, 13.5_
 
-  - [ ] 13.3 Pasar el mundo desde la guarda de `src/main.ts`
+  - [x] 13.3 Pasar el mundo desde la guarda de `src/main.ts`
     - En `ejecutarPrograma`, la llamada pasa a
       `crearError('limiteDuroExcedido', { usadas, limite: reto.limiteDuro, mundo: reto.nivel.mundo })`.
       La guarda sigue sin emitir operaciones ni tocar la capa del jugador.
     - _Requirements: 2.2, 2.3, 2.4, 13.2_
 
-  - [ ]* 13.4 Test de la guarda por mundo en `src/main.test.ts`
+  - [x]* 13.4 Test de la guarda por mundo en `src/main.test.ts`
     - Un programa bloqueado en un reto del mundo 3 muestra la sugerencia de anidar `REPITE`, y la
       llamada a `crearError` recibe el `mundo` del reto. Se conservan los tests de la tarea 2.2.
     - _Requirements: 1.3, 2.2, 13.2_
 
-- [ ] 14. Cableado de las señales transversales y «Ver en paralelo» — `src/ui/` y `src/main.ts`
+- [x] 14. Cableado de las señales transversales y «Ver en paralelo» — `src/ui/` y `src/main.ts`
 
   Hallazgo del diseño: `marcarPistaAbierta`, `registrarVistaDemostracion` y
   `marcarReproduccionParalelaUsada` no se invocan desde ningún módulo de producción, así que
   *Depurador*, *Sin pistas* y *Buen ojo* no se pueden ganar jugando. Además la reproducción en
   paralelo no está montada en la pantalla: se añade el disparador.
 
-  - [ ] 14.1 Callback opcional `alAbrirPista` en `src/ui/globo-kiro.ts`
+  - [x] 14.1 Callback opcional `alAbrirPista` en `src/ui/globo-kiro.ts`
     - `DependenciasGlobo` gana `readonly alAbrirPista?: () => void`, opcional para no romper las
       pruebas existentes.
     - Se invoca en `pedirPista` solo cuando se muestra un escalón, no con el aviso «Ya te di todas las
       pistas de este reto».
     - _Requirements: 11.1_
 
-  - [ ] 14.2 Cablear pista y demostración en `src/main.ts`
+  - [x] 14.2 Cablear pista y demostración en `src/main.ts`
     - Añadir `registrarSenal(escribir: () => void)`: ejecuta la escritura y, si lanza, hace
       `console.error('No se pudo registrar la señal de progreso.', e)` y continúa (R11.11).
     - Pasar al globo `alAbrirPista` que llama `registrarSenal(() =>
@@ -401,14 +401,14 @@ insignias y la verificación integral.
       demostración» (R11.2). La demostración inicial del nivel cuenta como una vista.
     - _Requirements: 11.1, 11.2, 11.11_
 
-  - [ ] 14.3 Acción «Ver en paralelo» en `src/ui/controles.ts`
+  - [x] 14.3 Acción «Ver en paralelo» en `src/ui/controles.ts`
     - `AccionId` gana `'paralelo'` con texto «Ver en paralelo» y nombre accesible «Ver mi recorrido y
       el de Kiro en paralelo». `CallbacksControles` gana `verEnParalelo: () => void`.
     - Nace deshabilitada; se habilita cuando existe un intento ejecutado del reto en curso y se
       deshabilita mientras hay una ejecución en curso, igual que `demostracion`.
     - _Requirements: 11.3_
 
-  - [ ] 14.4 Montar la reproducción en paralelo en `src/main.ts`
+  - [x] 14.4 Montar la reproducción en paralelo en `src/main.ts`
     - Instanciar `crearReproduccionParalelo` con sus dependencias ya declaradas (lienzo paralelo,
       reloj, temas, `movimientoReducido`, `anunciar`) y definir `verEnParalelo()`: sin
       `estadoApp.operacionesJugador` no hace nada; si hay intento, llama `registrarSenal(() =>
@@ -418,23 +418,23 @@ insignias y la verificación integral.
       intento ejecutado. Sin cambios en `guardar`: el orden de las llamadas basta para R11.4.
     - _Requirements: 11.3, 11.4_
 
-  - [ ]* 14.5 Tests unitarios de `globo-kiro.ts` y `controles.ts`
+  - [x]* 14.5 Tests unitarios de `globo-kiro.ts` y `controles.ts`
     - En `src/ui/globo-kiro.test.ts`: `alAbrirPista` se invoca al mostrar cada escalón y no con «Ya te
       di todas las pistas».
     - En `src/ui/controles.test.ts`: `paralelo` nace deshabilitada, se habilita con un intento, se
       deshabilita durante la ejecución, y activarla invoca `verEnParalelo`.
     - _Requirements: 11.1, 11.3_
 
-  - [ ]* 14.6 Test de resiliencia ante fallo de persistencia
+  - [x]* 14.6 Test de resiliencia ante fallo de persistencia
     - **Property 19: Un fallo al persistir una señal no interrumpe la acción del jugador**
     - **Validates: Requirements 11.11**
     - En `src/main.senales.test.ts`, con un `Progreso` cuyos métodos de señal lanzan, pedir pista, ver
       la demostración y pulsar «Ver en paralelo» completan su efecto visible y no propagan el error.
     - _Requirements: 11.11_
 
-- [ ] 15. Tipos separados de las insignias — `src/juego/insignias.ts` (AMPLIAR)
+- [x] 15. Tipos separados de las insignias — `src/juego/insignias.ts` (AMPLIAR)
 
-  - [ ] 15.1 Separar concepto de transversal y eliminar el `as`
+  - [x] 15.1 Separar concepto de transversal y eliminar el `as`
     - Declarar `IdInsigniaDeConcepto` (`secuencia`, `iteracion`, `descomposicion`, `simetria`),
       `IdInsigniaTransversal` (`depurador`, `minimalista`, `sinPistas`, `buenOjo`) e `IdInsignia` como
       su unión (R14.1).
@@ -446,13 +446,13 @@ insignias y la verificación integral.
       `as` (R14.4). Los resultados existentes no cambian (R14.5).
     - _Requirements: 14.1, 14.2, 14.3, 14.4, 14.5_
 
-  - [ ] 15.2 Predicado derivado `insigniasTransversalesOtorgadas`
+  - [x] 15.2 Predicado derivado `insigniasTransversalesOtorgadas`
     - `export function insigniasTransversalesOtorgadas(progreso: Progreso): readonly IdInsigniaTransversal[]`,
       función pura que reúne los cuatro predicados transversales. Permite verificar la insignia
       otorgada en las pruebas de punta a punta sin añadir estado.
     - _Requirements: 9.5, 9.6, 11.10_
 
-  - [ ]* 15.3 Tests de tipos y de no regresión en `src/juego/insignias.test.ts`
+  - [x]* 15.3 Tests de tipos y de no regresión en `src/juego/insignias.test.ts`
     - Las claves de `MUNDO_DE_INSIGNIA` igualan `INSIGNIAS_DE_CONCEPTO`.
     - Una línea con `// @ts-expect-error` comprueba que `MUNDO_DE_INSIGNIA['depurador']` no compila.
     - Las pruebas existentes pasan sin cambios de resultado. `insigniasTransversalesOtorgadas` es
@@ -462,11 +462,11 @@ insignias y la verificación integral.
     - **Validates: Requirements 8.3, 8.4, 9.1 a 9.6, 11.5 a 11.8, 14.2, 14.3, 14.5**
     - _Requirements: 9.5, 9.6, 14.2, 14.3, 14.5_
 
-- [ ] 16. Control mínimo del desafío infinito — `src/ui/control-desafio.ts` y `src/main.ts`
+- [x] 16. Control mínimo del desafío infinito — `src/ui/control-desafio.ts` y `src/main.ts`
 
   La lógica de `juego/desafio-infinito.ts` ya existe y no cambia; aquí se le da una pantalla.
 
-  - [ ] 16.1 Crear `src/ui/control-desafio.ts`
+  - [x] 16.1 Crear `src/ui/control-desafio.ts`
     - Mismo molde que `panel-semilla.ts`. Exporta `CallbacksControlDesafio { iniciar; siguiente }` y
       `ControlDesafio { raiz; boton; presentar(estado) }` con los estados `oculto`, `disponible
       { mundo }` y `enCurso { mundo, codigoRaiz, puedeAvanzar }`.
@@ -476,7 +476,7 @@ insignias y la verificación integral.
     - En curso muestra el código de la raíz; la interfaz no ofrece ningún control de retroceso (R12.5).
     - _Requirements: 12.1, 12.2, 12.5, 12.6, 12.7_
 
-  - [ ] 16.2 Cablear el control en `src/main.ts`
+  - [x] 16.2 Cablear el control en `src/main.ts`
     - Estado no persistente `desafio: { mundo; raiz; indice } | null`, que solo incrementa `indice`.
     - Tras cada intento y cada cambio de nivel, `presentar` según `desafioDisponible(reto.nivel.mundo,
       progreso)` (R12.1, R12.2).
@@ -489,7 +489,7 @@ insignias y la verificación integral.
       código); `cambiarANivel` recibe un indicador interno para distinguir la llamada del control.
     - _Requirements: 12.1, 12.2, 12.3, 12.4, 12.5, 12.6_
 
-  - [ ]* 16.3 Tests de `src/ui/control-desafio.test.ts`
+  - [x]* 16.3 Tests de `src/ui/control-desafio.test.ts`
     - **Property 20: El control del desafío es visible si y solo si el desafío está disponible**
     - **Property 21: La raíz del desafío se comparte sin pérdida**
     - **Validates: Requirements 12.1, 12.2, 12.5, 12.6, 12.7**
@@ -497,11 +497,11 @@ insignias y la verificación integral.
       en español; `decodificar(codificar(raiz))` devuelve la misma raíz.
     - _Requirements: 12.1, 12.2, 12.5, 12.6, 12.7_
 
-- [ ] 17. Pruebas de punta a punta de señales, insignias y desafío — `crearAplicacion`
+- [x] 17. Pruebas de punta a punta de señales, insignias y desafío — `crearAplicacion`
 
   Con un almacén en memoria y `Progreso` recargado con `cargarProgreso(almacen)`.
 
-  - [ ]* 17.1 Señales e insignias en `src/main.senales.test.ts`
+  - [x]* 17.1 Señales e insignias en `src/main.senales.test.ts`
     - **Property 18: Cada acción del jugador escribe su señal en el nivel correcto**
     - **Validates: Requirements 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7, 11.8, 11.9, 11.10**
     - Pedir pista → `pistaAbiertaEn(nivel)` verdadero solo para ese nivel (R11.1).
@@ -513,15 +513,15 @@ insignias y la verificación integral.
       demostración vista (R11.5 a R11.8, R11.10).
     - _Requirements: 11.1 a 11.10_
 
-  - [ ]* 17.2 Desafío infinito en `src/main.desafio.test.ts`
+  - [x]* 17.2 Desafío infinito en `src/main.desafio.test.ts`
     - Completar un mundo con generados, activar el control y verificar que se carga un reto generado
       de ese mundo y que se muestra el código de la raíz (R12.8, R12.3, R12.6).
     - Con el mundo incompleto el control no se muestra (R12.2).
     - _Requirements: 12.2, 12.3, 12.6, 12.8_
 
-- [ ] 18. Timeout compartido de las regresiones de tres estrellas
+- [x] 18. Timeout compartido de las regresiones de tres estrellas
 
-  - [ ] 18.1 Crear `src/pruebas/tiempos.ts` y unificar los usos
+  - [x] 18.1 Crear `src/pruebas/tiempos.ts` y unificar los usos
     - `export const TIMEOUT_TRES_ESTRELLAS = 180_000;` con su comentario del *por qué* (R15.1).
     - `src/juego/generadores-mundo-2.test.ts` borra su constante local e importa esta (R15.3).
     - `src/juego/reto.test.ts` sustituye los dos `120_000` de las regresiones 3.2 y 3.3 (líneas ~211
@@ -529,14 +529,14 @@ insignias y la verificación integral.
       tocan: no son regresiones de tres estrellas de los mundos 2 y 3.
     - _Requirements: 15.1, 15.2, 15.3_
 
-  - [ ]* 18.2 Test de lectura del repositorio en `src/pruebas/tiempos.test.ts`
+  - [x]* 18.2 Test de lectura del repositorio en `src/pruebas/tiempos.test.ts`
     - Falla si en las regresiones de 200 semillas de los mundos 2 y 3 aparece un literal de timeout
       distinto de `TIMEOUT_TRES_ESTRELLAS`, y comprueba que su valor es 180 000.
     - _Requirements: 15.1, 15.4_
 
-- [ ] 19. Documentación de los métodos de señal
+- [x] 19. Documentación de los métodos de señal
 
-  - [ ] 19.1 Escribir `docs/senales-de-progreso.md` en español y enlazarlo desde `docs/README.md`
+  - [x] 19.1 Escribir `docs/senales-de-progreso.md` en español y enlazarlo desde `docs/README.md`
     - Tabla de los siete `Metodos_De_Senal` (`marcarPistaAbierta`, `pistaAbiertaEn`,
       `registrarVistaDemostracion`, `vistasDemostracionDe`, `marcarReproduccionParalelaUsada`,
       `reproduccionParalelaUsada`, `aprobadoTrasReproduccionParalelaEn`) con: señal que registra,
@@ -547,11 +547,11 @@ insignias y la verificación integral.
       personales (R16.2).
     - _Requirements: 16.1, 16.2, 16.3, 16.4_
 
-- [ ] 20. Checkpoint - Ensure all tests pass
+- [x] 20. Checkpoint - Ensure all tests pass
   - Ensure all tests pass, ask the user if questions arise.
 
-- [ ] 21. Verificación final y reglas duras
-  - [ ] 21.1 Validar contra el estado real
+- [x] 21. Verificación final y reglas duras
+  - [x] 21.1 Validar contra el estado real
     - Ejecutar en verde `npm ci`, `npm run typecheck`, `npm run build` y `npm test -- --maxWorkers=2`
       (R17.3).
     - Revisar por búsqueda en `src/`: sin `Math.random` fuera de `azar/prng.ts`, sin `eval` ni

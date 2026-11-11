@@ -187,6 +187,202 @@
         "chatSessionId": "sess_bf7f6dbc-6f7e-45c8-88e6-d22ec3e9d7be",
         "timestamp": 1793902744508
       }
+    ],
+    "13.1 Añadir `mundo` y la tabla `SUGERENCIA_DE_BLOQUEO_POR_MUNDO`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362325884
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362332306
+      }
+    ],
+    "13.3 Pasar el mundo desde la guarda de `src/main.ts`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362325920
+      }
+    ],
+    "14.1 Callback opcional `alAbrirPista` en `src/ui/globo-kiro.ts`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362325952
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794363332810
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794364211729
+      }
+    ],
+    "14.2 Cablear pista y demostración en `src/main.ts`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362325983
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794364212068
+      }
+    ],
+    "14.3 Acción «Ver en paralelo» en `src/ui/controles.ts`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362326008
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794364212871
+      }
+    ],
+    "14.4 Montar la reproducción en paralelo en `src/main.ts`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362326049
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794364213715
+      }
+    ],
+    "15.1 Separar concepto de transversal y eliminar el `as`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362326072
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794364216774
+      }
+    ],
+    "15.2 Predicado derivado `insigniasTransversalesOtorgadas`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362326092
+      }
+    ],
+    "16.1 Crear `src/ui/control-desafio.ts`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362326122
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794364640413
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794366129717
+      }
+    ],
+    "16.2 Cablear el control en `src/main.ts`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362326147
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794366129764
+      }
+    ],
+    "18.1 Crear `src/pruebas/tiempos.ts` y unificar los usos": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362326170
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794367489857
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794367881968
+      }
+    ],
+    "19.1 Escribir `docs/senales-de-progreso.md` en español y enlazarlo desde `docs/README.md`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362326193
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794367883069
+      }
+    ],
+    "20. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362326219
+      },
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794373081058
+      }
+    ],
+    "21.1 Validar contra el estado real": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794362326240
+      }
+    ],
+    "14. Cableado de las señales transversales y «Ver en paralelo» — `src/ui/` y `src/main.ts`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794364213752
+      }
+    ],
+    "16. Control mínimo del desafío infinito — `src/ui/control-desafio.ts` y `src/main.ts`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794366129797
+      }
+    ],
+    "17.1 Señales e insignias en `src/main.senales.test.ts`": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794366133175
+      }
+    ],
+    "18. Timeout compartido de las regresiones de tres estrellas": [
+      {
+        "executionId": "a7cce3c6-2f80-4d4f-8d06-4a1347d7711e",
+        "chatSessionId": "sess_f178534a-197d-4004-9341-3dcc79984014",
+        "timestamp": 1794367881997
+      }
     ]
   }
 }
