@@ -11,6 +11,10 @@ import { crearAplicacion, type Aplicacion, type ConsultaMovimiento } from './mai
 import type { Reloj } from './motor/animador.js';
 import type { RelojEspera } from './ui/demostracion.js';
 import type { RelojRebote } from './ui/editor.js';
+import { cargarProgreso } from './juego/progreso.js';
+import { insigniasTransversalesOtorgadas } from './juego/insignias.js';
+import { CATALOGO } from './niveles/catalogo.js';
+import { imprimir } from './lenguaje/impresor.js';
 
 const senales = vi.hoisted(() => ({
   fallar: false,
@@ -86,10 +90,10 @@ const relojReboteInmediato: RelojRebote = {
 };
 const movimientoReducido: ConsultaMovimiento = { reducido: () => true, alCambiar: () => () => {} };
 
-function crearApp(): Aplicacion {
+function crearApp(almacen: Storage | null = null): Aplicacion {
   return crearAplicacion({
     documento: document,
-    almacen: null,
+    almacen,
     reloj: relojInmediato(),
     relojEspera: relojEsperaInerte,
     relojRebote: relojReboteInmediato,
@@ -231,5 +235,163 @@ describe('main · un fallo al persistir una señal no interrumpe al jugador (R11
     expect(senales.paralelo).toBe(1);
     expect(anuncios()).toContain('paralelo');
     expect(consola).toHaveBeenCalledWith('No se pudo registrar la señal de progreso.', expect.any(Error));
+  });
+});
+
+// ----------------------------------------------------------------------------------------
+// De punta a punta (spec 04, tarea 17.1, R11.4 a R11.10): se parte de la acción del jugador
+// en la interfaz, con un almacén en memoria, y se verifica sobre un `Progreso` RECARGADO con
+// `cargarProgreso(almacen)`, es decir, lo que realmente quedó persistido. Las insignias se
+// leen con `insigniasTransversalesOtorgadas`, la misma función que usa el mapa de insignias.
+// ----------------------------------------------------------------------------------------
+
+function crearAlmacenMemoria(): Storage {
+  const datos = new Map<string, string>();
+  return {
+    get length() {
+      return datos.size;
+    },
+    clear: () => datos.clear(),
+    getItem: (k: string) => (datos.has(k) ? datos.get(k)! : null),
+    key: (i: number) => [...datos.keys()][i] ?? null,
+    removeItem: (k: string) => void datos.delete(k),
+    setItem: (k: string, v: string) => void datos.set(k, v),
+  };
+}
+
+/** Escribe la referencia del reto en curso y la ejecuta: una resolución correcta. */
+function resolverElRetoEnCurso(app: Aplicacion): void {
+  const impreso = imprimir(app.estado().reto.referencia);
+  if (!impreso.exito) throw new Error('la referencia no se puede imprimir');
+  escribir(app, impreso.texto);
+  app.ejecutar();
+}
+
+const idsMundo0 = CATALOGO.filter((n) => n.mundo === 0).map((n) => n.id);
+
+/** Recorre el mundo 0 en orden, resolviendo cada nivel; `alLlegar` actúa antes de resolverlo. */
+function completarMundo0(app: Aplicacion, alLlegar?: (id: string) => void): void {
+  for (const id of idsMundo0) {
+    app.irANivel(id);
+    expect(app.nivelEnCurso()).toBe(id);
+    alLlegar?.(id);
+    resolverElRetoEnCurso(app);
+    expect(app.estado().calificacion?.precision.otorgada).toBe(true);
+  }
+}
+
+describe('main · señales persistidas de punta a punta (R11.9)', () => {
+  it('abrir una pista deja pistaAbiertaEn verdadero solo para ese nivel', () => {
+    const almacen = crearAlmacenMemoria();
+    const app = crearApp(almacen);
+    expect(cargarProgreso(almacen).pistaAbiertaEn('0.1')).toBe(false);
+
+    app.globo.pedirPista();
+
+    const recargado = cargarProgreso(almacen);
+    expect(recargado.pistaAbiertaEn('0.1')).toBe(true);
+    expect(recargado.pistaAbiertaEn('0.2')).toBe(false);
+  });
+
+  it('cada demostración lanzada suma una vista en el nivel en curso', () => {
+    const almacen = crearAlmacenMemoria();
+    const app = crearApp(almacen);
+    // La demostración al entrar al nivel ya cuenta como una.
+    expect(cargarProgreso(almacen).vistasDemostracionDe('0.1')).toBe(1);
+
+    app.verDemostracion();
+    expect(cargarProgreso(almacen).vistasDemostracionDe('0.1')).toBe(2);
+    app.verDemostracion();
+
+    const recargado = cargarProgreso(almacen);
+    expect(recargado.vistasDemostracionDe('0.1')).toBe(3);
+    expect(recargado.vistasDemostracionDe('0.2')).toBe(0);
+  });
+
+  it('«Ver en paralelo» persiste la bandera, y solo lo aprobado después cuenta como posterior', () => {
+    const almacen = crearAlmacenMemoria();
+    const app = crearApp(almacen);
+    // 0.1 se aprueba ANTES de usar el paralelo: no es una aprobación posterior.
+    resolverElRetoEnCurso(app);
+    expect(cargarProgreso(almacen).reproduccionParalelaUsada()).toBe(false);
+
+    botonParalelo().click();
+    app.irANivel('0.2');
+    resolverElRetoEnCurso(app);
+
+    const recargado = cargarProgreso(almacen);
+    expect(recargado.reproduccionParalelaUsada()).toBe(true);
+    expect(recargado.aprobadoTrasReproduccionParalelaEn('0.1')).toBe(false);
+    expect(recargado.aprobadoTrasReproduccionParalelaEn('0.2')).toBe(true);
+  });
+});
+
+describe('main · insignias transversales de punta a punta (R11.10)', () => {
+  it('Depurador: se otorga al aprobar el quinto nivel posterior al paralelo, no antes', () => {
+    const almacen = crearAlmacenMemoria();
+    const app = crearApp(almacen);
+    // Un intento sin aprobar habilita el paralelo; se usa y recién entonces se aprueba.
+    escribir(app, 'AVANZA 20');
+    app.ejecutar();
+    botonParalelo().click();
+    expect(idsMundo0).toHaveLength(5);
+
+    idsMundo0.forEach((id, i) => {
+      app.irANivel(id);
+      resolverElRetoEnCurso(app);
+      const otorgadas = insigniasTransversalesOtorgadas(cargarProgreso(almacen));
+      expect(otorgadas.includes('depurador'), `tras ${i + 1} aprobados`).toBe(i === 4);
+    });
+  });
+
+  it('Depurador no se otorga si los 5 niveles se aprobaron sin haber usado el paralelo', () => {
+    const almacen = crearAlmacenMemoria();
+    completarMundo0(crearApp(almacen));
+    expect(insigniasTransversalesOtorgadas(cargarProgreso(almacen))).not.toContain('depurador');
+  });
+
+  it('Sin pistas: se otorga al completar el mundo sin abrir ninguna pista', () => {
+    const almacen = crearAlmacenMemoria();
+    const app = crearApp(almacen);
+    completarMundo0(app);
+    expect(insigniasTransversalesOtorgadas(cargarProgreso(almacen))).toContain('sinPistas');
+  });
+
+  // Defecto original de la revisión: abrir una pista en CUALQUIER nivel del mundo debe
+  // impedir la insignia, no solo en el primero ni en el último.
+  it.each(idsMundo0)('Sin pistas NO se otorga si se abrió una pista en el nivel %s del mundo', (conPista) => {
+    const almacen = crearAlmacenMemoria();
+    const app = crearApp(almacen);
+    completarMundo0(app, (id) => {
+      if (id === conPista) app.globo.pedirPista();
+    });
+
+    const recargado = cargarProgreso(almacen);
+    expect(recargado.pistaAbiertaEn(conPista)).toBe(true);
+    // El mundo quedó completo con precisión en todos sus niveles: lo único que falta es la pista.
+    for (const id of idsMundo0) expect(recargado.estrellasDe(id)?.precision).toBe(true);
+    expect(insigniasTransversalesOtorgadas(recargado)).not.toContain('sinPistas');
+  });
+
+  it('Buen ojo: se otorga al resolver un nivel tras ver su demostración exactamente una vez', () => {
+    const almacen = crearAlmacenMemoria();
+    const app = crearApp(almacen);
+    expect(cargarProgreso(almacen).vistasDemostracionDe('0.1')).toBe(1);
+    expect(insigniasTransversalesOtorgadas(cargarProgreso(almacen))).not.toContain('buenOjo');
+
+    resolverElRetoEnCurso(app);
+
+    expect(insigniasTransversalesOtorgadas(cargarProgreso(almacen))).toContain('buenOjo');
+  });
+
+  it('Buen ojo no se otorga si el jugador vio la demostración más de una vez', () => {
+    const almacen = crearAlmacenMemoria();
+    const app = crearApp(almacen);
+    app.verDemostracion();
+    resolverElRetoEnCurso(app);
+
+    const recargado = cargarProgreso(almacen);
+    expect(recargado.vistasDemostracionDe('0.1')).toBe(2);
+    expect(insigniasTransversalesOtorgadas(recargado)).not.toContain('buenOjo');
   });
 });
