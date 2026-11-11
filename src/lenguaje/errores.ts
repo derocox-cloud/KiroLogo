@@ -30,6 +30,8 @@ export type IdError =
   | 'colorInvalido' | 'grosorInvalido'
   // interfaz y persistencia
   | 'limiteLineasEditor' | 'limiteCaracteresEditor' | 'progresoNoSeGuarda'
+  // límite duro de instrucciones (mundo 3 en adelante)
+  | 'limiteDuroExcedido'
   // azar y semillas
   | 'codigoSemillaLongitud' | 'codigoSemillaSimbolo' | 'codigoSemillaFueraDeDominio'
   | 'semillaFueraDeDominio' | 'rangoInvalido' | 'listaVacia' | 'pasoInvalido'
@@ -69,6 +71,16 @@ export interface ErrorKiroLogo {
  * Parámetros exigidos por cada entrada. Un id sin los suyos no compila.
  * Mapea cada IdError a su objeto de parámetros específico.
  */
+// Única fuente de la sugerencia de bloqueo por mundo (R2.2 a R2.4, R13.1). Son solo texto:
+// no agregan parámetros ni recursión al lenguaje. Nunca mencionan el presupuesto (R2.5).
+const SUGERENCIA_DE_BLOQUEO_POR_MUNDO: Readonly<Record<number, string>> = {
+  3: 'Prueba a poner un REPITE dentro de otro REPITE para repetir un grupo entero de una sola vez.',
+  4: 'Prueba a usar parámetros para que un mismo procedimiento sirva para varios tamaños.',
+  5: 'Prueba a usar recursión: un procedimiento que se llama a sí mismo con un valor menor.',
+};
+// Todo mundo sin entrada (los 0 a 2 no llegan aquí, y los futuros aún no la tienen) cae en esta.
+const MUNDO_DE_SUGERENCIA_POR_OMISION = 3;
+
 export interface ParametrosPorError {
   // léxicos (sin parámetros)
   readonly caracterNoValido: Record<string, never>;
@@ -119,6 +131,13 @@ export interface ParametrosPorError {
   readonly limiteLineasEditor: Record<string, never>;
   readonly limiteCaracteresEditor: Record<string, never>;
   readonly progresoNoSeGuarda: Record<string, never>;
+
+  // límite duro de instrucciones
+  readonly limiteDuroExcedido: {
+    readonly usadas: number;
+    readonly limite: number;
+    readonly mundo: number;
+  };
   
   // azar y semillas
   readonly codigoSemillaLongitud: Record<string, never>;
@@ -253,6 +272,18 @@ export function crearError<K extends IdError>(
     case 'guardaRellenos':
       const params13 = parametros as ParametrosPorError['guardaRellenos'];
       if (!Number.isInteger(params13.maximo) || params13.maximo < 1) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    case 'limiteDuroExcedido':
+      const params14 = parametros as ParametrosPorError['limiteDuroExcedido'];
+      // Los tres valores son enteros y el programa se pasó de verdad: usadas > límite.
+      if (
+        !Number.isInteger(params14.usadas) ||
+        !Number.isInteger(params14.limite) ||
+        !Number.isInteger(params14.mundo) ||
+        params14.usadas <= params14.limite
+      ) {
         return crearError('solicitudDeErrorInvalida', {}, posicion);
       }
       break;
@@ -529,6 +560,21 @@ function construirMensaje<K extends IdError>(
       return 'Tu programa ya tiene 10000 caracteres, que es el máximo. Borra algo para seguir escribiendo.';
     case 'progresoNoSeGuarda':
       return 'No voy a poder guardar tu progreso en este navegador, pero puedes seguir jugando.';
+
+    // límite duro de instrucciones (mundo 3 en adelante)
+    // La diferencia usadas−límite se calcula aquí, nunca se pasa como parámetro:
+    // una sola fuente de verdad para la cuenta que ve el jugador.
+    case 'limiteDuroExcedido': {
+      const p = parametros as ParametrosPorError['limiteDuroExcedido'];
+      const sobran = p.usadas - p.limite;
+      const sugerencia =
+        SUGERENCIA_DE_BLOQUEO_POR_MUNDO[p.mundo] ??
+        SUGERENCIA_DE_BLOQUEO_POR_MUNDO[MUNDO_DE_SUGERENCIA_POR_OMISION]!;
+      return (
+        `Tu programa usa ${p.usadas} instrucciones y el máximo para este reto es ${p.limite}: ` +
+        `te sobran ${sobran}. ${sugerencia}`
+      );
+    }
     
     // azar y semillas
     case 'codigoSemillaLongitud':

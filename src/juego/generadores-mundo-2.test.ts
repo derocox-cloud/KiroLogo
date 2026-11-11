@@ -28,6 +28,7 @@ import {
 } from "../niveles/mundo-2-composicion.js";
 import { ejecutar } from "../lenguaje/interprete.js";
 import { ESTADO_INICIAL } from "../motor/tortuga.js";
+import { TIMEOUT_TRES_ESTRELLAS } from "../pruebas/tiempos.js";
 import { extraerSegmentos, type Segmento } from "../motor/segmentos.js";
 import { calcularEncuadre } from "../motor/encuadre.js";
 import { comandosDelMundo } from "../lenguaje/vocabulario.js";
@@ -169,8 +170,6 @@ function contar(programa: Programa): number {
  */
 const MUESTRA = Array.from({ length: 200 }, (_, i) => i);
 
-/** Timeout de las regresiones de tres estrellas sobre 200 semillas. */
-const TIMEOUT_TRES_ESTRELLAS = 180_000;
 
 /** Afirma que una figura encuadra y no es degenerada. */
 function esperarEncuadrada(segmentos: readonly Segmento[]): void {
