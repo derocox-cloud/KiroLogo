@@ -21,7 +21,7 @@ import type {
 } from './ast.js';
 import { comandosDelMundo, VOCABULARIO, type EntradaVocabulario } from './vocabulario.js';
 import { ESTADO_INICIAL, type EstadoTortuga } from '../motor/tortuga.js';
-import { crearPrng } from '../azar/prng.js';
+import { crearPrng, fabricaAzar } from '../azar/prng.js';
 import { analizarLexico } from './lexer.js';
 import { analizar } from './parser.js';
 import { generarPrograma } from '../azar/generadores-prueba.test.js';
@@ -803,3 +803,172 @@ function construirCadena(n: number): Programa {
 
 // Evita advertencia de import sin uso; VOCABULARIO y EntradaVocabulario documentan el contrato.
 void (VOCABULARIO as readonly EntradaVocabulario[]);
+
+describe('mundo 4: guardas de escrituras, ciclos y tiempo', () => {
+  const PERMITIDOS_MUNDO_4 = comandosDelMundo(4);
+  const palabra = (valor: string): Instruccion => ({
+    tipo: 'invocacionComando',
+    nombre: 'ESCRIBE',
+    argumentos: [{ tipo: 'palabraLiteral', valor, ...pos() }],
+    ...pos(),
+  });
+  const repite = (veces: number, cuerpo: readonly Instruccion[]): Instruccion => ({
+    tipo: 'repeticion',
+    veces: numero(veces),
+    cuerpo,
+    ...pos(),
+  });
+
+  it('la escritura 501 no se emite y se conservan las 500 anteriores', () => {
+    const r = correr(prog([repite(501, [palabra('hola')])]), { comandosPermitidos: PERMITIDOS_MUNDO_4 });
+    expect(r.guardaActivada).toBe('escrituras');
+    expect(r.error?.id).toBe('guardaEscrituras');
+    expect(r.operaciones).toHaveLength(500);
+  });
+
+  it('500 escrituras exactas no activan la guarda', () => {
+    const r = correr(prog([repite(500, [palabra('hola')])]), { comandosPermitidos: PERMITIDOS_MUNDO_4 });
+    expect(r.guardaActivada).toBeNull();
+    expect(r.operaciones).toHaveLength(500);
+  });
+
+  it('un REPITE enorme con cuerpo vacío se corta con guardaPasos', () => {
+    const r = correr(prog([repite(99_999_999, [])]), { comandosPermitidos: PERMITIDOS_MUNDO_4 });
+    expect(r.guardaActivada).toBe('pasos');
+    expect(r.error?.id).toBe('guardaPasos');
+    expect(r.operaciones).toHaveLength(0);
+  });
+
+  it('la guarda de tiempo se mide por ciclos aunque no se emita ninguna operación', () => {
+    let t = 0;
+    const r = correr(prog([repite(99_999_999, [])]), {
+      comandosPermitidos: PERMITIDOS_MUNDO_4,
+      ahora: () => (t += 10),
+    });
+    expect(r.guardaActivada).toBe('tiempo');
+  });
+
+  it('AZAR usa la fábrica inyectada, con la semilla de la ejecución', () => {
+    const azar: Instruccion = {
+      tipo: 'invocacionComando',
+      nombre: 'ESCRIBE',
+      argumentos: [{ tipo: 'comandoOperador', nombre: 'AZAR', argumentos: [numero(10)], ...pos() }],
+      ...pos(),
+    };
+    const semillas: number[] = [];
+    const r = correr(prog([azar]), {
+      comandosPermitidos: PERMITIDOS_MUNDO_4,
+      semilla: 7,
+      fabricaAzar: (s) => {
+        semillas.push(s);
+        return (n) => n - 1;
+      },
+    });
+    expect(semillas).toEqual([7]);
+    expect(r.operaciones[0]).toMatchObject({ tipo: 'escribir', texto: '9' });
+  });
+});
+
+// ============================================================================
+// Mundo 4: llamadas con argumentos, AZAR, ESCRIBE y ROTULA (tarea 5.6)
+// ============================================================================
+
+describe('mundo 4: ejemplos del intérprete', () => {
+  const PERMITIDOS_MUNDO_4 = comandosDelMundo(4);
+  const POLIGONO = 'PARA POLIGONO :lados :largo\nREPITE :lados [AVANZA :largo GIRADERECHA 360 / :lados]\nFIN\n';
+
+  function correr4(texto: string, opciones?: Partial<OpcionesEjecucion>): ResultadoEjecucion {
+    const { tokens } = analizarLexico(texto);
+    const { programa, errores } = analizar(tokens, { mundo: 4 });
+    expect(errores).toEqual([]);
+    expect(programa).not.toBeNull();
+    return correr(programa!, { comandosPermitidos: PERMITIDOS_MUNDO_4, ...opciones });
+  }
+
+  /** Movimientos y giros, en orden, reducidos a lo que afirma R7.1 y R7.2. */
+  function trazo(r: ResultadoEjecucion): string[] {
+    return r.operaciones.flatMap((o) => {
+      if (o.tipo === 'mover') return [`AV ${Math.round(Math.hypot(o.hasta.x - o.desde.x, o.hasta.y - o.desde.y) * 1e6) / 1e6}`];
+      if (o.tipo === 'girar') return [`G${o.sentido === 'derecha' ? 'D' : 'I'} ${o.grados}`];
+      return [];
+    });
+  }
+
+  it.each([
+    [6, 80, 60],
+    [3, 100, 120],
+    [5, 100, 72],
+    [8, 100, 45],
+  ])('POLIGONO %i %i emite sus avances, cada uno seguido de un giro de %i grados (R7.1, R7.2)', (lados, largo, grados) => {
+    const r = correr4(`${POLIGONO}POLIGONO ${lados} ${largo}`);
+    expect(r.error).toBeNull();
+    const esperado = Array.from({ length: lados }, () => [`AV ${largo}`, `GD ${grados}`]).flat();
+    expect(trazo(r)).toEqual(esperado);
+  });
+
+  it('dentro de REPITE 150 [CUADRADO] la profundidad es 1, no 150 (R7.1)', () => {
+    const r = correr4('PARA CUADRADO\nREPITE 4 [AVANZA 1 GIRADERECHA 90]\nFIN\nREPITE 150 [CUADRADO]');
+    expect(r.error).toBeNull();
+    expect(r.guardaActivada).toBeNull();
+    expect(r.operaciones).toHaveLength(150 * 8);
+    expect(new Set(r.operaciones.map((o) => o.profundidad))).toEqual(new Set([1]));
+  });
+
+  it('escrituras y rótulos suman juntos contra el límite de 500 (R9.10)', () => {
+    const r = correr4('REPITE 300 [ESCRIBE 1 ROTULA 2]');
+    expect(r.guardaActivada).toBe('escrituras');
+    expect(r.error?.id).toBe('guardaEscrituras');
+    expect(r.operaciones).toHaveLength(500);
+    expect(r.operaciones.filter((o) => o.tipo === 'escribir')).toHaveLength(250);
+    expect(r.operaciones.filter((o) => o.tipo === 'rotular')).toHaveLength(250);
+  });
+
+  it('cada escritura suma un paso contra el tope de pasos (R9.9)', () => {
+    const limites = { ...LIMITES_PREDETERMINADOS, maximoPasos: 10 };
+    const r = correr4('REPITE 20 [ESCRIBE 1]', { limites });
+    expect(r.guardaActivada).toBe('pasos');
+    expect(r.operaciones).toHaveLength(10);
+  });
+
+  it('la guarda de recursión corta una recursión con parámetros sin caso base', () => {
+    const r = correr4('PARA ESPIRAL :largo\nAVANZA :largo\nESPIRAL :largo + 1\nFIN\nESPIRAL 1');
+    expect(r.guardaActivada).toBe('recursion');
+    expect(r.error?.id).toBe('guardaRecursion');
+    expect(r.operaciones).toHaveLength(LIMITES_PREDETERMINADOS.maximaProfundidad);
+  });
+
+  it('AZAR 1 devuelve siempre 0 con el PRNG real (R8.2)', () => {
+    for (const semilla of [0, 1, 42, 123_456_789]) {
+      const r = correr4('REPITE 20 [ESCRIBE AZAR 1]', { semilla, fabricaAzar });
+      expect(r.error).toBeNull();
+      expect(r.operaciones.map((o) => (o.tipo === 'escribir' ? o.texto : null))).toEqual(Array(20).fill('0'));
+    }
+  });
+
+  it('ESCRIBE no mueve la tortuga ni cambia rumbo ni lápiz (R9.4)', () => {
+    const r = correr4('AVANZA 40 GIRADERECHA 30 SUBELAPIZ ESCRIBE 360 / 5');
+    expect(r.error).toBeNull();
+    const escribir = r.operaciones.at(-1)!;
+    expect(escribir).toMatchObject({ tipo: 'escribir', texto: '72' });
+    expect(escribir.estadoDespues).toEqual(escribir.estadoAntes);
+    expect(escribir.estadoAntes.lapizAbajo).toBe(false);
+    expect(escribir.estadoAntes.rumbo).toBe(30);
+  });
+
+  it.each([
+    ['abajo', ''],
+    ['arriba', 'SUBELAPIZ '],
+  ])('ROTULA con el lápiz %s emite un solo rótulo en la posición y color vigentes (R11.3)', (_lapiz, prefijo) => {
+    const r = correr4(`PONCOLOR rojo AVANZA 40 ${prefijo}ROTULA "hola`);
+    expect(r.error).toBeNull();
+    const rotulos = r.operaciones.filter((o) => o.tipo === 'rotular');
+    expect(rotulos).toHaveLength(1);
+    const rotulo = rotulos[0]!;
+    if (rotulo.tipo !== 'rotular') throw new Error('se esperaba un rótulo');
+    expect(rotulo.texto).toBe('hola');
+    expect(rotulo.posicion).toEqual(rotulo.estadoAntes.posicion);
+    expect(rotulo.color?.nombre).toBe('rojo');
+    expect(rotulo.estadoDespues).toEqual(rotulo.estadoAntes);
+    expect(r.operaciones.at(-1)).toBe(rotulo);
+  });
+});

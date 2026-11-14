@@ -1,4 +1,4 @@
-// Parser de KiroLogo: tokens → AST
+﻿// Parser de KiroLogo: tokens → AST
 // Descenso recursivo con recuperación por sincronización.
 // Desde el mundo 2 es de DOS pasadas: una primera recoge los nombres de los
 // procedimientos (PARA … FIN) y la segunda parsea tratando cada nombre recogido
@@ -7,7 +7,7 @@
 import type { Token } from './lexer.js';
 import type {
   Programa, Instruccion, InvocacionComando, NumeroLiteral, Expresion, Repeticion,
-  DefinicionProcedimiento, InvocacionProcedimiento, ArgumentoColor,
+  DefinicionProcedimiento, InvocacionProcedimiento, ArgumentoColor, PalabraLiteral,
 } from './ast.js';
 import { buscarComando, type Mundo, type EntradaVocabulario } from './vocabulario.js';
 import { crearError, resolverPalabraNoEjecutable, type ErrorKiroLogo } from './errores.js';
@@ -15,6 +15,9 @@ import { crearError, resolverPalabraNoEjecutable, type ErrorKiroLogo } from './e
 // ============================================================================
 // Tipos públicos
 // ============================================================================
+
+/** Mundo en que se desbloquean los operadores y paréntesis. */
+const MUNDO_ARITMETICA = 4;
 
 export interface OpcionesAnalisis {
   readonly mundo: Mundo;                     // el del Nivel en curso
@@ -27,6 +30,20 @@ export interface ResultadoSintactico {
 
 /** Máximo de errores que se devuelven; los de línea mayor se descartan. */
 const MAXIMO_ERRORES = 20;
+
+/**
+ * Firma de un procedimiento tal como la ve la primera pasada. Las llamadas se
+ * validan contra ella antes de ejecutar, incluso si la definicion aparece despues.
+ */
+export interface FirmaProcedimiento {
+  readonly nombre: string;                  // normalizado, MAYUSCULAS
+  readonly parametros: readonly string[];   // minusculas, sin ':', sin duplicados
+  readonly escritos: readonly string[];     // como los escribio el jugador, con ':'
+  readonly linea: number;
+  // Conocida pero sin nodo (parametro repetido o parametros antes del mundo 4):
+  // asi las llamadas se validan contra una aridad razonable y no encadenan "No se como hacer...".
+  readonly rechazada: boolean;
+}
 
 /**
  * Nombres de los procedimientos válidos de un programa, en orden de definición,
@@ -53,9 +70,18 @@ const MAXIMO_ERRORES = 20;
  * @param mundo Mundo del nivel en curso
  */
 export function nombresDeProcedimientos(tokens: readonly Token[], mundo: Mundo): readonly string[] {
+  return firmasDeProcedimientos(tokens, mundo).map((f) => f.nombre);
+}
+
+/**
+ * Firmas de los procedimientos validos de un programa, en orden de definicion.
+ * Como nombresDeProcedimientos, no incluye las rechazadas (parametro repetido,
+ * parametros antes del mundo 4): el panel no las lista.
+ */
+export function firmasDeProcedimientos(tokens: readonly Token[], mundo: Mundo): readonly FirmaProcedimiento[] {
   const para = buscarComando('PARA');
   if (!para.hallada || para.entrada.mundo > mundo) return [];
-  return [...recolectarProcedimientos(tokens)];
+  return [...recolectarFirmas(tokens, mundo).values()].filter((f) => !f.rechazada);
 }
 
 // ============================================================================
@@ -68,9 +94,14 @@ interface Estado {
   readonly mundo: Mundo;
   readonly errores: ErrorKiroLogo[];
   pilaCorchetes: number[];   // líneas de los corchetes de apertura activos
-  readonly procedimientos: Set<string>;  // nombres de PARA válidos (1ª pasada) más los de PARA anidados ya reportados
+  readonly firmas: Map<string, FirmaProcedimiento>; // PARA válidos (1ª pasada) más los de PARA anidados ya reportados
+  profundidadParentesis: number;   // paréntesis abiertos en este punto (tope 32)
+  nivelExpresion: number;          // anidamiento de unarios/operandos en curso (defensa de pila, tope 128)
+  readonly alturas: WeakMap<object, number>; // altura de cada nodo de expresión construido
   anidamiento: number;   // listas de REPITE y cuerpos de PARA abiertos en este punto
   readonly definidos: Set<string>;  // nombres ya definidos en ESTA 2ª pasada (para detectar redefinición)
+  // Parámetros visibles: los del PARA en curso, o null en el programa principal. Un procedimiento no hereda los de quien lo llama.
+  ambito: ReadonlySet<string> | null;
 }
 
 /**
@@ -82,9 +113,31 @@ interface Estado {
  * @returns Resultado con el programa (o null) y los errores
  */
 export function analizar(
-  tokens: readonly Token[],
+  tokensEscritos: readonly Token[],
   opciones: OpcionesAnalisis,
 ): ResultadoSintactico {
+  // Antes del mundo 4 los símbolos aritméticos no existen: se avisa una sola vez con el
+  // primero y se analiza el resto sin ellos. Los demás errores de esas líneas se omiten,
+  // porque son consecuencia de haber quitado el símbolo y repetirían el mismo aviso.
+  // `comandoBloqueado` se conserva: sale del comando escrito, no del símbolo quitado, y
+  // cada ocurrencia de un comando del mundo 4 se reporta (R5.6, R9.8, R11.11).
+  let tokens = tokensEscritos;
+  let bloqueo: ErrorKiroLogo | null = null;
+  const lineasConSimbolo = new Set<number>();
+  if (opciones.mundo < MUNDO_ARITMETICA) {
+    const esSimbolo = (t: Token): boolean =>
+      t.tipo === 'operador' || t.tipo === 'parentesis_abre' || t.tipo === 'parentesis_cierra';
+    const primero = tokensEscritos.find(esSimbolo);
+    if (primero !== undefined) {
+      bloqueo = crearError(
+        'aritmeticaBloqueada',
+        { simbolo: primero.textoOriginal, mundo: MUNDO_ARITMETICA },
+        posicion(primero),
+      );
+      for (const t of tokensEscritos) if (esSimbolo(t)) lineasConSimbolo.add(t.linea);
+      tokens = tokensEscritos.filter((t) => !esSimbolo(t));
+    }
+  }
   // Primera pasada: recolectar los nombres de los PARA bien formados. La segunda
   // pasada (el bucle de abajo) usa este conjunto para tratar un `identificador`
   // como invocación de procedimiento aunque la definición aparezca más adelante
@@ -96,9 +149,13 @@ export function analizar(
     mundo: opciones.mundo,
     errores: [],
     pilaCorchetes: [],
-    procedimientos: new Set(recolectarProcedimientos(tokens)),
+    firmas: recolectarFirmas(tokens, opciones.mundo),
+    profundidadParentesis: 0,
+    nivelExpresion: 0,
+    alturas: new WeakMap<object, number>(),
     anidamiento: 0,
     definidos: new Set<string>(),
+    ambito: null,
   };
 
   const instrucciones: Instruccion[] = [];
@@ -118,7 +175,11 @@ export function analizar(
     }
   }
 
-  const erroresFinales = ordenarYAcotar(estado.errores);
+  const erroresFinales = ordenarYAcotar(
+    bloqueo === null
+      ? estado.errores
+      : [bloqueo, ...estado.errores.filter((e) => e.id === 'comandoBloqueado' || !lineasConSimbolo.has(e.linea ?? 0))],
+  );
 
   if (erroresFinales.length > 0) {
     return { programa: null, errores: erroresFinales };
@@ -161,6 +222,15 @@ function analizarInstruccion(estado: Estado): Instruccion | null {
       reportar(estado, crearError('palabraInesperada', { valor: token.textoOriginal.slice(1), linea: token.linea }, posicion(token)));
       estado.indice += 1;
       return null;
+    case 'parentesis_cierra':
+      reportar(estado, crearError('parentesisDeMas', { linea: token.linea }, posicion(token)));
+      estado.indice += 1;
+      return null;
+    case 'operador':
+    case 'parentesis_abre':
+      reportar(estado, crearError('parametroInesperado', { valor: token.textoOriginal, linea: token.linea }, posicion(token)));
+      estado.indice += 1;
+      return null;
     case 'numero':
       reportar(estado, crearError('numeroInesperado', { valor: token.textoOriginal, linea: token.linea }, posicion(token)));
       estado.indice += 1;
@@ -170,17 +240,8 @@ function analizarInstruccion(estado: Estado): Instruccion | null {
       // procedimientos es una invocación, usable igual que un comando del
       // lenguaje (R1.4). Funciona con referencias adelantadas porque el conjunto
       // se construyó en la primera pasada (R1.5).
-      if (estado.procedimientos.has(token.valor)) {
-        const nodo: InvocacionProcedimiento = {
-          tipo: 'invocacionProcedimiento',
-          nombre: token.valor,
-          argumentos: [],
-          linea: token.linea,
-          columna: token.columna,
-        };
-        estado.indice += 1;
-        return nodo;
-      }
+      const firma = estado.firmas.get(token.valor);
+      if (firma !== undefined) return analizarInvocacion(estado, token, firma);
       // Palabra que no es comando ni procedimiento: el catálogo elige el mensaje
       // (sugerencia, inglés, bloqueado cercano o mensaje seco). Pasamos los
       // nombres de procedimiento para que un parecido sugiera uno de ellos (R6.3).
@@ -190,7 +251,7 @@ function analizarInstruccion(estado: Estado): Instruccion | null {
           token.textoOriginal,
           estado.mundo,
           posicion(token),
-          [...estado.procedimientos],
+          [...estado.firmas.keys()],
         ),
       );
       estado.indice += 1;
@@ -199,6 +260,102 @@ function analizarInstruccion(estado: Estado): Instruccion | null {
     case 'comando':
       return analizarComando(estado, token);
   }
+}
+
+/**
+ * Invocación de un procedimiento: una expresión por parámetro de su firma. La
+ * aridad se valida aquí, antes de ejecutar, también para llamadas anteriores a la
+ * definición (la firma sale de la primera pasada). Los argumentos siguientes al
+ * primero deben empezar en la línea donde terminó el anterior.
+ */
+function analizarInvocacion(estado: Estado, token: Token, firma: FirmaProcedimiento): Instruccion | null {
+  estado.indice += 1;
+  const argumentos: Expresion[] = [];
+  let ultimoEsResta = false;
+
+  for (let i = 0; i < firma.parametros.length; i++) {
+    const siguiente = actual(estado);
+    const enLugar = i === 0 || (siguiente !== undefined && siguiente.linea === lineaDelUltimoToken(estado));
+    if (siguiente !== undefined && siguiente.tipo === 'palabra' && enLugar) {
+      reportar(
+        estado,
+        crearError(
+          'argumentoDeTipoEquivocado',
+          {
+            comando: token.textoOriginal,
+            recibido: siguiente.textoOriginal,
+            procedimiento: token.textoOriginal,
+            parametro: firma.escritos[i]!,
+          },
+          posicion(siguiente),
+        ),
+      );
+      return null;
+    }
+    if (!enLugar || !puedeEmpezarExpresion(siguiente)) {
+      reportar(
+        estado,
+        crearError(
+          'procedimientoArgumentosFaltantes',
+          {
+            nombre: token.textoOriginal,
+            esperados: firma.escritos,
+            recibidos: i,
+            ...(ultimoEsResta ? { menosComoResta: true } : {}),
+          },
+          posicion(token),
+        ),
+      );
+      return null;
+    }
+    const inicio = estado.indice;
+    const argumento = analizarExpresion(estado);
+    if (argumento === null) return null;
+    ultimoEsResta = esRestaBinariaSinParentesis(estado, inicio, argumento);
+    argumentos.push(argumento);
+  }
+
+  // Lo que sobra en la misma línea que el último argumento (o que el nombre).
+  const sobrante = actual(estado);
+  if (
+    sobrante !== undefined &&
+    sobrante.linea === lineaDelUltimoToken(estado) &&
+    (sobrante.tipo === 'palabra' || puedeEmpezarExpresion(sobrante))
+  ) {
+    reportar(
+      estado,
+      crearError(
+        'procedimientoArgumentosDeMas',
+        { nombre: token.textoOriginal, esperados: firma.escritos, linea: token.linea },
+        posicion(sobrante),
+      ),
+    );
+    return null;
+  }
+
+  const nodo: InvocacionProcedimiento = {
+    tipo: 'invocacionProcedimiento',
+    nombre: token.valor as string,
+    argumentos,
+    linea: token.linea,
+    columna: token.columna,
+  };
+  return nodo;
+}
+
+/** ¿La expresión que empieza en `inicio` es una resta de nivel superior (sin paréntesis alrededor)? */
+function esRestaBinariaSinParentesis(estado: Estado, inicio: number, expresion: Expresion): boolean {
+  if (expresion.tipo !== 'expresionAritmetica' || expresion.operador !== '-') return false;
+  let profundidad = 0;
+  for (let k = inicio; k < estado.indice; k++) {
+    const t = estado.tokens[k]!;
+    if (t.tipo === 'parentesis_abre') profundidad += 1;
+    else if (t.tipo === 'parentesis_cierra') profundidad -= 1;
+    else if (profundidad === 0 && t.tipo === 'operador' && t.linea === expresion.linea && t.columna === expresion.columna) {
+      return true;
+    }
+  }
+  return false;
 }
 
 /**
@@ -251,6 +408,20 @@ function analizarComando(estado: Estado, token: Token): Instruccion | null {
     return null;
   }
 
+  // Un comando de operador en posición de instrucción calcula un valor que nadie usa.
+  // Se analiza completo (para consumir sus argumentos) y el ejemplo se arma con lo escrito.
+  if (entrada.produceValor) {
+    const inicio = estado.indice;
+    const operador = analizarComandoOperador(estado, token, entrada);
+    if (operador === null) return null;
+    const escrito = estado.tokens.slice(inicio, estado.indice).map((t) => t.textoOriginal).join(' ');
+    reportar(
+      estado,
+      crearError('operadorSinUso', { nombre: entrada.nombre, ejemplo: `ESCRIBE ${escrito}` }, posicion(token)),
+    );
+    return null;
+  }
+
   // Consumir el comando.
   const lineaComando = token.linea;
   const columnaComando = token.columna;
@@ -266,6 +437,11 @@ function analizarComando(estado: Estado, token: Token): Instruccion | null {
   // vocabulario, no por el nombre, y se transporta sin resolver.
   if (entrada.tiposArgumento[0] === 'color') {
     return analizarComandoColor(estado, entrada, lineaComando, columnaComando);
+  }
+
+  // ESCRIBE y ROTULA aceptan una palabra con comilla o una expresión.
+  if (entrada.tiposArgumento[0] === 'valorEscribible') {
+    return analizarComandoEscribible(estado, entrada, lineaComando, columnaComando);
   }
 
   // En el mundo 0 los comandos son de aridad 0 o 1 con argumento numérico. En el
@@ -297,17 +473,52 @@ function analizarComandoConArgumento(
 ): Instruccion | null {
   const siguiente = actual(estado);
 
-  // Falta el argumento: fin de tokens o el siguiente es otro comando.
-  if (siguiente === undefined || siguiente.tipo === 'comando') {
-    reportar(
-      estado,
-      crearError('argumentoFaltante', { comando: entrada.nombre }, { linea: lineaComando, columna: columnaComando }),
-    );
+  // No consumir el token equivocado; la sincronización descartará el resto
+  // de la instrucción y reanudará en el siguiente comando.
+  if (!puedeEmpezarExpresion(siguiente)) {
+    reportarArgumentoInvalido(estado, entrada.nombre, siguiente, { linea: lineaComando, columna: columnaComando });
     return null;
   }
 
-  // El argumento debe ser un número.
-  if (siguiente.tipo !== 'numero') {
+  const argumento = analizarExpresion(estado);
+  if (argumento === null) return null;
+
+  const nodo: InvocacionComando = {
+    tipo: 'invocacionComando',
+    nombre: entrada.nombre,
+    argumentos: [argumento],
+    linea: lineaComando,
+    columna: columnaComando,
+  };
+  return nodo;
+}
+
+/** `ESCRIBE` y `ROTULA`: una palabra con comilla (`"hola`) o una expresión. */
+function analizarComandoEscribible(
+  estado: Estado,
+  entrada: EntradaVocabulario,
+  lineaComando: number,
+  columnaComando: number,
+): Instruccion | null {
+  const siguiente = actual(estado);
+  if (siguiente === undefined || esComandoDeAccion(siguiente)) {
+    reportarArgumentoInvalido(estado, entrada.nombre, siguiente, { linea: lineaComando, columna: columnaComando });
+    return null;
+  }
+
+  let argumento: Expresion | null;
+  if (siguiente.tipo === 'palabra') {
+    estado.indice += 1;
+    const palabra: PalabraLiteral = {
+      tipo: 'palabraLiteral',
+      valor: siguiente.textoOriginal.slice(1),
+      linea: siguiente.linea,
+      columna: siguiente.columna,
+    };
+    argumento = palabra;
+  } else if (puedeEmpezarExpresion(siguiente)) {
+    argumento = analizarExpresion(estado);
+  } else {
     reportar(
       estado,
       crearError(
@@ -316,28 +527,293 @@ function analizarComandoConArgumento(
         posicion(siguiente),
       ),
     );
-    // No consumir el token equivocado; la sincronización descartará el resto
-    // de la instrucción y reanudará en el siguiente comando.
     return null;
   }
-
-  // Consumir el número.
-  const argumento: NumeroLiteral = {
-    tipo: 'numeroLiteral',
-    valor: siguiente.valor as number,
-    linea: siguiente.linea,
-    columna: siguiente.columna,
-  };
-  estado.indice += 1;
+  if (argumento === null) return null;
 
   const nodo: InvocacionComando = {
     tipo: 'invocacionComando',
     nombre: entrada.nombre,
-    argumentos: [argumento as Expresion],
+    argumentos: [argumento],
     linea: lineaComando,
     columna: columnaComando,
   };
   return nodo;
+}
+
+// ============================================================================
+// Expresiones
+// ============================================================================
+//
+//   expresion = termino { ("+" | "-") termino } ;       asociatividad izquierda
+//   termino   = unario  { ("*" | "/") unario  } ;
+//   unario    = "-" unario | primario ;
+//   primario  = NUMERO | PARAMETRO | "(" expresion ")" | operador ;
+//   operador  = NOMBRE_OPERADOR expresion { expresion } ;   aridad exacta del vocabulario
+//
+// Regla de la línea: un operador infijo continúa la expresión solo si está en la
+// misma línea que el último token del operando izquierdo, y su operando derecho
+// debe estar en la línea del operador. El primer argumento de una instrucción
+// puede empezar en una línea posterior; los siguientes de un comando de operador
+// deben empezar en la línea donde terminó el argumento anterior.
+
+const MAXIMO_PARENTESIS = 32;
+// Defensa de pila, no regla de producto: `evaluar`, `contar` e `imprimir` son recursivos.
+const MAXIMA_ALTURA_EXPRESION = 128;
+
+function entradaDe(token: Token): EntradaVocabulario | null {
+  if (token.tipo !== 'comando') return null;
+  const busqueda = buscarComando(token.valor);
+  return busqueda.hallada ? busqueda.entrada : null;
+}
+
+function esComandoOperador(token: Token): boolean {
+  return entradaDe(token)?.produceValor === true;
+}
+
+/** Comando que ejecuta algo (no calcula un valor): termina la instrucción en curso. */
+function esComandoDeAccion(token: Token): boolean {
+  return token.tipo === 'comando' && !esComandoOperador(token);
+}
+
+/**
+ * Lo que sigue a `comando` no puede empezar una expresión (D9).
+ * - Falta el token, o una acción empieza en una línea posterior: `argumentoFaltante`.
+ * - Una acción en la misma línea (`AVANZA AVANZA 10`), un procedimiento u otro token
+ *   que no es expresión: `argumentoDeTipoEquivocado`.
+ */
+function reportarArgumentoInvalido(
+  estado: Estado,
+  comando: string,
+  siguiente: Token | undefined,
+  posicionComando: { readonly linea: number; readonly columna: number },
+): void {
+  const ultimo = estado.tokens[estado.indice - 1];
+  const aOtraLinea = siguiente !== undefined && esComandoDeAccion(siguiente) &&
+    ultimo !== undefined && siguiente.linea !== ultimo.linea;
+  if (siguiente === undefined || aOtraLinea) {
+    reportar(estado, crearError('argumentoFaltante', { comando }, posicionComando));
+    return;
+  }
+  reportar(
+    estado,
+    crearError('argumentoDeTipoEquivocado', { comando, recibido: siguiente.textoOriginal }, posicion(siguiente)),
+  );
+}
+
+function esOperador(token: Token | undefined, simbolos: string): boolean {
+  return token !== undefined && token.tipo === 'operador' && simbolos.includes(token.valor);
+}
+
+function puedeEmpezarExpresion(token: Token | undefined): boolean {
+  if (token === undefined) return false;
+  return (
+    token.tipo === 'numero' ||
+    token.tipo === 'parametro' ||
+    token.tipo === 'parentesis_abre' ||
+    esOperador(token, '-') ||
+    esComandoOperador(token)
+  );
+}
+
+function lineaDelUltimoToken(estado: Estado): number {
+  return estado.tokens[estado.indice - 1]?.linea ?? 0;
+}
+
+function alturaDe(estado: Estado, nodo: Expresion): number {
+  return estado.alturas.get(nodo) ?? 1;
+}
+
+function registrarAltura(estado: Estado, nodo: Expresion, altura: number): Expresion | null {
+  if (altura > MAXIMA_ALTURA_EXPRESION) {
+    reportar(estado, crearError('expresionDemasiadoProfunda', {}, posicion(estado.tokens[estado.indice - 1]!)));
+    return null;
+  }
+  estado.alturas.set(nodo, altura);
+  return nodo;
+}
+
+/** El operador o paréntesis recién consumido se quedó sin operando. */
+function reportarExpresionIncompleta(estado: Estado, simbolo: Token): null {
+  reportar(
+    estado,
+    crearError('expresionIncompleta', { simbolo: simbolo.textoOriginal, linea: simbolo.linea }, posicion(simbolo)),
+  );
+  return null;
+}
+
+/**
+ * Analiza una expresión desde el token actual. Devuelve `null` si reportó un error
+ * (el llamador sincroniza); nunca lanza por entradas muy anidadas.
+ */
+function analizarExpresion(estado: Estado): Expresion | null {
+  let izquierda = analizarTermino(estado);
+  if (izquierda === null) return null;
+
+  for (;;) {
+    const operador = actual(estado);
+    if (!esOperador(operador, '+-') || operador!.linea !== lineaDelUltimoToken(estado)) return izquierda;
+    estado.indice += 1;
+    const siguiente = actual(estado);
+    if (!puedeEmpezarExpresion(siguiente) || siguiente!.linea !== operador!.linea) {
+      return reportarExpresionIncompleta(estado, operador!);
+    }
+    const derecha = analizarTermino(estado);
+    if (derecha === null) return null;
+    const nodo: Expresion = {
+      tipo: 'expresionAritmetica',
+      operador: operador!.valor as '+' | '-',
+      izquierda,
+      derecha,
+      linea: operador!.linea,
+      columna: operador!.columna,
+    };
+    const registrado = registrarAltura(estado, nodo, Math.max(alturaDe(estado, izquierda), alturaDe(estado, derecha)) + 1);
+    if (registrado === null) return null;
+    izquierda = registrado;
+  }
+}
+
+function analizarTermino(estado: Estado): Expresion | null {
+  let izquierda = analizarUnario(estado);
+  if (izquierda === null) return null;
+
+  for (;;) {
+    const operador = actual(estado);
+    if (!esOperador(operador, '*/') || operador!.linea !== lineaDelUltimoToken(estado)) return izquierda;
+    estado.indice += 1;
+    const siguiente = actual(estado);
+    if (!puedeEmpezarExpresion(siguiente) || siguiente!.linea !== operador!.linea) {
+      return reportarExpresionIncompleta(estado, operador!);
+    }
+    const derecha = analizarUnario(estado);
+    if (derecha === null) return null;
+    const nodo: Expresion = {
+      tipo: 'expresionAritmetica',
+      operador: operador!.valor as '*' | '/',
+      izquierda,
+      derecha,
+      linea: operador!.linea,
+      columna: operador!.columna,
+    };
+    const registrado = registrarAltura(estado, nodo, Math.max(alturaDe(estado, izquierda), alturaDe(estado, derecha)) + 1);
+    if (registrado === null) return null;
+    izquierda = registrado;
+  }
+}
+
+function analizarUnario(estado: Estado): Expresion | null {
+  if (estado.nivelExpresion >= MAXIMA_ALTURA_EXPRESION) {
+    reportar(estado, crearError('expresionDemasiadoProfunda', {}, posicion(actual(estado) ?? estado.tokens[estado.indice - 1]!)));
+    return null;
+  }
+  estado.nivelExpresion += 1;
+  try {
+    const menos = actual(estado);
+    if (!esOperador(menos, '-')) return analizarPrimario(estado);
+
+    estado.indice += 1;
+    const siguiente = actual(estado);
+    if (!puedeEmpezarExpresion(siguiente) || siguiente!.linea !== menos!.linea) {
+      return reportarExpresionIncompleta(estado, menos!);
+    }
+    const operando = analizarUnario(estado);
+    if (operando === null) return null;
+    return registrarAltura(
+      estado,
+      { tipo: 'menosUnario', operando, linea: menos!.linea, columna: menos!.columna },
+      alturaDe(estado, operando) + 1,
+    );
+  } finally {
+    estado.nivelExpresion -= 1;
+  }
+}
+
+function analizarPrimario(estado: Estado): Expresion | null {
+  const token = actual(estado);
+  if (token === undefined) return null;
+
+  if (token.tipo === 'numero') {
+    estado.indice += 1;
+    const numero: NumeroLiteral = { tipo: 'numeroLiteral', valor: token.valor, linea: token.linea, columna: token.columna };
+    return numero;
+  }
+
+  if (token.tipo === 'parametro') {
+    estado.indice += 1;
+    const nombreParametro = String(token.valor).toLowerCase();
+    if (estado.ambito === null || !estado.ambito.has(nombreParametro)) {
+      // Se reporta pero se devuelve la referencia para seguir y acumular más errores.
+      reportar(estado, crearError('variableNoDefinida', { nombre: token.textoOriginal }, posicion(token)));
+    }
+    return { tipo: 'referenciaParametro', nombre: nombreParametro, linea: token.linea, columna: token.columna };
+  }
+
+  if (token.tipo === 'parentesis_abre') {
+    if (estado.profundidadParentesis >= MAXIMO_PARENTESIS) {
+      reportar(estado, crearError('expresionDemasiadoProfunda', {}, posicion(token)));
+      return null;
+    }
+    estado.indice += 1;
+    const siguiente = actual(estado);
+    if (siguiente === undefined || !puedeEmpezarExpresion(siguiente)) {
+      // Un `(` al final del texto quedó sin cerrar; `()` o `(]` dejan al paréntesis sin contenido.
+      return siguiente === undefined
+        ? (reportar(estado, crearError('parentesisSinCerrar', { linea: token.linea }, posicion(token))), null)
+        : reportarExpresionIncompleta(estado, token);
+    }
+    estado.profundidadParentesis += 1;
+    let interior: Expresion | null;
+    try {
+      interior = analizarExpresion(estado);
+    } finally {
+      estado.profundidadParentesis -= 1;
+    }
+    if (interior === null) return null;
+    const cierre = actual(estado);
+    if (cierre === undefined || cierre.tipo !== 'parentesis_cierra') {
+      reportar(estado, crearError('parentesisSinCerrar', { linea: token.linea }, posicion(token)));
+      return null;
+    }
+    estado.indice += 1;
+    return interior;
+  }
+
+  const entrada = entradaDe(token);
+  if (entrada !== null && entrada.produceValor) {
+    return analizarComandoOperador(estado, token, entrada);
+  }
+
+  // Inalcanzable si el llamador comprobó `puedeEmpezarExpresion`.
+  return reportarExpresionIncompleta(estado, estado.tokens[estado.indice - 1] ?? token);
+}
+
+/** `SUMA a b`, `AZAR n`…: aridad exacta del vocabulario; cada argumento es la expresión más larga posible. */
+function analizarComandoOperador(estado: Estado, token: Token, entrada: EntradaVocabulario): Expresion | null {
+  if (entrada.mundo > estado.mundo) {
+    reportar(estado, crearError('comandoBloqueado', { nombre: entrada.nombre, mundo: entrada.mundo }, posicion(token)));
+    estado.indice += 1;
+    return null;
+  }
+  estado.indice += 1;
+  const argumentos: Expresion[] = [];
+  const cantidad = typeof entrada.aridad === 'number' ? entrada.aridad : 0;
+  for (let i = 0; i < cantidad; i++) {
+    const siguiente = actual(estado);
+    const enLugar = i === 0 || (siguiente !== undefined && siguiente.linea === lineaDelUltimoToken(estado));
+    if (!enLugar || !puedeEmpezarExpresion(siguiente)) {
+      reportarArgumentoInvalido(estado, entrada.nombre, enLugar ? siguiente : undefined, posicion(token));
+      return null;
+    }
+    const argumento = analizarExpresion(estado);
+    if (argumento === null) return null;
+    argumentos.push(argumento);
+  }
+  return registrarAltura(
+    estado,
+    { tipo: 'comandoOperador', nombre: entrada.nombre, argumentos, linea: token.linea, columna: token.columna },
+    Math.max(0, ...argumentos.map((a) => alturaDe(estado, a))) + 1,
+  );
 }
 
 /**
@@ -464,7 +940,7 @@ function analizarRepite(
 ): Instruccion | null {
   // 1. Número de repeticiones
   const tokenNumero = actual(estado);
-  if (tokenNumero === undefined || tokenNumero.tipo !== 'numero') {
+  if (!puedeEmpezarExpresion(tokenNumero)) {
     reportar(
       estado,
       crearError(
@@ -475,10 +951,10 @@ function analizarRepite(
     );
     return null;
   }
-  const veces = tokenNumero.valor as number;
-  const lineaVeces = tokenNumero.linea;
-  const columnaVeces = tokenNumero.columna;
-  estado.indice += 1;
+  const veces = analizarExpresion(estado);
+  if (veces === null) return null;
+  const lineaVeces = tokenNumero!.linea;
+  const columnaVeces = tokenNumero!.columna;
 
   // 2. Corchete de apertura
   const tokenAbre = actual(estado);
@@ -515,7 +991,7 @@ function analizarRepite(
 
   const nodo: Repeticion = {
     tipo: 'repeticion',
-    veces: { tipo: 'numeroLiteral', valor: veces, linea: lineaVeces, columna: columnaVeces },
+    veces,
     cuerpo,
     linea: lineaComando,
     columna: columnaComando,
@@ -581,7 +1057,7 @@ function analizarListaInstruccionesAbierta(estado: Estado): readonly Instruccion
 
 // El parser trabaja en dos pasadas y ambas tienen que coincidir sobre qué nombres
 // son procedimientos invocables. Para que no se separen, la regla de aceptación
-// vive en un solo lugar: la primera pasada (`recolectarProcedimientos`) la aplica
+// vive en un solo lugar: la primera pasada (`recolectarFirmas`) la aplica
 // para construir el conjunto, y `analizarDefinicion` la replica reportando el error
 // concreto de cada rechazo. Los tres motivos de rechazo son los mismos en ambas:
 //   1. el nombre pisa un comando/abreviatura del lenguaje (paraNombreQueEsLenguaje);
@@ -599,8 +1075,8 @@ function analizarListaInstruccionesAbierta(estado: Estado): readonly Instruccion
  * @param tokens Tokens producidos por el lexer
  * @returns Conjunto de nombres normalizados de procedimientos válidos
  */
-function recolectarProcedimientos(tokens: readonly Token[]): ReadonlySet<string> {
-  const nombres = new Set<string>();
+function recolectarFirmas(tokens: readonly Token[], mundo: Mundo): Map<string, FirmaProcedimiento> {
+  const firmas = new Map<string, FirmaProcedimiento>();
   let i = 0;
 
   while (i < tokens.length) {
@@ -621,9 +1097,25 @@ function recolectarProcedimientos(tokens: readonly Token[]): ReadonlySet<string>
     }
     const nombre = tokenNombre.valor;
 
-    // Buscar el FIN que cierra esta definición, saltando el cuerpo. El mundo 2 no
-    // anida PARA, así que basta con avanzar hasta el primer FIN de comando.
+    // Los parámetros son los tokens `parametro` consecutivos tras el nombre.
+    const parametros: string[] = [];
+    const escritos: string[] = [];
+    let hayRepetido = false;
     let j = i + 2;
+    while (j < tokens.length && tokens[j]!.tipo === 'parametro') {
+      const p = tokens[j]!;
+      const normalizado = String(p.valor).toLowerCase();
+      if (parametros.includes(normalizado)) {
+        hayRepetido = true;
+      } else {
+        parametros.push(normalizado);
+        escritos.push(p.textoOriginal);
+      }
+      j += 1;
+    }
+
+    // Buscar el FIN que cierra esta definición, saltando el cuerpo. Los PARA no se
+    // anidan, así que basta con avanzar hasta el primer FIN de comando.
     let tieneFin = false;
     while (j < tokens.length) {
       const t = tokens[j]!;
@@ -637,8 +1129,14 @@ function recolectarProcedimientos(tokens: readonly Token[]): ReadonlySet<string>
     if (tieneFin) {
       // Solo se registra si pasa los mismos filtros que la segunda pasada: no pisa
       // el lenguaje y no es un duplicado (se conserva la primera aparición).
-      if (!buscarComando(nombre).hallada && !nombres.has(nombre)) {
-        nombres.add(nombre);
+      if (!buscarComando(nombre).hallada && !firmas.has(nombre)) {
+        firmas.set(nombre, {
+          nombre,
+          parametros,
+          escritos,
+          linea: tokenNombre.linea,
+          rechazada: hayRepetido || (parametros.length > 0 && mundo < 4),
+        });
       }
       // Reanudar tras el FIN para no volver a ver su contenido.
       i = j + 1;
@@ -648,7 +1146,7 @@ function recolectarProcedimientos(tokens: readonly Token[]): ReadonlySet<string>
     }
   }
 
-  return nombres;
+  return firmas;
 }
 
 /**
@@ -682,14 +1180,23 @@ function analizarDefinicion(estado: Estado, tokenPara: Token): Instruccion | nul
   const lineaNombre = tokenNombre.linea;
   estado.indice += 1;   // consumir el nombre
 
-  // Un `:param` entre el nombre y el cuerpo: los parámetros llegan en el mundo 4.
-  // Antes se avisa una sola vez (en el primero) en vez de descartarlos en silencio; desde
-  // el mundo 4 se ignoran como antes, hasta que se implementen.
+  // Parámetros: los `:param` consecutivos de la cabecera, normalizados a minúsculas.
+  // Antes del mundo 4 se avisa una sola vez (en el primero) y el procedimiento no se define.
   const primerParametro = actual(estado)?.tipo === 'parametro' ? actual(estado) : undefined;
+  const parametros: string[] = [];
+  let parametroRepetido: Token | undefined;
   while (actual(estado)?.tipo === 'parametro') {
+    const tokenParametro = actual(estado)!;
+    const normalizado = String(tokenParametro.valor).toLowerCase();
+    if (parametros.includes(normalizado)) {
+      parametroRepetido ??= tokenParametro;
+    } else {
+      parametros.push(normalizado);
+    }
     estado.indice += 1;
   }
-  if (primerParametro !== undefined && estado.mundo < 4) {
+  const parametrosBloqueados = primerParametro !== undefined && estado.mundo < 4;
+  if (primerParametro !== undefined && parametrosBloqueados) {
     reportar(estado, crearError('paraConParametros', {}, posicion(primerParametro)));
   }
 
@@ -713,16 +1220,37 @@ function analizarDefinicion(estado: Estado, tokenPara: Token): Instruccion | nul
     reportar(estado, crearError('procedimientoRedefinido', { nombre, linea: lineaNombre }, posicion(tokenNombre)));
   }
 
-  const registrable = !colisionLenguaje && !esDuplicado;
-  if (registrable) {
+  if (!colisionLenguaje && !esDuplicado) {
     estado.definidos.add(nombre);
   }
+
+  // Parámetro repetido: la firma queda conocida (rechazada) pero no se emite nodo.
+  const rechazadoPorParametros = !colisionLenguaje && !esDuplicado && parametroRepetido !== undefined;
+  if (rechazadoPorParametros) {
+    reportar(
+      estado,
+      crearError(
+        'parametroDuplicado',
+        { procedimiento: tokenNombre.textoOriginal, parametro: parametroRepetido!.textoOriginal },
+        posicion(parametroRepetido!),
+      ),
+    );
+  }
+
+  const registrable = !colisionLenguaje && !esDuplicado && !rechazadoPorParametros && !parametrosBloqueados;
 
   // 4. Cuerpo: instrucciones hasta encontrar el comando FIN.
   if (colisionLenguaje) {
     descartarCuerpoDefinicion(estado);
   }
-  const cuerpo = colisionLenguaje ? [] : analizarCuerpoDefinicion(estado);
+  const ambitoPrevio = estado.ambito;
+  estado.ambito = new Set(parametros);
+  let cuerpo: readonly Instruccion[];
+  try {
+    cuerpo = colisionLenguaje ? [] : analizarCuerpoDefinicion(estado);
+  } finally {
+    estado.ambito = ambitoPrevio;
+  }
 
   // 5. ¿Terminó con FIN?
   const tokenFin = actual(estado);
@@ -743,7 +1271,7 @@ function analizarDefinicion(estado: Estado, tokenPara: Token): Instruccion | nul
   const nodo: DefinicionProcedimiento = {
     tipo: 'definicionProcedimiento',
     nombre,
-    parametros: [],
+    parametros,
     cuerpo,
     linea: lineaPara,
     columna: columnaPara,
@@ -777,7 +1305,9 @@ function reportarParaAnidado(estado: Estado, tokenPara: Token): null {
 
   const tokenNombre = actual(estado);
   if (tokenNombre?.tipo === 'identificador' && !buscarComando(tokenNombre.valor).hallada) {
-    estado.procedimientos.add(tokenNombre.valor);
+    estado.firmas.set(tokenNombre.valor, {
+      nombre: tokenNombre.valor, parametros: [], escritos: [], linea: tokenNombre.linea, rechazada: true,
+    });
   }
 
   let profundidad = 1;
@@ -853,7 +1383,7 @@ function analizarCuerpoDefinicionAbierto(estado: Estado): readonly Instruccion[]
 function sincronizar(estado: Estado): void {
   while (!finalizado(estado)) {
     const token = actual(estado)!;
-    if (token.tipo === 'comando') {
+    if (esComandoDeAccion(token) || esOperadorBloqueado(estado, token)) {
       return;
     }
     estado.indice += 1;
@@ -867,11 +1397,22 @@ function sincronizar(estado: Estado): void {
 function sincronizarEnLista(estado: Estado): void {
   while (!finalizado(estado)) {
     const token = actual(estado)!;
-    if (token.tipo === 'comando' || token.tipo === 'corchete_cierra') {
+    if (esComandoDeAccion(token) || esOperadorBloqueado(estado, token) || token.tipo === 'corchete_cierra') {
       return;
     }
     estado.indice += 1;
   }
+}
+
+/**
+ * Comando de operador de un mundo posterior. La sincronización se detiene también en él
+ * para que cada ocurrencia reporte su `comandoBloqueado` (R5.6) y no se pierda dentro de
+ * lo descartado tras el error anterior. Desde su mundo no detiene nada: ahí sigue siendo
+ * parte de la expresión que se descarta.
+ */
+function esOperadorBloqueado(estado: Estado, token: Token): boolean {
+  const entrada = entradaDe(token);
+  return entrada !== null && entrada.produceValor && entrada.mundo > estado.mundo;
 }
 
 // ============================================================================

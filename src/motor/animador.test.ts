@@ -1,4 +1,4 @@
-// Pruebas del animador: reloj falso, cuatro velocidades, paso a paso, reinicio,
+﻿// Pruebas del animador: reloj falso, cuatro velocidades, paso a paso, reinicio,
 // secuencia vacía, cambio de velocidad en curso y prefers-reduced-motion.
 //
 // Corre en Node con un reloj falso y un doble de lienzo, sin requestAnimationFrame.
@@ -894,5 +894,110 @@ describe('animador · relleno (punto 7b)', () => {
     animador.cargar(opsDe('REPITE 4 [AV 100 GD 90] RELLENA "azul'), 'jugador');
     expect(() => animador.reproducir()).not.toThrow();
     expect(lienzo.estelas.jugador).toHaveLength(4);
+  });
+});
+
+describe('animador · escribir y rotular (tarea 8.3)', () => {
+  function opTexto(tipo: 'escribir' | 'rotular', texto: string): Operacion {
+    const base = { paso: contadorPaso++, linea: 1, profundidad: 0, estadoAntes: ESTADO_INICIAL, estadoDespues: ESTADO_INICIAL };
+    return tipo === 'escribir'
+      ? { ...base, tipo, texto }
+      : { ...base, tipo, texto, posicion: { x: 0, y: 0 }, color: null };
+  }
+
+  function secuencia(): Operacion[] {
+    contadorPaso = 0;
+    return [opMover(ESTADO_INICIAL, 100, true), opTexto('escribir', '1'), opTexto('rotular', 'hola'), opTexto('escribir', '2')];
+  }
+
+  class LienzoConRotulos extends LienzoDoble {
+    readonly rotulos: Array<{ capa: string; texto: string }> = [];
+    rotular(capa: 'jugador' | 'referencia', rotulo: { texto: string }): void {
+      this.rotulos.push({ capa, texto: rotulo.texto });
+    }
+  }
+
+  it('rotular se pide al lienzo solo para el jugador; escribir no dibuja', () => {
+    const lienzo = new LienzoConRotulos();
+    const animador = crearAnimador(lienzo, new RelojFalso(), () => true);
+    animador.cargar(secuencia(), 'jugador');
+    animador.reproducir();
+    expect(lienzo.rotulos).toEqual([{ capa: 'jugador', texto: 'hola' }]);
+
+    const otro = new LienzoConRotulos();
+    const animador2 = crearAnimador(otro, new RelojFalso(), () => true);
+    animador2.cargar(secuencia(), 'referencia');
+    animador2.reproducir();
+    expect(otro.rotulos).toHaveLength(0);
+  });
+
+  it('escribir y rotular duran 0: se aplican en el ciclo que cierra la operación anterior', () => {
+    const reloj = new RelojFalso();
+    const lienzo = new LienzoConRotulos();
+    const animador = crearAnimador(lienzo, reloj, SIN_REDUCIR);
+    let aplicadas = 0;
+    animador.alAplicar(() => (aplicadas += 1));
+    animador.cargar(secuencia(), 'jugador');
+    animador.reproducir();
+    reloj.avanzar(DURACIONES.normal + 40);
+    expect(aplicadas).toBe(4);
+    expect(lienzo.rotulos).toHaveLength(1);
+  });
+});
+
+describe('animador · ESCRIBE y ROTULA desde un programa real (tarea 8.7)', () => {
+  function opsDe(texto: string): readonly Operacion[] {
+    const { programa } = analizar(analizarLexico(texto).tokens, { mundo: 4 });
+    const g = ejecutar(programa!, { estadoInicial: ESTADO_INICIAL, comandosPermitidos: comandosDelMundo(4), semilla: 0 });
+    let p = g.next();
+    while (!p.done) p = g.next();
+    return p.value.operaciones;
+  }
+
+  class LienzoConRotulos extends LienzoDoble {
+    readonly rotulos: Array<{ capa: string; texto: string; tramosAntes: number }> = [];
+    rotular(capa: 'jugador' | 'referencia', rotulo: { texto: string }): void {
+      this.rotulos.push({ capa, texto: rotulo.texto, tramosAntes: this.estelas[capa].length });
+    }
+  }
+
+  // Dos avances con lápiz; el resto es texto, con el lápiz abajo y arriba.
+  const TEXTO = 'ESCRIBE 1 AVANZA 40 ROTULA "a ESCRIBE 2 AVANZA 40 SUBELAPIZ ROTULA "b ESCRIBE 3';
+
+  for (const velocidad of ['lenta', 'normal', 'rapida'] as const) {
+    it(`a velocidad ${velocidad}, el texto no suma tiempo: todo termina en lo que duran los avances y el lápiz`, () => {
+      const ops = opsDe(TEXTO);
+      const conDuracion = ops.filter((o) => o.tipo !== 'escribir' && o.tipo !== 'rotular').length;
+      expect(conDuracion).toBe(3);
+      const reloj = new RelojFalso();
+      const lienzo = new LienzoConRotulos();
+      const animador = crearAnimador(lienzo, reloj, SIN_REDUCIR);
+      let fin: number | null = null;
+      animador.alTerminar((f) => (fin = f.operacionesAplicadas));
+      animador.cargar(ops, 'jugador');
+      animador.ponerVelocidad(velocidad);
+      animador.reproducir();
+      // Margen de dos fotogramas: si el texto durara una operación más, no alcanzaría.
+      reloj.avanzar(DURACIONES[velocidad] * conDuracion + 32);
+      expect(fin).toBe(ops.length);
+      expect(lienzo.rotulos.map((r) => [r.texto, r.tramosAntes])).toEqual([['a', 1], ['b', 2]]);
+    });
+  }
+
+  it('la demostración de Kiro (capa de referencia) no rotula, pero dibuja la misma estela', () => {
+    const ops = opsDe(TEXTO);
+    const jugador = new LienzoConRotulos();
+    const a1 = crearAnimador(jugador, new RelojFalso(), () => true);
+    a1.cargar(ops, 'jugador');
+    a1.reproducir();
+
+    const referencia = new LienzoConRotulos();
+    const a2 = crearAnimador(referencia, new RelojFalso(), () => true);
+    a2.cargar(ops, 'referencia');
+    a2.reproducir();
+
+    expect(jugador.rotulos.map((r) => r.capa)).toEqual(['jugador', 'jugador']);
+    expect(referencia.rotulos).toEqual([]);
+    expect(referencia.estelas.referencia).toEqual(jugador.estelas.jugador);
   });
 });

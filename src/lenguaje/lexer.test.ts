@@ -305,6 +305,101 @@ describe('lexer', () => {
   });
 
   // ==========================================================================
+  // Mundo 4: operadores, paréntesis y comandos de operador
+  // Valida: Requisitos 1.6, 3.1, 3.13, 5.7
+  // ==========================================================================
+
+  describe('mundo 4: operadores y paréntesis', () => {
+    const clave = (t: Token) => `${t.tipo}:${t.valor}`;
+
+    it('100*2 son tres tokens sin espacios', () => {
+      const { tokens, errores } = analizarLexico('100*2');
+      expect(errores).toHaveLength(0);
+      expect(tokens.map(clave)).toEqual(['numero:100', 'operador:*', 'numero:2']);
+      expect(tokens.map((t) => t.columna)).toEqual([1, 4, 5]);
+    });
+
+    it('emite los cuatro operadores con su símbolo como valor', () => {
+      const { tokens, errores } = analizarLexico('+ - * /');
+      expect(errores).toHaveLength(0);
+      expect(tokens.map(clave)).toEqual(['operador:+', 'operador:-', 'operador:*', 'operador:/']);
+    });
+
+    it('100-50, 100 - 50 y 100 -50 dan los mismos tokens', () => {
+      const esperado = ['numero:100', 'operador:-', 'numero:50'];
+      for (const texto of ['100-50', '100 - 50', '100 -50']) {
+        const { tokens, errores } = analizarLexico(texto);
+        expect(errores).toHaveLength(0);
+        expect(tokens.map(clave)).toEqual(esperado);
+      }
+    });
+
+    it('-5 son dos tokens: no hay lexado especial de signos', () => {
+      const { tokens, errores } = analizarLexico('-5');
+      expect(errores).toHaveLength(0);
+      expect(tokens.map(clave)).toEqual(['operador:-', 'numero:5']);
+    });
+
+    it('( y ) se reconocen con y sin espacios', () => {
+      const esperado = [
+        'parentesis_abre:(', 'numero:1', 'operador:+', 'numero:2', 'parentesis_cierra:)',
+      ];
+      for (const texto of ['(1+2)', '( 1 + 2 )', '(1 +2 )']) {
+        const { tokens, errores } = analizarLexico(texto);
+        expect(errores).toHaveLength(0);
+        expect(tokens.map(clave)).toEqual(esperado);
+      }
+    });
+
+    it('los paréntesis pegados a una palabra o un parámetro la cortan', () => {
+      const { tokens, errores } = analizarLexico('AV(:largo)');
+      expect(errores).toHaveLength(0);
+      expect(tokens.map(clave)).toEqual([
+        'comando:AV', 'parentesis_abre:(', 'parametro:LARGO', 'parentesis_cierra:)',
+      ]);
+    });
+
+    for (const simbolo of ['=', '<', '>']) {
+      it(`${simbolo} sigue siendo caracterNoValido`, () => {
+        const { tokens, errores } = analizarLexico(`1 ${simbolo} 2`);
+        expect(tokens.map(clave)).toEqual(['numero:1', 'numero:2']);
+        expect(errores).toHaveLength(1);
+        expect(errores[0]!.id).toBe('caracterNoValido');
+        expect(errores[0]!.linea).toBe(1);
+        expect(errores[0]!.columna).toBe(3);
+      });
+    }
+
+    it('suma, Resto y prodúcto se reconocen igual que su forma canónica', () => {
+      const casos: ReadonlyArray<[string, string]> = [
+        ['suma', 'SUMA'],
+        ['Resto', 'RESTO'],
+        ['prodúcto', 'PRODUCTO'],
+      ];
+      for (const [escrito, canonico] of casos) {
+        const variante = analizarLexico(escrito);
+        const original = analizarLexico(canonico);
+        expect(variante.errores).toHaveLength(0);
+        expect(variante.tokens).toHaveLength(1);
+        expect(variante.tokens[0]!.tipo).toBe('comando');
+        expect(variante.tokens.map(clave)).toEqual(original.tokens.map(clave));
+        expect(variante.tokens[0]!.textoOriginal).toBe(escrito);
+      }
+    });
+
+    it('parametroSinNombre lleva la línea del : en la cabecera de un PARA', () => {
+      const { tokens, errores } = analizarLexico('AV 10\nPARA cuadrado : \nFIN');
+      expect(errores).toHaveLength(1);
+      expect(errores[0]!.id).toBe('parametroSinNombre');
+      expect(errores[0]!.linea).toBe(2);
+      expect(errores[0]!.columna).toBe(15);
+      expect(errores[0]!.mensaje).toContain('línea 2');
+      // Solo se descarta el `:`; el resto de la cabecera se conserva.
+      expect(tokens.map((t) => t.textoOriginal)).toEqual(['AV', '10', 'PARA', 'cuadrado', 'FIN']);
+    });
+  });
+
+  // ==========================================================================
   // Property 1: Invariancia de escritura de la entrada
   // Valida: Requisitos 3.6, 4.2, 4.3
   // ==========================================================================

@@ -34,6 +34,32 @@ function montar(mundo: 0 | 1 | 2 | 3 | 4 | 5 = 0, presupuesto = 1): Montaje {
     contenedor,
     mundo,
     presupuestoEstrella: presupuesto,
+    // Por omisión el límite duro está inactivo (mundos 0–2): un valor alto que
+    // nunca se alcanza, de modo que el aviso de bloqueo no aparece en estas
+    // pruebas y las ya existentes siguen valiendo sin tocarse.
+    limiteDuro: Number.MAX_SAFE_INTEGER,
+    limiteDuroActivo: false,
+    pedirMensajeLimite: (limite, valor) => limites.push({ limite, valor }),
+    reloj: RELOJ_INMEDIATO,
+  });
+  return { editor, limites };
+}
+
+/** Montaje del mundo 3 con límite duro activo, para el aviso de bloqueo. */
+function montarConLimite(
+  presupuesto: number,
+  limiteDuro: number,
+  limiteDuroActivo: boolean,
+): Montaje {
+  const contenedor = document.createElement('div');
+  document.body.appendChild(contenedor);
+  const limites: Array<{ limite: LimiteAlcanzado; valor: number }> = [];
+  const editor = crearEditor({
+    contenedor,
+    mundo: 3,
+    presupuestoEstrella: presupuesto,
+    limiteDuro,
+    limiteDuroActivo,
     pedirMensajeLimite: (limite, valor) => limites.push({ limite, valor }),
     reloj: RELOJ_INMEDIATO,
   });
@@ -213,7 +239,7 @@ describe('editor · presentarReto', () => {
   it('deja el área vacía, el contador en 0 sin provisional y sin marcas', () => {
     const { editor } = montar(0, 1);
     escribir(editor, 'AVANZA 100\n&&&');
-    editor.presentarReto(1);
+    editor.presentarReto(1, Number.MAX_SAFE_INTEGER, false);
     expect(editor.texto()).toBe('');
     const e = editor.estadoContador();
     expect(e.conteo).toBe(0);
@@ -333,7 +359,7 @@ describe('editor · preservación (mundo del editor = mundo del nivel, ¬C)', ()
     expect(editor.texto().length).toBeGreaterThan(0);
     expect(editor.raiz.querySelectorAll('.kl-editor-marca').length).toBeGreaterThan(0);
 
-    editor.presentarReto(7);
+    editor.presentarReto(7, Number.MAX_SAFE_INTEGER, false);
     // Texto vacío, conteo en 0 sin provisional, sin marcas.
     expect(editor.texto()).toBe('');
     const estado = editor.estadoContador();
@@ -487,3 +513,238 @@ function programaRepresentativo(destino: Mundo): string {
   }
   return lineas.join('\n');
 }
+
+// ============================================================================
+// Tarea 3.2 (spec 04-mundo-3-rosetones) · Property 4: el contador señala
+// bloqueo si y solo si el conteo supera el límite duro activo.
+//
+// Validates: Requirements 2.5, 2.6
+//
+// El aviso de bloqueo es INDEPENDIENTE del de presupuesto: en el mundo 3 un
+// conteo entre `presupuesto + 1` y `limiteDuro` muestra «te pasaste del
+// presupuesto» pero NO el de bloqueo; un conteo > `limiteDuro` muestra ambos.
+// La frase exacta del bloqueo vive por texto y en el nombre accesible, no solo
+// por color (accesibilidad).
+// ============================================================================
+
+const FRASE_BLOQUEO = 'Este programa no se podrá ejecutar: pasa del límite';
+
+/** Programa de `n` instrucciones: `n` líneas de `AVANZA 10` (conteo = n). */
+function programaDe(n: number): string {
+  return Array.from({ length: n }, () => 'AVANZA 10').join('\n');
+}
+
+describe('editor · aviso de bloqueo por límite duro (Property 4)', () => {
+  it('con límite activo y conteo > límite, muestra el aviso por texto y lo nombra en el aria-label (R2.5)', () => {
+    // presupuesto 1, límite duro 4; conteo 5 supera el límite.
+    const { editor } = montarConLimite(1, 4, true);
+    escribir(editor, programaDe(5));
+    expect(editor.estadoContador().conteo).toBe(5);
+
+    const bloqueo = editor.raiz.querySelector('.kl-contador-bloqueo');
+    expect(bloqueo, 'hay un span de bloqueo').not.toBeNull();
+    expect(bloqueo!.textContent).toBe(FRASE_BLOQUEO);
+
+    const contador = editor.raiz.querySelector('.kl-editor-contador')!;
+    expect(contador.getAttribute('aria-label')).toContain(FRASE_BLOQUEO);
+  });
+
+  it('con conteo ≤ límite, no hay aviso de bloqueo ni en texto ni en el aria-label (R2.6)', () => {
+    // presupuesto 1, límite duro 4; conteo 4 es exactamente el límite, no lo supera.
+    const { editor } = montarConLimite(1, 4, true);
+    escribir(editor, programaDe(4));
+    expect(editor.estadoContador().conteo).toBe(4);
+
+    expect(editor.raiz.querySelector('.kl-contador-bloqueo')).toBeNull();
+    const contador = editor.raiz.querySelector('.kl-editor-contador')!;
+    expect(contador.getAttribute('aria-label')).not.toContain(FRASE_BLOQUEO);
+  });
+
+  it('entre presupuesto+1 y límite: aviso de presupuesto SÍ, aviso de bloqueo NO (independencia)', () => {
+    // presupuesto 1, límite duro 4; conteo 3 está en (presupuesto, límite].
+    const { editor } = montarConLimite(1, 4, true);
+    escribir(editor, programaDe(3));
+    expect(editor.estadoContador().conteo).toBe(3);
+
+    // Pasó el presupuesto: aviso de presupuesto presente.
+    expect(editor.raiz.querySelector('.kl-contador-aviso')).not.toBeNull();
+    expect(editor.raiz.textContent).toContain('Te pasaste del presupuesto');
+    // Pero no pasó el límite: sin aviso de bloqueo.
+    expect(editor.raiz.querySelector('.kl-contador-bloqueo')).toBeNull();
+    const contador = editor.raiz.querySelector('.kl-editor-contador')!;
+    expect(contador.getAttribute('aria-label')).not.toContain(FRASE_BLOQUEO);
+  });
+
+  it('con conteo > límite muestra AMBOS avisos: presupuesto y bloqueo', () => {
+    const { editor } = montarConLimite(1, 4, true);
+    escribir(editor, programaDe(5));
+    expect(editor.raiz.querySelector('.kl-contador-aviso')).not.toBeNull();
+    expect(editor.raiz.querySelector('.kl-contador-bloqueo')).not.toBeNull();
+  });
+
+  it('con límite inactivo y conteo alto, nunca hay aviso de bloqueo', () => {
+    // limiteDuroActivo falso: aunque el conteo supere el límite, no se señala bloqueo.
+    const { editor } = montarConLimite(1, 4, false);
+    escribir(editor, programaDe(10));
+    expect(editor.estadoContador().conteo).toBe(10);
+    expect(editor.raiz.querySelector('.kl-contador-bloqueo')).toBeNull();
+    const contador = editor.raiz.querySelector('.kl-editor-contador')!;
+    expect(contador.getAttribute('aria-label')).not.toContain(FRASE_BLOQUEO);
+  });
+
+  it('presentarReto puede activar el límite duro de un nivel nuevo', () => {
+    // Nace con límite inactivo; al presentar un reto del mundo 3 se activa.
+    const { editor } = montarConLimite(1, 4, false);
+    editor.presentarReto(1, 4, true);
+    escribir(editor, programaDe(5));
+    expect(editor.raiz.querySelector('.kl-contador-bloqueo')).not.toBeNull();
+  });
+});
+
+// ============================================================================
+// Tarea 13.10 (spec 05-mundo-4-parametros) · Pruebas de ejemplo del editor en
+// el mundo 4: resaltado doble del paso a paso dentro de un procedimiento y aviso
+// de bloqueo por límite duro.
+//
+// Validates: Requirements 25.6, 25.11
+// ============================================================================
+
+/** Montaje del mundo 4 con el límite duro dado (activo desde el mundo 3). */
+function montarMundo4(presupuesto: number, limiteDuro: number): Editor {
+  const contenedor = document.createElement('div');
+  document.body.appendChild(contenedor);
+  return crearEditor({
+    contenedor,
+    mundo: 4,
+    presupuestoEstrella: presupuesto,
+    limiteDuro,
+    limiteDuroActivo: true,
+    pedirMensajeLimite: () => {},
+    reloj: RELOJ_INMEDIATO,
+  });
+}
+
+/** Números de línea con la clase dada en la canaleta, en orden. */
+function lineasConClase(editor: Editor, clase: string): number[] {
+  return Array.from(editor.raiz.querySelectorAll(`.kl-canaleta-linea.${clase}`)).map((s) =>
+    Number(s.getAttribute('data-linea')),
+  );
+}
+
+const PROGRAMA_POLIGONO = [
+  'PARA POLIGONO :lados :largo',
+  '  REPITE :lados [AVANZA :largo GIRADERECHA 360 / :lados]',
+  'FIN',
+  'POLIGONO 5 60',
+  'POLIGONO 3 80',
+].join('\n');
+
+describe('editor · mundo 4 · resaltarLineas (R25.6)', () => {
+  it('el programa de ejemplo del mundo 4 se analiza sin errores', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    expect(editor.estadoContador().errores).toEqual([]);
+  });
+
+  it('marca a la vez la línea del cuerpo y la de la llamada, cada una con su clase', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([2]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([4]);
+  });
+
+  it('al pasar a la segunda llamada la marca de la llamada se mueve, no se acumula', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    editor.resaltarLineas(2, 5);
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([2]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([5]);
+  });
+
+  it('al terminar el procedimiento (llamada null) retira la marca de la llamada', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    editor.resaltarLineas(5, null);
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([5]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([]);
+  });
+
+  it('resaltarLinea delega sin llamada y una llamada 0 también la retira', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    editor.resaltarLinea(4);
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([4]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([]);
+
+    editor.resaltarLineas(2, 4);
+    editor.resaltarLineas(2, 0);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([]);
+  });
+
+  it('el resaltado sobrevive al reanálisis del texto (la canaleta se reconstruye)', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    editor.analizarAhora();
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([2]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([4]);
+  });
+
+  it('presentarReto retira las dos marcas', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    editor.presentarReto(20, 30, true);
+    escribir(editor, PROGRAMA_POLIGONO);
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([]);
+  });
+});
+
+describe('editor · mundo 4 · aviso de bloqueo por límite duro (R25.11)', () => {
+  it('al exceder el límite muestra conteo, límite y la frase de bloqueo por texto', () => {
+    // presupuesto 2, límite duro 3; cuatro instrucciones lo exceden.
+    const editor = montarMundo4(2, 3);
+    escribir(editor, programaDe(4));
+    expect(editor.estadoContador().conteo).toBe(4);
+
+    const contador = editor.raiz.querySelector('.kl-editor-contador')!;
+    expect(contador.textContent).toContain('Instrucciones: 4');
+    expect(editor.raiz.querySelector('.kl-contador-limite')?.textContent).toBe('Límite: 3');
+    expect(editor.raiz.querySelector('.kl-contador-bloqueo')?.textContent).toBe(FRASE_BLOQUEO);
+
+    const nombre = contador.getAttribute('aria-label')!;
+    expect(nombre).toContain('Instrucciones 4');
+    expect(nombre).toContain('límite 3');
+    expect(nombre).toContain(FRASE_BLOQUEO);
+  });
+
+  it('retira la señal cuando el conteo deja de exceder el límite', () => {
+    const editor = montarMundo4(2, 3);
+    escribir(editor, programaDe(4));
+    expect(editor.raiz.querySelector('.kl-contador-bloqueo')).not.toBeNull();
+
+    escribir(editor, programaDe(3));
+    expect(editor.raiz.querySelector('.kl-contador-bloqueo')).toBeNull();
+    expect(editor.raiz.querySelector('.kl-contador-limite')).toBeNull();
+    const nombre = editor.raiz.querySelector('.kl-editor-contador')!.getAttribute('aria-label')!;
+    expect(nombre).not.toContain(FRASE_BLOQUEO);
+    expect(nombre).not.toContain('límite 3');
+  });
+
+  it('cuenta las llamadas con parámetros al decidir el bloqueo', () => {
+    // PROGRAMA_POLIGONO cuenta más de 3: con límite 3 se bloquea, con un límite holgado no.
+    const bloqueado = montarMundo4(1, 3);
+    escribir(bloqueado, PROGRAMA_POLIGONO);
+    expect(bloqueado.estadoContador().conteo).toBeGreaterThan(3);
+    expect(bloqueado.raiz.querySelector('.kl-contador-bloqueo')).not.toBeNull();
+
+    const holgado = montarMundo4(1, 100);
+    escribir(holgado, PROGRAMA_POLIGONO);
+    expect(holgado.raiz.querySelector('.kl-contador-bloqueo')).toBeNull();
+  });
+});

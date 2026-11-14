@@ -40,6 +40,11 @@ export interface DependenciasGlobo {
   readonly contenedor: HTMLElement;
   /** Publica el texto en la región `aria-live` `polite`, sin mover el foco. */
   readonly anunciar: (texto: string) => void;
+  /**
+   * Se invoca cada vez que se muestra un escalón de pista, nunca con el aviso de que
+   * ya no quedan más. Opcional: quien no lo necesita no tiene que proveerlo.
+   */
+  readonly alAbrirPista?: () => void;
 }
 
 // ============================================================================
@@ -177,7 +182,11 @@ export function crearGloboKiro(deps: DependenciasGlobo): GloboKiro {
     const indice = escalones; // 0,1,2
     const pista = identidad.pistas[indice] ?? '';
     escalones += 1; // aumenta en 1 solo al mostrar un escalón por primera vez
-    fijarContenido(`Pista ${NOMBRES_ESCALON[indice]}: ${pista}`);
+    // Una pista con saltos de línea (el esqueleto) conserva su forma, una línea por <p>.
+    const lineasPista = `Pista ${NOMBRES_ESCALON[indice]}: ${pista}`.split('\n');
+    if (lineasPista.length === 1) fijarContenido(lineasPista[0] ?? '');
+    else fijarLineas(lineasPista);
+    deps.alAbrirPista?.();
   }
 
   function pedirPistaPublica(): void {
@@ -201,11 +210,17 @@ export function crearGloboKiro(deps: DependenciasGlobo): GloboKiro {
       const e = `economía ${estadoTexto(cal.economia)}`;
       const a = `abstracción ${estadoTexto(cal.abstraccion)}`;
       let texto = `Resultado: ${p}, ${e}, ${a}.`;
-      // Añade el motivo de la primera negación, sin superar 300 caracteres.
+      // Explicación de abstracción de Kiro: una línea por exigencia sin confirmar.
+      const explicacion =
+        cal.mensajeAbstraccion === null
+          ? []
+          : cal.mensajeAbstraccion.split('\n').filter((l) => l.length > 0);
+      // Añade el motivo de la primera negación, sin superar 300 caracteres. El detalle
+      // genérico de abstracción se omite cuando hay explicación propia.
       const negada =
         !cal.economia.otorgada
           ? cal.economia.motivo
-          : !cal.abstraccion.otorgada
+          : !cal.abstraccion.otorgada && explicacion.length === 0
             ? cal.abstraccion.motivo
             : !cal.precision.otorgada
               ? cal.precision.motivo
@@ -214,7 +229,8 @@ export function crearGloboKiro(deps: DependenciasGlobo): GloboKiro {
         const detalle = ' ' + acotar(mensajeNegacion(negada), MAXIMO_NEGACION);
         if (texto.length + detalle.length <= MAXIMO_RESULTADO) texto += detalle;
       }
-      fijarContenido(acotar(texto, MAXIMO_RESULTADO));
+      // Las líneas de la explicación llevan texto exacto: sin recorte.
+      fijarLineas([acotar(texto, MAXIMO_RESULTADO), ...explicacion]);
     },
 
     mostrarMensajes(errores: readonly ErrorKiroLogo[]): void {

@@ -63,6 +63,10 @@ export interface DependenciasEditor {
   readonly mundo: Mundo;
   /** `presupuestoEstrella` del reto en curso. */
   readonly presupuestoEstrella: number;
+  /** `limiteDuro` del reto en curso: conteo máximo para ejecutar. */
+  readonly limiteDuro: number;
+  /** `limiteDuroActivo` del reto en curso: si falso, el bloqueo no se señala. */
+  readonly limiteDuroActivo: boolean;
   /**
    * Pide al globo el mensaje del límite alcanzado. El editor no compone texto de
    * jugador: nombra cuál límite y su valor y deja al globo mostrarlo.
@@ -179,8 +183,11 @@ export interface Editor {
   estadoContador(): EstadoContador;
   /** Línea del cursor (desde 1) según la posición de selección del área. */
   lineaDelCursor(): number;
-  /** Presenta un reto: vacía el área, pone el presupuesto y limpia marcas. */
-  presentarReto(presupuestoEstrella: number): void;
+  /**
+   * Presenta un reto: vacía el área, pone el presupuesto y el límite duro del
+   * reto en curso, y limpia marcas.
+   */
+  presentarReto(presupuestoEstrella: number, limiteDuro: number, limiteDuroActivo: boolean): void;
   /**
    * Fija el mundo del análisis al del nivel en curso y reanaliza el texto, para
    * que marcas y contador reflejen el mundo nuevo sin esperar al próximo tecleo.
@@ -188,6 +195,11 @@ export interface Editor {
   fijarMundo(mundo: Mundo): void;
   /** Resalta exactamente la línea dada en el paso a paso; 0 o menos retira el resalte. */
   resaltarLinea(linea: number): void;
+  /**
+   * Resalta la línea que se ejecuta y, aparte, la de la llamada al procedimiento
+   * en curso. `null` (o 0) retira la marca de la llamada; `principal` 0 retira la actual.
+   */
+  resaltarLineas(principal: number, llamada: number | null): void;
   /** Fuerza el reanálisis y actualización del contador y las marcas ahora. */
   analizarAhora(): void;
   /** Registra un escucha de cada cambio del texto. */
@@ -207,6 +219,10 @@ export function crearEditor(deps: DependenciasEditor): Editor {
   const doc = deps.contenedor.ownerDocument;
   const reloj = deps.reloj ?? RELOJ_REBOTE_INMEDIATO;
   let presupuesto = deps.presupuestoEstrella;
+  // Límite duro del reto en curso: mutable para que presentarReto lo cambie al
+  // navegar de nivel sin recrear el editor, igual que el presupuesto.
+  let limiteDuro = deps.limiteDuro;
+  let limiteDuroActivo = deps.limiteDuroActivo;
   // Mutable para que al cambiar de nivel el análisis use el mundo del nivel en
   // curso sin recrear el editor (ver fijarMundo).
   let mundoActual = deps.mundo;
@@ -250,6 +266,7 @@ export function crearEditor(deps: DependenciasEditor): Editor {
   let obtuvoConteoBueno = false;
   let estado: EstadoContador = { conteo: 0, provisional: false, errores: [] };
   let lineaResaltada = 0;
+  let lineaLlamada = 0;
   let idRebote: number | null = null;
 
   const escuchasCambio: Array<(texto: string) => void> = [];
@@ -270,6 +287,7 @@ export function crearEditor(deps: DependenciasEditor): Editor {
       span.setAttribute('data-linea', String(n));
       if (lineasConError.has(n)) span.classList.add('kl-canaleta-error');
       if (n === lineaResaltada && lineaResaltada >= 1) span.classList.add('kl-canaleta-actual');
+      if (n === lineaLlamada && lineaLlamada >= 1) span.classList.add('kl-canaleta-llamada');
       span.textContent = (lineasConError.has(n) ? '▲ ' : '') + String(n);
       canaleta.appendChild(span);
     }
@@ -308,24 +326,42 @@ export function crearEditor(deps: DependenciasEditor): Editor {
     presTxt.textContent = `Presupuesto: ${presupuesto}`;
 
     const excede = estado.conteo > presupuesto;
+    // Bloqueo por límite duro: independiente del exceso de presupuesto. Solo con
+    // el límite activo y un conteo estrictamente mayor que el límite (R2.5, R2.6).
+    const bloqueado = limiteDuroActivo && estado.conteo > limiteDuro;
+
+    contador.appendChild(conteoTxt);
+    contador.appendChild(presTxt);
     if (excede) {
       // Señala el exceso con texto en español además del color.
       presTxt.classList.add('kl-contador-exceso');
       const aviso = doc.createElement('span');
       aviso.className = 'kl-contador-aviso';
       aviso.textContent = 'Te pasaste del presupuesto';
-      contador.appendChild(conteoTxt);
-      contador.appendChild(presTxt);
       contador.appendChild(aviso);
-    } else {
-      contador.appendChild(conteoTxt);
-      contador.appendChild(presTxt);
+    }
+    if (bloqueado) {
+      // R25.11: el límite se muestra junto al conteo para que el jugador sepa
+      // cuánto le sobra; solo mientras lo excede, para no confundirlo con el
+      // presupuesto de estrella. Reusa el estilo de la ficha del presupuesto.
+      const limTxt = doc.createElement('span');
+      limTxt.className = 'kl-contador-presupuesto kl-contador-limite';
+      limTxt.textContent = `Límite: ${limiteDuro}`;
+      contador.appendChild(limTxt);
+      // Anticipa que el programa no se ejecutará, por texto además del color.
+      const bloqueo = doc.createElement('span');
+      bloqueo.className = 'kl-contador-bloqueo';
+      bloqueo.textContent = 'Este programa no se podrá ejecutar: pasa del límite';
+      contador.appendChild(bloqueo);
     }
 
-    // Nombre accesible que nombra los dos números por separado.
+    // Nombre accesible que nombra los dos números por separado, y el bloqueo con
+    // la misma frase para que no dependa solo del color.
     const nombre = `Instrucciones ${estado.conteo}${
       estado.provisional ? ' provisional' : ''
-    }; presupuesto de estrella ${presupuesto}${excede ? '; te pasaste del presupuesto' : ''}`;
+    }; presupuesto de estrella ${presupuesto}${excede ? '; te pasaste del presupuesto' : ''}${
+      bloqueado ? `; límite ${limiteDuro}; Este programa no se podrá ejecutar: pasa del límite` : ''
+    }`;
     contador.setAttribute('aria-label', nombre);
   }
 
@@ -475,11 +511,14 @@ export function crearEditor(deps: DependenciasEditor): Editor {
       return lineaEnPosicion(area.selectionStart ?? area.value.length);
     },
 
-    presentarReto(presupuestoEstrella: number): void {
+    presentarReto(presupuestoEstrella: number, limiteDuroReto: number, limiteDuroActivoReto: boolean): void {
       presupuesto = presupuestoEstrella;
+      limiteDuro = limiteDuroReto;
+      limiteDuroActivo = limiteDuroActivoReto;
       ultimoConteoBueno = 0;
       obtuvoConteoBueno = false;
       lineaResaltada = 0;
+      lineaLlamada = 0;
       area.value = '';
       area.setSelectionRange(0, 0);
       estado = { conteo: 0, provisional: false, errores: [] };
@@ -494,7 +533,12 @@ export function crearEditor(deps: DependenciasEditor): Editor {
     },
 
     resaltarLinea(linea: number): void {
-      lineaResaltada = linea >= 1 ? linea : 0;
+      this.resaltarLineas(linea, null);
+    },
+
+    resaltarLineas(principal: number, llamada: number | null): void {
+      lineaResaltada = principal >= 1 ? principal : 0;
+      lineaLlamada = llamada !== null && llamada >= 1 ? llamada : 0;
       actualizarCanaleta();
     },
 

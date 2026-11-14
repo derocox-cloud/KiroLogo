@@ -12,6 +12,9 @@ import {
   NIVEL_2_6,
   REFERENCIA_2_1,
 } from './mundo-2-composicion.js';
+import { MUNDO_3, NIVEL_3_1, REFERENCIA_3_1 } from './mundo-3-rosetones.js';
+import { MUNDO_4 } from './mundo-4-parametros.js';
+import { MUNDOS } from './mundos.js';
 import type { Nivel, OrigenNivel, ExigenciaAbstraccion } from './tipos.js';
 import { contarInstrucciones } from '../lenguaje/conteo.js';
 import type { Programa, InvocacionComando, NumeroLiteral } from '../lenguaje/ast.js';
@@ -131,7 +134,9 @@ describe('nivel 0.1', () => {
 
 describe('catálogo', () => {
   it('incluye el mundo 0 con el nivel 0.1', () => {
-    expect(CATALOGO.length).toBe(MUNDO_0.length + MUNDO_1.length + MUNDO_2.length);
+    expect(CATALOGO.length).toBe(
+      MUNDO_0.length + MUNDO_1.length + MUNDO_2.length + MUNDO_3.length + MUNDO_4.length,
+    );
     expect(CATALOGO.some((n) => n.id === '0.1')).toBe(true);
   });
 
@@ -278,6 +283,101 @@ describe('mundo 2', () => {
     expect(NIVEL_2_1.origen.tipo).toBe('autorado');
     if (NIVEL_2_1.origen.tipo === 'autorado') {
       expect(NIVEL_2_1.origen.referencia).toBe(REFERENCIA_2_1);
+    }
+  });
+});
+
+// ============================================================================
+// El mundo 3 (7.2) — Rosetones
+// Registro del mundo 3 en el catálogo (R10.5). El mundo 3 ya existe como datos
+// en `mundo-3-rosetones.ts`; aquí se verifica que el catálogo lo incorpora y que
+// sus cuatro niveles conservan la forma que exige la spec: concepto `simetria`,
+// insignia «Simetría» (vía `mundos.ts`), normalización fija y `usaRepiteAnidado`.
+// ============================================================================
+
+describe('mundo 3', () => {
+  it('tiene exactamente cuatro niveles', () => {
+    expect(MUNDO_3).toHaveLength(4);
+  });
+
+  it('registra los cuatro niveles (3.1–3.4) en el catálogo', () => {
+    for (const id of ['3.1', '3.2', '3.3', '3.4']) {
+      expect(CATALOGO.some((n) => n.id === id)).toBe(true);
+    }
+  });
+
+  it('busca cada nivel del mundo 3 por su identificador', () => {
+    for (const id of ['3.1', '3.2', '3.3', '3.4']) {
+      expect(buscarNivel(id).hallado).toBe(true);
+    }
+  });
+
+  it('todos sus niveles declaran mundo 3 y concepto simetria', () => {
+    for (const nivel of MUNDO_3) {
+      expect(nivel.mundo).toBe(3);
+      expect(nivel.concepto).toBe('simetria');
+    }
+  });
+
+  it('el mundo 3 mapea a la insignia «Simetría» (vía mundos.ts)', () => {
+    for (const nivel of MUNDO_3) {
+      expect(MUNDOS[nivel.mundo].insignia).toBe('Simetría');
+    }
+  });
+
+  it('los cuatro niveles declaran normalización fija (traslación y rotación)', () => {
+    for (const nivel of MUNDO_3) {
+      expect(nivel.normalizacion.traslacion).toBe('fija');
+      expect(nivel.normalizacion.rotacion).toBe('fija');
+      expect(nivel.normalizacion.escala).toBe('exacta');
+    }
+  });
+
+  it('los cuatro niveles exigen la abstracción usaRepiteAnidado', () => {
+    for (const nivel of MUNDO_3) {
+      const claves = nivel.abstraccion.map((e) => e.clave);
+      expect(claves).toContain('usaRepiteAnidado');
+    }
+  });
+
+  it('el presupuesto del nivel 3.1 (autorado) es el Conteo de su referencia, no un valor a mano', () => {
+    // La referencia es 'REPITE 36 [REPITE 4 [AV 100 GD 90] GD 10]':
+    // REPITE externo (1) + REPITE interno (1) + AV + GD + GD = 5.
+    const r = contarInstrucciones(REFERENCIA_3_1);
+    expect(r.exito).toBe(true);
+    if (r.exito) expect(r.instrucciones).toBe(5);
+  });
+
+  it('el nivel 3.1 es autorado y su referencia es la que se cuenta', () => {
+    expect(NIVEL_3_1.id).toBe('3.1');
+    expect(NIVEL_3_1.origen.tipo).toBe('autorado');
+    if (NIVEL_3_1.origen.tipo === 'autorado') {
+      expect(NIVEL_3_1.origen.referencia).toBe(REFERENCIA_3_1);
+    }
+  });
+});
+
+// ============================================================================
+// El mundo 4 (11.9) — Parámetros
+// ============================================================================
+
+describe('mundo 4', () => {
+  it('tiene exactamente cuatro niveles', () => {
+    expect(MUNDO_4).toHaveLength(4);
+  });
+
+  it('registra los cuatro niveles (4.1–4.4) en el catálogo, tras el mundo 3', () => {
+    const ids = CATALOGO.map((n) => n.id);
+    for (const id of ['4.1', '4.2', '4.3', '4.4']) {
+      expect(buscarNivel(id).hallado).toBe(true);
+    }
+    expect(ids.indexOf('4.1')).toBeGreaterThan(ids.indexOf('3.4'));
+  });
+
+  it('todos sus niveles declaran mundo 4 y la insignia «Generalización»', () => {
+    for (const nivel of MUNDO_4) {
+      expect(nivel.mundo).toBe(4);
+      expect(MUNDOS[nivel.mundo].insignia).toBe('Generalización');
     }
   });
 });

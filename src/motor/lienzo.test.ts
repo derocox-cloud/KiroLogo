@@ -37,6 +37,7 @@ function estiloCompleto(): EstiloLienzo {
     cuadricula100: { color: '#ced4da', grosor: 1, guiones: [] },
     estelaJugador: { color: '#0d6efd', grosor: 3, guiones: [] },
     estelaReferencia: { color: '#6c757d', grosor: 2, guiones: [8, 4] },
+    rotulo: { color: '#0d6efd', fuente: 'sans-serif', tamano: 16 },
   };
 }
 
@@ -439,7 +440,7 @@ function capasConEstilo(): Record<NombreCapa, DobleConEstilo> {
   };
 }
 
-function operacionesDe(texto: string, mundo: 0 | 2 = 2): readonly Operacion[] {
+function operacionesDe(texto: string, mundo: 0 | 2 | 4 = 2): readonly Operacion[] {
   const { programa, errores } = analizar(analizarLexico(texto).tokens, { mundo });
   expect(errores).toEqual([]);
   const g = ejecutar(programa!, { estadoInicial: ESTADO_INICIAL, comandosPermitidos: comandosDelMundo(mundo), semilla: 0 });
@@ -637,3 +638,128 @@ describe('lienzo · relleno (punto 7b)', () => {
 });
 
 const CUADRADO_REF = 'REPITE 4 [AV 100 GD 90]';
+
+// ============================================================================
+// Rótulos (R11.5, R11.6, R11.7; D21)
+// ============================================================================
+
+import { dibujarRotulos } from './lienzo.js';
+
+/** Doble que anota también cada texto con el color vigente: «texto:#0d6efd:hola». */
+class DobleConTexto extends DobleConEstilo {
+  override fillText(texto: string, x: number, y: number, anchoMaximo?: number): void {
+    this.eventos.push(`texto:${String(this.fillStyle)}:${texto}`);
+    super.fillText(texto, x, y, anchoMaximo);
+  }
+}
+
+function capasConTexto(): Record<NombreCapa, DobleConTexto> {
+  return {
+    fondo: new DobleConTexto(),
+    referencia: new DobleConTexto(),
+    jugador: new DobleConTexto(),
+    personajes: new DobleConTexto(),
+  };
+}
+
+/** Un color de rótulo distinto del de la estela, para saber de cuál de los dos sale. */
+function estiloConRotuloPropio(): EstiloLienzo {
+  return { ...estiloCompleto(), rotulo: { color: '#aa00aa', fuente: 'monospace', tamano: 18 } };
+}
+
+/** Ejecuta un programa del mundo 4 en un lienzo con capas dobles, a través del animador, de golpe. */
+function rotularConAnimador(texto: string, leerTema: () => EstiloLienzo = estiloConRotuloPropio) {
+  const capas = capasConTexto();
+  const lienzo = crearLienzo(capas, leerTema, TAMANO_BASE);
+  const animador = crearAnimador(lienzo, RELOJ_QUIETO, () => true);
+  animador.cargar(operacionesDe(texto, 4), 'jugador');
+  animador.reproducir();
+  return { capas, lienzo };
+}
+
+const textos = (eventos: readonly string[]) => eventos.filter((e) => e.startsWith('texto:'));
+
+describe('lienzo · rótulos (D21)', () => {
+  it('el rótulo se pinta después del relleno y de la estela, encima de los dos', () => {
+    const { capas } = rotularConAnimador('REPITE 4 [AV 100 GD 90] RELLENA "azul ROTULA "hola');
+    expect(capas.jugador.eventos).toEqual(['fill:#0000ff', 'stroke:#0d6efd', 'texto:#aa00aa:hola']);
+  });
+
+  it('cada rótulo se dibuja con save, translate, scale(1, -1), fillText en el origen y restore', () => {
+    const ctx = new DobleDibujo();
+    const tipografia = estiloConRotuloPropio().rotulo;
+    dibujarRotulos(ctx, [{ texto: 'hola', posicion: { x: 40, y: -60 }, color: null }], tipografia);
+    const i = ctx.llamadas.findIndex((l) => l.metodo === 'translate');
+    expect(ctx.llamadas.slice(i - 1, i + 4).map((l) => [l.metodo, ...l.args])).toEqual([
+      ['save'],
+      ['translate', 40, -60],
+      ['scale', 1, -1],
+      ['fillText', 'hola', 0, 0, undefined],
+      ['restore'],
+    ]);
+    expect(ctx.font).toBe('18px monospace');
+    expect(ctx.textAlign).toBe('left');
+    expect(ctx.textBaseline).toBe('alphabetic');
+  });
+
+  it('el texto es siempre horizontal: con la tortuga girada no hay ninguna rotación', () => {
+    const { capas } = rotularConAnimador('GD 45 AV 50 ROTULA "hola');
+    const metodos = capas.jugador.llamadas.map((l) => l.metodo);
+    expect(metodos).toContain('fillText');
+    expect(metodos).not.toContain('rotate');
+    const escalas = capas.jugador.llamadas.filter((l) => l.metodo === 'scale');
+    expect(escalas.map((l) => l.args)).toEqual([[1, -1]]);
+  });
+
+  it('un rótulo fuera del cuadrado lógico se recorta sin lanzar', () => {
+    const capas = capasConTexto();
+    const lienzo = crearLienzo(capas, estiloConRotuloPropio, TAMANO_BASE);
+    capas.jugador.llamadas.length = 0;
+    expect(() =>
+      lienzo.rotular('jugador', { texto: 'lejos', posicion: { x: 5000, y: -5000 }, color: null }),
+    ).not.toThrow();
+    const metodos = capas.jugador.llamadas.map((l) => l.metodo);
+    const fillText = metodos.indexOf('fillText');
+    expect(fillText).toBeGreaterThan(-1);
+    expect(metodos.lastIndexOf('clip', fillText)).toBeGreaterThan(-1);
+  });
+
+  it('reiniciar la capa del jugador borra el rótulo junto con la estela', () => {
+    const { capas, lienzo } = rotularConAnimador('AV 50 ROTULA "hola');
+    lienzo.limpiarEstela('jugador');
+    expect(textos(capas.jugador.eventos)).toEqual([]);
+  });
+
+  it('BORRAPANTALLA borra los rótulos anteriores y los posteriores se dibujan con normalidad', () => {
+    const { capas } = rotularConAnimador('ROTULA "antes BORRAPANTALLA AV 50 ROTULA "despues');
+    expect(textos(capas.jugador.eventos)).toEqual(['texto:#aa00aa:despues']);
+  });
+
+  it('los rótulos se conservan al redimensionar', () => {
+    const { capas, lienzo } = rotularConAnimador('ROTULA "uno AV 40 ROTULA 2');
+    lienzo.redimensionar({ anchoCss: 600, altoCss: 600, devicePixelRatio: 2 });
+    expect(textos(capas.jugador.eventos)).toEqual(['texto:#aa00aa:uno', 'texto:#aa00aa:2']);
+  });
+
+  it('la capa de Kiro (referencia) nunca lleva rótulos', () => {
+    const capas = capasConTexto();
+    const lienzo = crearLienzo(capas, estiloConRotuloPropio, TAMANO_BASE);
+    lienzo.ponerEstela('referencia', extraerTramosDibujo(operacionesDe(CUADRADO_REF)));
+    lienzo.rotular('referencia', { texto: 'hola', posicion: { x: 0, y: 0 }, color: null });
+    expect(capas.referencia.llamadas.some((l) => l.metodo === 'fillText')).toBe(false);
+  });
+
+  it('sin color pedido el rótulo usa la tipografía del tema; con PONCOLOR, el color del jugador', () => {
+    const { capas } = rotularConAnimador('ROTULA "tema PONCOLOR rojo ROTULA "rojo');
+    expect(textos(capas.jugador.eventos)).toEqual(['texto:#aa00aa:tema', 'texto:#ff0000:rojo']);
+  });
+
+  it('el color por omisión se lee del tema en cada redibujado', () => {
+    let color = '#aa00aa';
+    const leerTema = (): EstiloLienzo => ({ ...estiloCompleto(), rotulo: { color, fuente: 'serif', tamano: 16 } });
+    const { capas, lienzo } = rotularConAnimador('ROTULA "hola', leerTema);
+    color = '#112233';
+    lienzo.redibujar();
+    expect(textos(capas.jugador.eventos)).toEqual(['texto:#112233:hola']);
+  });
+});

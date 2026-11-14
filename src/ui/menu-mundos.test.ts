@@ -326,28 +326,28 @@ describe('menu-mundos · seis mundos', () => {
     ]);
   });
 
-  it('el estado de cada mundo refleja catálogo y desbloqueo: 0 disponible, 1 y 2 bloqueados, 3..5 próximamente', () => {
+  it('el estado de cada mundo refleja catálogo y desbloqueo: 0 disponible, 1 a 4 bloqueados, 5 próximamente', () => {
     const menu = crear(cargarProgreso(null));
     expect(menu.estadoDeMundo(0)).toBe('disponible');
-    // Los mundos 1 (figuras) y 2 (composición) ya tienen niveles, así que un jugador
-    // nuevo los ve bloqueados (mundo anterior sin completar), no «próximamente».
+    // Los mundos 1 (figuras), 2 (composición), 3 (rosetones) y 4 (parámetros) ya tienen niveles, así que
+    // un jugador nuevo los ve bloqueados (mundo anterior sin completar), no «próximamente».
     expect(menu.estadoDeMundo(1)).toBe('bloqueado');
     expect(menu.estadoDeMundo(2)).toBe('bloqueado');
-    for (const m of [3, 4, 5] as const) {
-      expect(menu.estadoDeMundo(m), `mundo ${m}`).toBe('proximamente');
-    }
+    expect(menu.estadoDeMundo(3)).toBe('bloqueado');
+    expect(menu.estadoDeMundo(4)).toBe('bloqueado');
+    expect(menu.estadoDeMundo(5)).toBe('proximamente');
   });
 
   it('un mundo sin niveles muestra «próximamente» por texto y no se puede abrir', () => {
     const menu = crear(cargarProgreso(null));
     menu.abrir();
-    // El mundo 3 todavía no tiene niveles en el catálogo.
-    const encabezado = menu.encabezadoMundo(3)!;
+    // El mundo 5 todavía no tiene niveles en el catálogo.
+    const encabezado = menu.encabezadoMundo(5)!;
     expect(encabezado.getAttribute('data-estado-mundo')).toBe('proximamente');
     expect(encabezado.querySelector('.kl-menu-mundo-estado')!.textContent).toBe('próximamente');
     expect(encabezado.disabled).toBe(true);
     encabezado.click();
-    expect(menu.mundoAbierto(3)).toBe(false);
+    expect(menu.mundoAbierto(5)).toBe(false);
   });
 });
 

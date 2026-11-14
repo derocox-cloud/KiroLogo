@@ -25,10 +25,11 @@ import '@fontsource-variable/jetbrains-mono/index.css';
 
 import type { Programa } from './lenguaje/ast.js';
 import { analizarLexico } from './lenguaje/lexer.js';
-import { analizar, nombresDeProcedimientos } from './lenguaje/parser.js';
+import { analizar, firmasDeProcedimientos } from './lenguaje/parser.js';
 import { esErrorParaJugador, crearError, type ErrorKiroLogo } from './lenguaje/errores.js';
-import { comandosDelMundo } from './lenguaje/vocabulario.js';
+import { comandosDelMundo, type Mundo } from './lenguaje/vocabulario.js';
 import { ejecutar, type Operacion, type ResultadoEjecucion } from './lenguaje/interprete.js';
+import { contarInstrucciones } from './lenguaje/conteo.js';
 
 import { ESTADO_INICIAL } from './motor/tortuga.js';
 import { extraerSegmentos, type Segmento } from './motor/segmentos.js';
@@ -72,15 +73,21 @@ import { cargarProgreso, type Progreso } from './juego/progreso.js';
 import { rellenarPistas } from './juego/pistas.js';
 import { nivelDesbloqueado } from './juego/desbloqueo.js';
 import { insigniaSecuenciaOtorgada } from './juego/insignias.js';
-import { decodificar } from './azar/codigo-semilla.js';
+import { desafioDisponible, retoDesafio } from './juego/desafio-infinito.js';
+import { codificar, decodificar } from './azar/codigo-semilla.js';
+import { fabricaAzar } from './azar/prng.js';
+import { entropiaDelNavegador, semillaDistinta, type FuenteEntropia } from './azar/entropia.js';
 import { CATALOGO } from './niveles/catalogo.js';
 
 import { crearEditor, type Editor, type LimiteAlcanzado, type RelojRebote } from './ui/editor.js';
 import { crearPanelComandos } from './ui/panel-comandos.js';
 import { crearGloboKiro, type GloboKiro } from './ui/globo-kiro.js';
 import { crearControles, type Controles } from './ui/controles.js';
+import { crearConsola, type Consola } from './ui/consola.js';
 import { crearDemostracion, type Demostracion, type RelojEspera } from './ui/demostracion.js';
+import { crearReproduccionParalelo, type ReproduccionParalelo } from './ui/reproduccion-paralelo.js';
 import { crearPanelSemilla, type PanelSemilla } from './ui/panel-semilla.js';
+import { crearControlDesafio, type ControlDesafio } from './ui/control-desafio.js';
 import { crearMenuMundos, type MenuMundos } from './ui/menu-mundos.js';
 import { crearGuia, type Guia } from './ui/guia.js';
 import { crearMarcadorEstrellas, type MarcadorEstrellas } from './ui/marcador-estrellas.js';
@@ -155,6 +162,8 @@ export interface DependenciasAplicacion {
   readonly movimiento?: ConsultaMovimiento;
   /** Identificador del nivel a resolver (por omisión, `0.1`). */
   readonly idNivel?: string;
+  /** Fuente de entropía para «otro reto» y el desafío (por omisión, la del navegador). */
+  readonly entropia?: FuenteEntropia;
 }
 
 // ============================================================================
@@ -184,6 +193,8 @@ export interface Aplicacion {
   readonly editor: Editor;
   /** Globo, para inspección en pruebas. */
   readonly globo: GloboKiro;
+  /** Consola del mundo 4, para inspección en pruebas. */
+  readonly consola: Consola;
   /** Menú de mundos, para inspección en pruebas. */
   readonly menuMundos: MenuMundos;
   /** Panel de semilla, para inspección en pruebas. */
@@ -324,6 +335,12 @@ function crearLectoresTema(documento: Document): {
         leerVar(e, '--color-estela-referencia', '#495057'),
         leerGrosor(e, '--grosor-estela-referencia', 2),
       ),
+      // Tamaño en unidades lógicas del lienzo (800), no en píxeles de pantalla.
+      rotulo: {
+        color: leerVar(e, '--color-rotulo', '#0a58ca'),
+        fuente: leerVar(e, '--fuente-ui', 'sans-serif'),
+        tamano: 18,
+      },
     };
   };
 
@@ -378,6 +395,15 @@ function crearLectoresTema(documento: Document): {
 // Relojes por omisión (producción)
 // ============================================================================
 
+/**
+ * Hora monótona real para la guarda de tiempo del intérprete (D5). Sin respaldo en
+ * `Date.now`: `performance.now` existe en todo navegador ES2023, en Node 24 y en jsdom,
+ * y `src/` no usa `Date.now` (R8.9).
+ */
+function ahoraReal(): number {
+  return performance.now();
+}
+
 /** Reloj de animación de producción: `requestAnimationFrame` + `performance.now`. */
 function relojAnimacionReal(): Reloj {
   const raf =
@@ -388,11 +414,6 @@ function relojAnimacionReal(): Reloj {
     typeof cancelAnimationFrame === 'function'
       ? cancelAnimationFrame
       : (id: number): void => clearTimeout(id as unknown as ReturnType<typeof setTimeout>);
-  function ahoraReal(): number {
-    return typeof performance !== 'undefined' && typeof performance.now === 'function'
-      ? performance.now()
-      : Date.now();
-  }
   return {
     programar(callback: (ahora: number) => void): number {
       return raf(() => callback(ahoraReal()));
@@ -587,6 +608,19 @@ function elegirRetoInicial(
  * arranca por su cuenta: el arranque de producción la invoca tras la guarda de
  * `document`.
  */
+/**
+ * Ejecuta la escritura de una señal de progreso. Si la persistencia falla deja rastro en
+ * consola y sigue: perder una señal de insignia no debe interrumpir la acción del jugador
+ * (R11.11). Es el mismo patrón que ya usa `progreso.guardar` al concluir un intento.
+ */
+function registrarSenal(escribir: () => void): void {
+  try {
+    escribir();
+  } catch (e) {
+    console.error('No se pudo registrar la señal de progreso.', e);
+  }
+}
+
 export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   const documento = deps.documento;
   const contenedor = deps.contenedor ?? (documento.getElementById('aplicacion') as HTMLElement | null) ?? documento.body;
@@ -597,6 +631,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   const centro = ranura('programa');
 
   const reloj = deps.reloj ?? relojAnimacionReal();
+  const entropia: FuenteEntropia = deps.entropia ?? entropiaDelNavegador;
   const relojEspera = deps.relojEspera ?? relojEsperaReal();
   const movimiento = deps.movimiento ?? consultaMovimientoReal(documento);
   const lectores = crearLectoresTema(documento);
@@ -735,29 +770,69 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   // La línea que se está ejecutando se resalta en el editor, así el jugador ve
   // qué instrucción produce cada movimiento de la tortuga. Se evita reconstruir la
   // canaleta cuando la línea no cambia (un bucle repite la misma muchas veces).
-  let lineaResaltada = 0;
-  function resaltarLinea(linea: number): void {
-    if (linea === lineaResaltada) return;
-    lineaResaltada = linea;
-    editor.resaltarLinea(linea);
+  // La clave incluye la línea de la llamada a procedimiento en curso (R25.6).
+  let claveResaltada = '0|';
+  function resaltarLinea(linea: number, llamada: number | null = null): void {
+    const clave = `${linea}|${llamada ?? ''}`;
+    if (clave === claveResaltada) return;
+    claveResaltada = clave;
+    editor.resaltarLineas(linea, llamada);
   }
 
   // Solo el paso a paso anuncia cada operación (requisito 28.2): una reproducción
-  // continua anuncia únicamente su final (28.9), no cada paso intermedio.
+  // continua anuncia únicamente su final (28.9), no cada paso intermedio. D17: el final
+  // continuo suma lo que llegó a la consola y los rótulos.
   let modoPaso = false;
+  let rotulosEjecucion: string[] = [];
+
+  function resumenDeSalida(): string {
+    if (modoPaso) return '';
+    const partes: string[] = [];
+    const { cantidad, ultima } = consola.resumen();
+    if (cantidad > 0 && ultima !== null) {
+      partes.push(`La consola recibió ${cantidad} línea(s); la última dice «${ultima}».`);
+    }
+    if (rotulosEjecucion.length > 0) {
+      partes.push(`Rotulaste ${rotulosEjecucion.map((t) => `«${t}»`).join(', ')}.`);
+    }
+    return partes.join(' ');
+  }
+
+  function vaciarSalida(): void {
+    consola.vaciar();
+    rotulosEjecucion = [];
+  }
+
   animador.alAplicar((op) => {
-    resaltarLinea(op.linea);
+    resaltarLinea(op.linea, op.lineaLlamada ?? null);
+    if (op.tipo === 'escribir') {
+      consola.agregar(op.texto);
+      if (modoPaso) anunciar(`Línea ${op.linea}: escribiste «${op.texto}» en la consola.`);
+      return;
+    }
+    if (op.tipo === 'rotular') {
+      rotulosEjecucion.push(op.texto);
+      if (modoPaso) anunciar(`Línea ${op.linea}: rotulaste «${op.texto}».`);
+      return;
+    }
     if (modoPaso) anunciar(`Línea ${op.linea}: ${textoEstadoTortuga(op.estadoDespues)}.`);
   });
 
   // Globo de Kiro.
-  const globo: GloboKiro = crearGloboKiro({ contenedor: centro, anunciar });
+  const globo: GloboKiro = crearGloboKiro({
+    contenedor: centro,
+    anunciar,
+    // `reto` es mutable: se lee en el momento de la pista, no al crear el globo.
+    alAbrirPista: () => registrarSenal(() => progreso.marcarPistaAbierta(reto.nivel.id)),
+  });
 
   // Editor.
   const editor: Editor = crearEditor({
     contenedor: centro,
     mundo: reto.nivel.mundo,
     presupuestoEstrella: reto.presupuestoEstrella,
+    limiteDuro: reto.limiteDuro,
+    limiteDuroActivo: reto.limiteDuroActivo,
     pedirMensajeLimite: (limite: LimiteAlcanzado, _valor: number) => {
       void _valor;
       const error =
@@ -789,7 +864,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   // procedimientos que mostrar.
   editor.alCambiar((texto: string) => {
     const lexico = analizarLexico(texto);
-    panel.fijarProcedimientos(nombresDeProcedimientos(lexico.tokens, reto.nivel.mundo));
+    panel.fijarFirmas(firmasDeProcedimientos(lexico.tokens, reto.nivel.mundo));
   });
 
   // El panel de comandos se crea ANTES que los controles: va junto al editor (a su
@@ -806,9 +881,14 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       darPaso: () => darPaso(),
       reiniciar: () => reiniciar(),
       verDemostracion: () => verDemostracion(),
+      verEnParalelo: () => verEnParalelo(),
       cambiarVelocidad: (v: Velocidad) => cambiarVelocidad(v),
     },
   });
+
+  // La consola va después de los controles: es el orden de Tab (R10). Su registro no
+  // anuncia nada por sí mismo; el resumen sale por `anunciar` (D17).
+  const consola: Consola = crearConsola({ contenedor: centro });
 
   // ---- Comparación con Kiro: superposición y diff (requisitos 23 y 27.5) ----
   // «Lado a lado» es la propia pantalla (la figura de Kiro y la tuya). La otra vista pone las
@@ -896,12 +976,45 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     });
   }
 
+  // Reproducción en paralelo: las dos tortugas (Kiro y el jugador) sobre la capa de
+  // personajes del lado del jugador, que es donde el jugador compara su recorrido.
+  const reproduccionParalelo: ReproduccionParalelo = crearReproduccionParalelo({
+    lienzo: lienzoJugador,
+    reloj,
+    leerTemaKiro: lectores.personajes,
+    leerTemaJugador: lectores.personajes,
+    movimientoReducido: () => movimiento.reducido(),
+    anunciar,
+  });
+
   // Panel de semilla: pide otro reto o reproduce un código, por callbacks.
   const panelSemilla: PanelSemilla = crearPanelSemilla({
     contenedor: ranura('ranura-reto'),
     callbacks: {
       pedirOtroReto: () => pedirOtroReto(),
       reproducirCodigo: (codigo: string) => reproducirCodigo(codigo),
+    },
+  });
+
+  // Desafío infinito (R12). Estado solo en memoria, nunca persistido: `raiz` e `indice`
+  // son la terna que `retoDesafio` convierte en reto, y solo se avanza con `indice + 1`
+  // (no hay retroceso, R12.5). `aprobado` dice si el reto EN CURSO del desafío ya se
+  // resolvió: no sirve la estrella guardada del nivel, porque el desafío solo se ofrece
+  // con el mundo completo y ese nivel ya la tiene de antes.
+  interface EstadoDesafio {
+    readonly mundo: Mundo;
+    readonly raiz: number;
+    readonly indice: number;
+    readonly codigoRaiz: string | null;
+    aprobado: boolean;
+  }
+  let desafio: EstadoDesafio | null = null;
+
+  const controlDesafio: ControlDesafio = crearControlDesafio({
+    contenedor: ranura('ranura-reto'),
+    callbacks: {
+      iniciar: () => iniciarDesafio(),
+      siguiente: () => siguienteDelDesafio(),
     },
   });
 
@@ -954,7 +1067,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       // ningún mensaje del catálogo, porque la detención la pidió el jugador. Solo
       // se anuncia (28.9) que se detuvo y cómo quedó la tortuga.
       intento = null;
-      anunciar(componerAnuncioFin(fin));
+      anunciar([componerAnuncioFin(fin), resumenDeSalida()].filter((t) => t.length > 0).join(' '));
       return;
     }
     if (actual === null) {
@@ -1070,7 +1183,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       semillaEfectiva: reto.semillaEfectiva,
       pistas,
     });
-    editor.presentarReto(reto.presupuestoEstrella);
+    editor.presentarReto(reto.presupuestoEstrella, reto.limiteDuro, reto.limiteDuroActivo);
     // Sincroniza el mundo del análisis y del vocabulario con el nivel en curso.
     // montarReto corre en el arranque y en cada cambiarANivel, así que el mundo
     // queda siempre al día; en el primer montaje es un no-op porque ya coincide.
@@ -1078,7 +1191,9 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     panel.fijarMundo(reto.nivel.mundo);
     // Los procedimientos del panel dependen del mundo (antes del de PARA no hay):
     // al cambiar de nivel se recalculan con el texto vigente, sin esperar otra tecla.
-    panel.fijarProcedimientos(nombresDeProcedimientos(analizarLexico(editor.texto()).tokens, reto.nivel.mundo));
+    panel.fijarFirmas(firmasDeProcedimientos(analizarLexico(editor.texto()).tokens, reto.nivel.mundo));
+    consola.fijarMundo(reto.nivel.mundo);
+    vaciarSalida();
 
     // Panel de semilla: el código y si el nivel admite otro reto.
     panelSemilla.presentarReto({
@@ -1087,12 +1202,26 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     });
 
     menuMundos.marcarActual(reto.nivel.id);
+    presentarDesafio();
 
     if (opciones.saludar && globo.texto().trim().length === 0) {
-      globo.celebrar(`${reto.nivel.titulo}: escribe un programa que reproduzca la figura de Kiro.`);
+      globo.celebrar(
+        reto.nivel.enunciado ?? `${reto.nivel.titulo}: escribe un programa que reproduzca la figura de Kiro.`,
+      );
     }
 
-    if (opciones.lanzarDemostracion && demostracion) demostracion.reproducir();
+    if (opciones.lanzarDemostracion) lanzarDemostracion('reproducir');
+  }
+
+  /**
+   * Lanza la demostración y registra una vista por cada una lanzada, incluida la que Kiro
+   * hace sola al entrar al nivel (R11.2). Es el único punto por donde se lanza.
+   */
+  function lanzarDemostracion(modo: 'reproducir' | 'repetir'): void {
+    if (!demostracion) return;
+    if (modo === 'reproducir') demostracion.reproducir();
+    else demostracion.repetir();
+    registrarSenal(() => progreso.registrarVistaDemostracion(reto.nivel.id));
   }
 
   /**
@@ -1101,18 +1230,21 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
    * generador trae un reto nuevo (y el autorado usa su semilla fija). Reinicia
    * el intento y refresca el selector.
    */
-  function cambiarANivel(idNivel: string, semilla?: number): void {
+  function cambiarANivel(idNivel: string, semilla?: number, desafioNuevo: EstadoDesafio | null = null): void {
     if (!nivelDesbloqueado(idNivel, progreso)) {
       globo.celebrar('Ese nivel todavía está bloqueado. Aprueba el anterior para abrirlo.');
       return;
     }
-    const sem = semilla ?? semillaNuevaParaNivel(idNivel);
+    const sem = semilla ?? semillaDistinta(entropia, reto.semillaEfectiva);
     const r = resolverReto(idNivel, sem);
     if (!r.exito) {
       // Fallo de programación: no debería ocurrir con el catálogo real.
       console.error('No se pudo resolver el nivel', idNivel, r.error.mensaje);
       return;
     }
+    // Solo el control del desafío pasa un estado nuevo; cualquier otro camino (menú, otro
+    // reto, reproducir un código) llega con `null` y descarta el desafío en curso (R12).
+    desafio = desafioNuevo;
     // Un intento a medio dibujar del nivel anterior se descarta: ni se evalúa ni
     // revela nada en el nivel nuevo. `montarReto` reinicia el animador, que corta la
     // reproducción sin avisar de ningún fin.
@@ -1121,6 +1253,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     reto = r.reto;
     estadoApp = { reto, astJugador: null, operacionesJugador: [], veredicto: null, calificacion: null };
     ejecutando = false;
+    controles.marcarIntentoEjecutado(false);
     controles.marcarFinDeSecuencia();
     marcador.restablecer();
     comparacion.restablecer();
@@ -1137,7 +1270,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   /** Pide otro reto del mismo nivel (solo tiene efecto en niveles generados). */
   function pedirOtroReto(): void {
     if (reto.nivel.origen.tipo !== 'generado') return;
-    cambiarANivel(reto.nivel.id, semillaNuevaParaNivel(reto.nivel.id));
+    cambiarANivel(reto.nivel.id, semillaDistinta(entropia, reto.semillaEfectiva));
   }
 
   /**
@@ -1154,22 +1287,62 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     cambiarANivel(reto.nivel.id, resultado.semilla);
   }
 
+  /**
+   * Muestra el control del desafío según el estado: en curso, disponible para el mundo del
+   * nivel en curso (mundo completo con niveles generados) u oculto (R12.1, R12.2).
+   */
+  function presentarDesafio(): void {
+    if (desafio !== null) {
+      controlDesafio.presentar({
+        fase: 'enCurso',
+        mundo: desafio.mundo,
+        codigoRaiz: desafio.codigoRaiz,
+        puedeAvanzar: desafio.aprobado,
+      });
+    } else if (desafioDisponible(reto.nivel.mundo, progreso)) {
+      controlDesafio.presentar({ fase: 'disponible', mundo: reto.nivel.mundo });
+    } else {
+      controlDesafio.presentar({ fase: 'oculto' });
+    }
+  }
+
+  /** Carga el reto del índice del desafío y lo deja como estado vigente (R12.3, R12.4). */
+  function cargarRetoDelDesafio(estado: EstadoDesafio): void {
+    const { idNivel, semilla } = retoDesafio(estado.mundo, estado.raiz, estado.indice);
+    cambiarANivel(idNivel, semilla, estado);
+  }
+
+  /**
+   * Inicia el desafío del mundo del nivel en curso. La raíz sale de la misma entropía de
+   * arranque que «Otro reto» (nunca `Math.random`) y se muestra en formato compartible; si
+   * `codificar` fallara, se omite el código y se avisa con el mensaje del catálogo (R12.6).
+   */
+  function iniciarDesafio(): void {
+    const mundo = reto.nivel.mundo;
+    if (!desafioDisponible(mundo, progreso)) return;
+    const raiz = semillaDistinta(entropia, reto.semillaEfectiva);
+    const codigo = codificar(raiz);
+    if (!codigo.exito) globo.mostrarMensajes([codigo.error]);
+    cargarRetoDelDesafio({
+      mundo,
+      raiz,
+      indice: 0,
+      codigoRaiz: codigo.exito ? codigo.codigo : null,
+      aprobado: false,
+    });
+  }
+
+  /** Pasa al siguiente reto de la secuencia, solo si el reto en curso ya se aprobó (R12.4). */
+  function siguienteDelDesafio(): void {
+    if (desafio === null || !desafio.aprobado) return;
+    cargarRetoDelDesafio({ ...desafio, indice: desafio.indice + 1, aprobado: false });
+  }
+
   /** El id del nivel que sigue a `idNivel` en el orden del catálogo, o null. */
   function idSiguienteNivel(idNivel: string): string | null {
     const i = CATALOGO.findIndex((n) => n.id === idNivel);
     if (i < 0 || i + 1 >= CATALOGO.length) return null;
     return CATALOGO[i + 1]!.id;
-  }
-
-  /**
-   * Deriva una semilla nueva para pedir otro reto de un nivel. Sale del reloj de
-   * animación (entropía de arranque documentada), acotada al dominio de semillas.
-   */
-  function semillaNuevaParaNivel(_idNivel: string): number {
-    void _idNivel;
-    const t = Math.floor(reloj.ahora() * 1000);
-    const dominio = 4_294_967_295 + 1;
-    return ((t % dominio) + dominio) % dominio;
   }
 
   /** Pinta la tortuga del jugador en un estado, sin tramo de estela en curso. */
@@ -1226,12 +1399,30 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       return;
     }
 
+    // Guarda de límite duro (requisito 1.3): activa desde el mundo 3. Si el
+    // conteo del jugador supera el límite, Kiro detiene ANTES de dibujar y
+    // explica. El conteo es el mismo `contarInstrucciones` que alimentan el
+    // contador del editor y la estrella de economía (única fuente del
+    // presupuesto). Corta antes de marcar ejecución, ceder la demostración,
+    // reiniciar la capa del jugador y ejecutar el intérprete: no se emite
+    // ninguna operación de tortuga y el intento queda como estaba.
+    if (reto.limiteDuroActivo) {
+      const c = contarInstrucciones(programa);
+      if (c.exito && c.instrucciones > reto.limiteDuro) {
+        globo.mostrarMensajes([
+          crearError('limiteDuroExcedido', { usadas: c.instrucciones, limite: reto.limiteDuro, mundo: reto.nivel.mundo }),
+        ]);
+        return;
+      }
+    }
+
     // Programa correcto: cede la demostración y reinicia la capa del jugador.
     ejecutando = true;
     controles.marcarEjecucionEnCurso();
     if (demostracion && demostracion.enCurso()) demostracion.cederAEjecucion();
 
     animador.reiniciar(ESTADO_INICIAL); // borra solo la capa del jugador
+    vaciarSalida();
     resaltarLinea(0);
     marcador.restablecer();
     // Un intento nuevo vuelve a la vista normal para que se vea caminar a la tortuga.
@@ -1244,6 +1435,8 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       estadoInicial: ESTADO_INICIAL,
       comandosPermitidos: permitidos,
       semilla: reto.semillaEfectiva,
+      fabricaAzar,
+      ahora: ahoraReal,
     });
     let paso = generador.next();
     while (!paso.done) paso = generador.next();
@@ -1262,6 +1455,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
       calificacion: null,
     };
     modoPaso = false;
+    controles.marcarIntentoEjecutado(true);
 
     // Anima el intento. Con movimiento reducido, velocidad inmediata o sin
     // operaciones el animador termina aquí mismo y el intento se concluye al
@@ -1287,9 +1481,14 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     if (resultado.guardaActivada !== null || resultado.error !== null) {
       if (resultado.error !== null) globo.mostrarMensajes([resultado.error]);
       anunciar(
-        resultado.guardaActivada !== null
-          ? componerAnuncioFin({ ...fin, motivo: 'guarda', operacionesAplicadas: operaciones.length })
-          : componerAnuncioError({ ...fin, operacionesAplicadas: operaciones.length }),
+        [
+          resultado.guardaActivada !== null
+            ? componerAnuncioFin({ ...fin, motivo: 'guarda', operacionesAplicadas: operaciones.length })
+            : componerAnuncioError({ ...fin, operacionesAplicadas: operaciones.length }),
+          resumenDeSalida(),
+        ]
+          .filter((t) => t.length > 0)
+          .join(' '),
       );
       return;
     }
@@ -1352,6 +1551,11 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     // Refresca el menú (estados e insignia) con el progreso ya guardado.
     menuMundos.refrescar();
 
+    // Aprobar el reto en curso del desafío abre «Siguiente reto»; aprobar el último nivel de
+    // un mundo puede dejar disponible su desafío (R12.1, R12.4).
+    if (desafio !== null && calificacion.precision.otorgada) desafio.aprobado = true;
+    presentarDesafio();
+
     // Si este intento completó la insignia Secuencia, lo comunica por el globo.
     if (!insigniaAntes && insigniaSecuenciaOtorgada(progreso)) {
       globo.celebrar('¡Insignia Secuencia! Completaste el mundo 0 con las tres estrellas en los cinco niveles.');
@@ -1370,7 +1574,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     // Un único anuncio aria-live al terminar, con motivo, nº de ops y estado y, si hay
     // comparación, el IoU y el exceso (28.9 y 23.7 comparten la misma región).
     anunciar(
-      [componerAnuncioFin({ ...fin, operacionesAplicadas: operaciones.length }), anuncioComparacion]
+      [componerAnuncioFin({ ...fin, operacionesAplicadas: operaciones.length }), resumenDeSalida(), anuncioComparacion]
         .filter((texto) => texto.length > 0)
         .join(' '),
     );
@@ -1395,6 +1599,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
 
   function reiniciar(): void {
     animador.reiniciar(ESTADO_INICIAL);
+    vaciarSalida();
     resaltarLinea(0);
     dibujarPersonajesEnInicial();
     modoPaso = false;
@@ -1406,7 +1611,20 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   }
 
   function verDemostracion(): void {
-    if (demostracion) demostracion.repetir();
+    lanzarDemostracion('repetir');
+  }
+
+  /**
+   * Reproduce a la vez el recorrido de Kiro y el del jugador. Sin intento no hay nada que
+   * comparar. La señal se registra al INICIAR (R11.3), antes de reproducir, de modo que un
+   * nivel aprobado después queda marcado como posterior (R11.4).
+   * (El diseño preguntaba por `operacionesJugador === null`; en el código real esa lista
+   * nace vacía, así que el intento se reconoce por `astJugador`.)
+   */
+  function verEnParalelo(): void {
+    if (estadoApp.astJugador === null) return;
+    registrarSenal(() => progreso.marcarReproduccionParalelaUsada());
+    reproduccionParalelo.reproducir(reto.operaciones, estadoApp.operacionesJugador, ESTADO_INICIAL);
   }
 
   function cambiarVelocidad(v: Velocidad): void {
@@ -1418,6 +1636,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   return {
     estado: () => estadoApp,
     ejecutar: ejecutarPrograma,
+    consola,
     darPaso,
     reiniciar,
     verDemostracion,

@@ -632,7 +632,8 @@ textarea {
 }
 
 .kl-globo,
-.kl-controles {
+.kl-controles,
+.kl-consola-ranura {
   grid-column: 1 / -1;
 }
 
@@ -690,6 +691,73 @@ textarea {
 .kl-globo-mensaje {
   font-size: 1rem;
   line-height: 1.45;
+  /* Conserva los saltos de línea y la sangría del esqueleto de una pista */
+  white-space: pre-wrap;
+}
+
+/* ========== CONSOLA (kl-consola) ========== */
+/* La ranura no ocupa espacio mientras está vacía (antes del mundo 4). */
+.kl-consola-ranura:empty {
+  display: none;
+}
+
+.kl-consola {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  min-width: 0;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--color-consola-borde);
+  border-radius: var(--radio-control);
+  background-color: var(--color-consola-fondo);
+  color: var(--color-consola-texto);
+  font-family: var(--fuente-consola);
+}
+
+.kl-consola-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.kl-consola-cabecera h3 {
+  margin: 0;
+  color: var(--color-consola-titulo);
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.kl-consola-cabecera button {
+  padding: 0.2rem 0.7rem;
+  border: var(--borde-grueso) solid var(--color-consola-borde);
+  border-radius: var(--radio-control);
+  background: transparent;
+  color: var(--color-consola-texto);
+  font: inherit;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kl-consola-registro {
+  box-sizing: border-box;
+  max-height: calc(var(--lineas-visibles-consola) * var(--alto-linea-consola));
+  overflow-y: auto;
+}
+
+.kl-consola-registro[hidden] {
+  display: none;
+}
+
+.kl-consola-linea {
+  margin: 0;
+  min-height: var(--alto-linea-consola);
+  line-height: var(--alto-linea-consola);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .kl-globo-sin-mas {
@@ -772,6 +840,17 @@ textarea {
   background-color: var(--color-linea-activa-fondo, #a78bfa);
   color: var(--color-numeros-linea-activa, #150f26);
   font-weight: 800;
+}
+
+/* La línea desde donde se llamó al procedimiento en curso. No depende del color:
+   subrayado punteado y el símbolo «↳» antepuesto. */
+.kl-canaleta-llamada {
+  text-decoration: underline dotted;
+  text-underline-offset: 0.2em;
+}
+
+.kl-canaleta-llamada::before {
+  content: "↳ ";
 }
 
 .kl-editor-area {
@@ -940,6 +1019,9 @@ textarea {
 .kl-control-reiniciar,
 .kl-control-demostracion {
   grid-column: span 2;
+}
+.kl-control-paralelo {
+  grid-column: 1 / -1;
 }
 
 /* Estado deshabilitado: por atributo disabled y por clase, para el mismo aspecto.
@@ -1194,6 +1276,61 @@ textarea {
   outline: none;
 }
 
+/* ========== CONTROL DEL DESAFÍO INFINITO (kl-control-desafio, junto al panel de semilla) ========== */
+.kl-control-desafio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.75rem;
+  margin-top: 0.6rem;
+}
+
+/* `hidden` debe ganar al `display` de arriba. */
+.kl-control-desafio[hidden] {
+  display: none;
+}
+
+.kl-control-desafio-boton {
+  padding: 0.4rem 0.9rem;
+  border: var(--borde-grueso, 2px) solid var(--secundario, #7c68c9);
+  border-radius: 99px;
+  background: transparent;
+  color: var(--suave, #e6e0f7);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.kl-control-desafio-boton:hover:not(:disabled) {
+  background: var(--secundario, #7c68c9);
+  color: var(--color-boton-texto, #150f26);
+}
+
+.kl-control-desafio-boton:disabled {
+  border-color: var(--color-borde-panel, #3b3454);
+  color: var(--color-texto-deshabilitado, #8b84a5);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.kl-control-desafio-codigo,
+.kl-control-desafio-nota {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--color-texto-secundario, #aaa4c0);
+}
+
+.kl-control-desafio-valor {
+  padding: 0.1rem 0.6rem;
+  border-radius: 0.5rem;
+  background: var(--tinta-950, #0f0d16);
+  font-family: var(--fuente-codigo, monospace);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--suave, #e6e0f7);
+}
+
 /* ========== MARCADOR DE ESTRELLAS (kl-marcador) ========== */
 .kl-marcador {
   display: grid;
@@ -1375,7 +1512,8 @@ textarea {
     grid-column: span 3;
   }
 
-  .kl-control-demostracion {
+  .kl-control-demostracion,
+  .kl-control-paralelo {
     grid-column: 1 / -1;
   }
 

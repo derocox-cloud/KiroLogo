@@ -8,7 +8,7 @@ import { VOCABULARIO, buscarComando, normalizarPalabra, EntradaVocabulario, Mund
 // ============================================================================
 
 /**
- * Identificadores de los 47 errores del catálogo.
+ * Identificadores de los 64 errores del catálogo.
  * Cada id corresponde a un mensaje en español con parámetros específicos.
  */
 export type IdError =
@@ -30,6 +30,8 @@ export type IdError =
   | 'colorInvalido' | 'grosorInvalido'
   // interfaz y persistencia
   | 'limiteLineasEditor' | 'limiteCaracteresEditor' | 'progresoNoSeGuarda'
+  // límite duro de instrucciones (mundo 3 en adelante)
+  | 'limiteDuroExcedido'
   // azar y semillas
   | 'codigoSemillaLongitud' | 'codigoSemillaSimbolo' | 'codigoSemillaFueraDeDominio'
   | 'semillaFueraDeDominio' | 'rangoInvalido' | 'listaVacia' | 'pasoInvalido'
@@ -39,7 +41,14 @@ export type IdError =
   | 'generadorSinCandidato' | 'generadorDesconocido'
   | 'solicitudDeErrorInvalida'
   // invitaciones de abstracción (no son fallos: aparecen tras ganar precisión)
-  | 'invitacionAbstraccionRepite'
+  | 'invitacionAbstraccionRepite' | 'invitacionAbstraccionParametros' | 'invitacionAbstraccionProcedimientos'
+  // parámetros, expresiones y operadores del mundo 4
+  | 'variableNoDefinida' | 'parametroDuplicado'
+  | 'procedimientoArgumentosFaltantes' | 'procedimientoArgumentosDeMas'
+  | 'operadorSinUso' | 'aritmeticaBloqueada'
+  | 'parentesisSinCerrar' | 'parentesisDeMas' | 'expresionIncompleta' | 'expresionDemasiadoProfunda'
+  | 'divisionPorCero' | 'numeroFueraDeRango' | 'vecesInvalidas' | 'azarRangoInvalido'
+  | 'guardaEscrituras'
   // reproducción en paralelo (no son fallos: explican dónde se separaron los recorridos)
   | 'divergenciaGiro' | 'divergenciaAvance' | 'divergenciaJugadorCorto' | 'divergenciaExcesoFinal';
 
@@ -69,6 +78,16 @@ export interface ErrorKiroLogo {
  * Parámetros exigidos por cada entrada. Un id sin los suyos no compila.
  * Mapea cada IdError a su objeto de parámetros específico.
  */
+// Única fuente de la sugerencia de bloqueo por mundo (R2.2 a R2.4, R13.1). Son solo texto:
+// no agregan parámetros ni recursión al lenguaje. Nunca mencionan el presupuesto (R2.5).
+const SUGERENCIA_DE_BLOQUEO_POR_MUNDO: Readonly<Record<number, string>> = {
+  3: 'Prueba a poner un REPITE dentro de otro REPITE para repetir un grupo entero de una sola vez.',
+  4: 'Prueba a usar parámetros para que un mismo procedimiento sirva para varios tamaños.',
+  5: 'Prueba a usar recursión: un procedimiento que se llama a sí mismo con un valor menor.',
+};
+// Todo mundo sin entrada (los 0 a 2 no llegan aquí, y los futuros aún no la tienen) cae en esta.
+const MUNDO_DE_SUGERENCIA_POR_OMISION = 3;
+
 export interface ParametrosPorError {
   // léxicos (sin parámetros)
   readonly caracterNoValido: Record<string, never>;
@@ -83,7 +102,13 @@ export interface ParametrosPorError {
   readonly comandoBloqueado: { readonly nombre: string; readonly mundo: number };
   readonly comandoBloqueadoCercano: { readonly escrita: string; readonly nombre: string; readonly mundo: number };
   readonly argumentoFaltante: { readonly comando: string; readonly parte?: ParteArgumento };
-  readonly argumentoDeTipoEquivocado: { readonly comando: string; readonly recibido: string; readonly parte?: ParteArgumento };
+  readonly argumentoDeTipoEquivocado: {
+    readonly comando: string;
+    readonly recibido: string;
+    readonly parte?: ParteArgumento;
+    readonly procedimiento?: string;
+    readonly parametro?: string;
+  };
   readonly corcheteSinCerrar: Record<string, never>;
   readonly corcheteSinCerrarEnLinea: { readonly linea: number };
   readonly corcheteDeMas: Record<string, never>;
@@ -119,6 +144,13 @@ export interface ParametrosPorError {
   readonly limiteLineasEditor: Record<string, never>;
   readonly limiteCaracteresEditor: Record<string, never>;
   readonly progresoNoSeGuarda: Record<string, never>;
+
+  // límite duro de instrucciones
+  readonly limiteDuroExcedido: {
+    readonly usadas: number;
+    readonly limite: number;
+    readonly mundo: number;
+  };
   
   // azar y semillas
   readonly codigoSemillaLongitud: Record<string, never>;
@@ -140,12 +172,48 @@ export interface ParametrosPorError {
 
   // invitaciones de abstracción
   readonly invitacionAbstraccionRepite: Record<string, never>;
+  readonly invitacionAbstraccionParametros: Record<string, never>;
+  readonly invitacionAbstraccionProcedimientos: { readonly definidos: number; readonly maximo: number };
+
+  // parámetros, expresiones y operadores del mundo 4
+  readonly variableNoDefinida: { readonly nombre: string };
+  readonly parametroDuplicado: { readonly procedimiento: string; readonly parametro: string };
+  readonly procedimientoArgumentosFaltantes: {
+    readonly nombre: string;
+    readonly esperados: readonly string[];
+    readonly recibidos: number;
+    readonly menosComoResta?: boolean;
+  };
+  readonly procedimientoArgumentosDeMas: {
+    readonly nombre: string;
+    readonly esperados: readonly string[];
+    readonly linea: number;
+  };
+  readonly operadorSinUso: { readonly nombre: string; readonly ejemplo: string };
+  readonly aritmeticaBloqueada: { readonly simbolo: string; readonly mundo: number };
+  readonly parentesisSinCerrar: { readonly linea: number };
+  readonly parentesisDeMas: { readonly linea: number };
+  readonly expresionIncompleta: { readonly simbolo: string; readonly linea: number };
+  readonly expresionDemasiadoProfunda: Record<string, never>;
+  readonly divisionPorCero: { readonly linea: number };
+  readonly numeroFueraDeRango: { readonly linea: number };
+  readonly vecesInvalidas: { readonly linea: number; readonly valor: number };
+  readonly azarRangoInvalido: { readonly linea: number; readonly valor: number };
+  readonly guardaEscrituras: Record<string, never>;
 
   // reproducción en paralelo
   readonly divergenciaGiro: { readonly gradosKiro: number; readonly gradosJugador: number };
   readonly divergenciaAvance: { readonly pasosKiro: number; readonly pasosJugador: number };
   readonly divergenciaJugadorCorto: Record<string, never>;
   readonly divergenciaExcesoFinal: Record<string, never>;
+}
+
+function textoValido(valor: unknown): valor is string {
+  return typeof valor === 'string' && valor.trim().length > 0;
+}
+
+function enteroDesdeUno(valor: unknown): valor is number {
+  return typeof valor === 'number' && Number.isInteger(valor) && valor >= 1;
 }
 
 // ============================================================================
@@ -216,10 +284,96 @@ export function crearError<K extends IdError>(
       break;
     case 'argumentoDeTipoEquivocado':
       const params7 = parametros as ParametrosPorError['argumentoDeTipoEquivocado'];
-      if (!params7.comando?.trim() || !params7.recibido?.trim()) {
+      if (
+        !params7.comando?.trim() ||
+        !params7.recibido?.trim() ||
+        (params7.procedimiento !== undefined && !params7.procedimiento.trim()) ||
+        (params7.parametro !== undefined && !params7.parametro.trim())
+      ) {
         return crearError('solicitudDeErrorInvalida', {}, posicion);
       }
       break;
+    case 'variableNoDefinida':
+      if (!textoValido((parametros as ParametrosPorError['variableNoDefinida']).nombre)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    case 'parametroDuplicado': {
+      const p = parametros as ParametrosPorError['parametroDuplicado'];
+      if (!textoValido(p.procedimiento) || !textoValido(p.parametro)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
+    case 'procedimientoArgumentosFaltantes': {
+      const p = parametros as ParametrosPorError['procedimientoArgumentosFaltantes'];
+      if (
+        !textoValido(p.nombre) ||
+        !Array.isArray(p.esperados) ||
+        !p.esperados.every(textoValido) ||
+        !Number.isInteger(p.recibidos) ||
+        p.recibidos < 0
+      ) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
+    case 'procedimientoArgumentosDeMas': {
+      const p = parametros as ParametrosPorError['procedimientoArgumentosDeMas'];
+      if (
+        !textoValido(p.nombre) ||
+        !Array.isArray(p.esperados) ||
+        !p.esperados.every(textoValido) ||
+        !enteroDesdeUno(p.linea)
+      ) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
+    case 'operadorSinUso': {
+      const p = parametros as ParametrosPorError['operadorSinUso'];
+      if (!textoValido(p.nombre) || !textoValido(p.ejemplo)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
+    case 'aritmeticaBloqueada': {
+      const p = parametros as ParametrosPorError['aritmeticaBloqueada'];
+      if (!textoValido(p.simbolo) || !enteroDesdeUno(p.mundo)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
+    case 'parentesisSinCerrar':
+    case 'parentesisDeMas':
+    case 'divisionPorCero':
+    case 'numeroFueraDeRango':
+      if (!enteroDesdeUno((parametros as { readonly linea: number }).linea)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    case 'expresionIncompleta': {
+      const p = parametros as ParametrosPorError['expresionIncompleta'];
+      if (!textoValido(p.simbolo) || !enteroDesdeUno(p.linea)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
+    case 'vecesInvalidas':
+    case 'azarRangoInvalido': {
+      const p = parametros as ParametrosPorError['vecesInvalidas'];
+      if (!enteroDesdeUno(p.linea) || typeof p.valor !== 'number' || !Number.isFinite(p.valor)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
+    case 'invitacionAbstraccionProcedimientos': {
+      const p = parametros as ParametrosPorError['invitacionAbstraccionProcedimientos'];
+      if (!enteroDesdeUno(p.maximo) || !Number.isInteger(p.definidos) || p.definidos <= p.maximo) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
     case 'comandoNoPermitido':
       const params8 = parametros as ParametrosPorError['comandoNoPermitido'];
       if (!params8.nombre?.trim()) {
@@ -253,6 +407,18 @@ export function crearError<K extends IdError>(
     case 'guardaRellenos':
       const params13 = parametros as ParametrosPorError['guardaRellenos'];
       if (!Number.isInteger(params13.maximo) || params13.maximo < 1) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    case 'limiteDuroExcedido':
+      const params14 = parametros as ParametrosPorError['limiteDuroExcedido'];
+      // Los tres valores son enteros y el programa se pasó de verdad: usadas > límite.
+      if (
+        !Number.isInteger(params14.usadas) ||
+        !Number.isInteger(params14.limite) ||
+        !Number.isInteger(params14.mundo) ||
+        params14.usadas <= params14.limite
+      ) {
         return crearError('solicitudDeErrorInvalida', {}, posicion);
       }
       break;
@@ -312,6 +478,7 @@ const PLANTILLAS_ARGUMENTO: Readonly<Record<TipoArgumento, PlantillaArgumento>> 
   palabra: { sustantivo: 'una palabra' },
   lista: { sustantivo: 'una lista de instrucciones entre corchetes' },
   expresion: { sustantivo: 'una condición' },
+  valorEscribible: { sustantivo: 'un valor o una palabra' },
 };
 
 /** Ejemplo del comando según el vocabulario (única fuente de los ejemplos de los mensajes). */
@@ -429,6 +596,12 @@ function construirMensaje<K extends IdError>(
     }
     case 'argumentoDeTipoEquivocado': {
       const p = parametros as ParametrosPorError['argumentoDeTipoEquivocado'];
+      if (p.procedimiento !== undefined && p.parametro !== undefined) {
+        return (
+          `${p.procedimiento} necesita un número en ${p.parametro}, ` +
+          `pero le diste ${clasificarRecibido(p.recibido)}: ${p.recibido}`
+        );
+      }
       return mensajeArgumentoEquivocado(p.comando, p.recibido, p.parte);
     }
     case 'corcheteSinCerrar':
@@ -529,6 +702,21 @@ function construirMensaje<K extends IdError>(
       return 'Tu programa ya tiene 10000 caracteres, que es el máximo. Borra algo para seguir escribiendo.';
     case 'progresoNoSeGuarda':
       return 'No voy a poder guardar tu progreso en este navegador, pero puedes seguir jugando.';
+
+    // límite duro de instrucciones (mundo 3 en adelante)
+    // La diferencia usadas−límite se calcula aquí, nunca se pasa como parámetro:
+    // una sola fuente de verdad para la cuenta que ve el jugador.
+    case 'limiteDuroExcedido': {
+      const p = parametros as ParametrosPorError['limiteDuroExcedido'];
+      const sobran = p.usadas - p.limite;
+      const sugerencia =
+        SUGERENCIA_DE_BLOQUEO_POR_MUNDO[p.mundo] ??
+        SUGERENCIA_DE_BLOQUEO_POR_MUNDO[MUNDO_DE_SUGERENCIA_POR_OMISION]!;
+      return (
+        `Tu programa usa ${p.usadas} instrucciones y el máximo para este reto es ${p.limite}: ` +
+        `te sobran ${sobran}. ${sugerencia}`
+      );
+    }
     
     // azar y semillas
     case 'codigoSemillaLongitud':
@@ -571,6 +759,85 @@ function construirMensaje<K extends IdError>(
     // invitaciones de abstracción (tras ganar precisión; nunca bloquean)
     case 'invitacionAbstraccionRepite':
       return 'Lo conseguiste. Pero dibujaste los cuatro lados uno a uno: yo los vi llegar de la misma forma, cuatro veces. ¿Puedes enseñarme a repetir con REPITE?';
+
+    case 'invitacionAbstraccionParametros':
+      return 'Lo lograste, pero dibujaste con números fijos. Intenta enseñarme un PARA con parámetros, como :lados, y luego pídemelo cambiando los números.';
+    case 'invitacionAbstraccionProcedimientos': {
+      const p = parametros as ParametrosPorError['invitacionAbstraccionProcedimientos'];
+      return `Lo lograste, pero definiste ${p.definidos} procedimientos y para este reto basta con ${p.maximo}. Enséñame uno solo con parámetros y pídemelo varias veces con números distintos.`;
+    }
+
+    // parámetros, expresiones y operadores del mundo 4
+    // Los nombres del jugador se muestran tal como los escribió, sin normalizar.
+    case 'variableNoDefinida': {
+      const p = parametros as ParametrosPorError['variableNoDefinida'];
+      return `No sé qué vale ${p.nombre} aquí. ¿La declaraste como parámetro en PARA?`;
+    }
+    case 'parametroDuplicado': {
+      const p = parametros as ParametrosPorError['parametroDuplicado'];
+      return `El comando ${p.procedimiento} declara ${p.parametro} dos veces. Cada parámetro necesita un nombre distinto.`;
+    }
+    case 'procedimientoArgumentosFaltantes': {
+      const p = parametros as ParametrosPorError['procedimientoArgumentosFaltantes'];
+      if (p.esperados.length === 0) {
+        return `${p.nombre} no necesita argumentos.`;
+      }
+      const faltan = p.esperados.slice(p.recibidos);
+      const necesita = p.esperados.length === 1 ? '1 argumento' : `${p.esperados.length} argumentos`;
+      const verbo = faltan.length === 1 ? 'Falta' : 'Faltan';
+      const base =
+        `${p.nombre} necesita ${necesita} (${p.esperados.join(' ')}) ` +
+        `y solo le diste ${p.recibidos}. ${verbo} ${faltan.length}: ${faltan.join(' ')}.`;
+      return p.menosComoResta ? `${base} ¿Querías escribir (-80) con paréntesis?` : base;
+    }
+    case 'procedimientoArgumentosDeMas': {
+      const p = parametros as ParametrosPorError['procedimientoArgumentosDeMas'];
+      if (p.esperados.length === 0) {
+        return `${p.nombre} no recibe argumentos, pero en la línea ${p.linea} le diste más. Quita lo que sobra.`;
+      }
+      const recibe = p.esperados.length === 1 ? '1 argumento' : `${p.esperados.length} argumentos`;
+      return `${p.nombre} recibe ${recibe} (${p.esperados.join(' ')}), pero en la línea ${p.linea} le diste más. Quita lo que sobra.`;
+    }
+    case 'operadorSinUso': {
+      const p = parametros as ParametrosPorError['operadorSinUso'];
+      return `${p.nombre} calcula un valor, pero no dijiste qué hacer con él. Por ejemplo: ${p.ejemplo}`;
+    }
+    case 'aritmeticaBloqueada': {
+      const p = parametros as ParametrosPorError['aritmeticaBloqueada'];
+      return `El símbolo ${p.simbolo} todavía no está disponible. Se desbloquea en el mundo ${p.mundo}.`;
+    }
+    case 'parentesisSinCerrar': {
+      const p = parametros as ParametrosPorError['parentesisSinCerrar'];
+      return `Falta cerrar el paréntesis que abriste en la línea ${p.linea}.`;
+    }
+    case 'parentesisDeMas': {
+      const p = parametros as ParametrosPorError['parentesisDeMas'];
+      return `Hay un paréntesis de cierre en la línea ${p.linea} que no abriste.`;
+    }
+    case 'expresionIncompleta': {
+      const p = parametros as ParametrosPorError['expresionIncompleta'];
+      return `Falta un número después del símbolo ${p.simbolo} de la línea ${p.linea}.`;
+    }
+    case 'expresionDemasiadoProfunda':
+      return 'Tienes demasiados paréntesis anidados (más de 32). Divide la cuenta en pasos más cortos.';
+    case 'divisionPorCero': {
+      const p = parametros as ParametrosPorError['divisionPorCero'];
+      return `Detuve la ejecución: en la línea ${p.linea} intentaste dividir entre cero. ¿Qué valor tenía el divisor?`;
+    }
+    case 'numeroFueraDeRango': {
+      const p = parametros as ParametrosPorError['numeroFueraDeRango'];
+      return `Detuve la ejecución: la cuenta de la línea ${p.linea} se volvió demasiado grande para calcularla.`;
+    }
+    case 'vecesInvalidas': {
+      const p = parametros as ParametrosPorError['vecesInvalidas'];
+      return `Detuve la ejecución: REPITE necesita un número entero de veces y en la línea ${p.linea} recibió ${p.valor}.`;
+    }
+    case 'azarRangoInvalido': {
+      const p = parametros as ParametrosPorError['azarRangoInvalido'];
+      return `AZAR necesita un entero mayor que 0 y en la línea ${p.linea} recibió ${p.valor}. Por ejemplo: AZAR 100`;
+    }
+    case 'guardaEscrituras':
+      return 'Detuve la ejecución: escribiste demasiadas veces en la consola y en el lienzo. ¿Hay una repetición que nunca termina?';
 
     // reproducción en paralelo (explican el punto de divergencia; nunca bloquean)
     case 'divergenciaGiro': {

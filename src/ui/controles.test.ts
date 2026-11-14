@@ -10,6 +10,7 @@ interface Registro {
   paso: number;
   reiniciar: number;
   demostracion: number;
+  paralelo: number;
   velocidad: Velocidad[];
 }
 
@@ -21,7 +22,7 @@ interface Montaje {
 function montar(): Montaje {
   const cont = document.createElement('div');
   document.body.appendChild(cont);
-  const reg: Registro = { ejecutar: 0, detener: 0, paso: 0, reiniciar: 0, demostracion: 0, velocidad: [] };
+  const reg: Registro = { ejecutar: 0, detener: 0, paso: 0, reiniciar: 0, demostracion: 0, paralelo: 0, velocidad: [] };
   const controles = crearControles({
     contenedor: cont,
     callbacks: {
@@ -30,6 +31,7 @@ function montar(): Montaje {
       darPaso: () => (reg.paso += 1),
       reiniciar: () => (reg.reiniciar += 1),
       verDemostracion: () => (reg.demostracion += 1),
+      verEnParalelo: () => (reg.paralelo += 1),
       cambiarVelocidad: (v) => reg.velocidad.push(v),
     },
   });
@@ -41,9 +43,9 @@ function click(b: HTMLElement): void {
 }
 
 describe('controles · seis acciones y cuatro velocidades', () => {
-  it('presenta exactamente seis acciones, cada una un elemento interactivo', () => {
+  it('presenta exactamente seis botones de acción, cada una un elemento interactivo', () => {
     const { controles } = montar();
-    const acciones: AccionId[] = ['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion'];
+    const acciones: AccionId[] = ['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion', 'paralelo'];
     for (const a of acciones) {
       expect(controles.boton(a).tagName).toBe('BUTTON');
     }
@@ -51,8 +53,7 @@ describe('controles · seis acciones y cuatro velocidades', () => {
     for (const v of velocidades) {
       expect(controles.botonVelocidad(v).tagName).toBe('BUTTON');
     }
-    // Seis acciones = cinco botones + el grupo de velocidad.
-    expect(controles.raiz.querySelectorAll('.kl-control').length).toBe(5);
+    expect(controles.raiz.querySelectorAll('.kl-control').length).toBe(6);
     expect(controles.raiz.querySelectorAll('.kl-velocidad').length).toBe(4);
   });
 
@@ -65,7 +66,7 @@ describe('controles · seis acciones y cuatro velocidades', () => {
   it('cada acción y cada velocidad expone un nombre accesible en español distinto', () => {
     const { controles } = montar();
     const nombres = new Set<string>();
-    for (const a of ['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion'] as AccionId[]) {
+    for (const a of ['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion', 'paralelo'] as AccionId[]) {
       const nombre = controles.boton(a).getAttribute('aria-label')!;
       expect(nombre.length).toBeGreaterThan(0);
       nombres.add(nombre);
@@ -75,8 +76,8 @@ describe('controles · seis acciones y cuatro velocidades', () => {
       expect(nombre.length).toBeGreaterThan(0);
       nombres.add(nombre);
     }
-    // Nueve nombres distintos.
-    expect(nombres.size).toBe(9);
+    // Diez nombres distintos.
+    expect(nombres.size).toBe(10);
   });
 });
 
@@ -90,7 +91,7 @@ describe('controles · texto visible y nombre accesible', () => {
 
   it('el nombre accesible de cada botón contiene su texto visible (quien dicta «Ejecutar» lo activa)', () => {
     const { controles } = montar();
-    for (const a of ['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion'] as AccionId[]) {
+    for (const a of ['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion', 'paralelo'] as AccionId[]) {
       const b = controles.boton(a);
       const visible = textoVisible(b).toLowerCase();
       expect(visible.length, a).toBeGreaterThan(0);
@@ -115,7 +116,7 @@ describe('controles · texto visible y nombre accesible', () => {
 
   it('el ícono de cada acción es decorativo: va oculto a los lectores de pantalla', () => {
     const { controles } = montar();
-    for (const a of ['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion'] as AccionId[]) {
+    for (const a of ['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion', 'paralelo'] as AccionId[]) {
       const icono = controles.boton(a).querySelector('.kl-control-icono')!;
       expect(icono.getAttribute('aria-hidden')).toBe('true');
     }
@@ -276,11 +277,11 @@ describe('controles · 7.2/7.3 · exactamente una velocidad seleccionada por est
 });
 
 describe('controles · 7.1 · acciones alcanzables por teclado en orden visual', () => {
-  it('las cinco acciones y las cuatro velocidades son botones nativos en el orden de tabulación', () => {
+  it('las seis acciones y las cuatro velocidades son botones nativos en el orden de tabulación', () => {
     const { controles } = montar();
     // Un botón nativo sin tabindex negativo participa del orden de tabulación.
     const todos = Array.from(controles.raiz.querySelectorAll('button')) as HTMLButtonElement[];
-    expect(todos.length).toBe(9);
+    expect(todos.length).toBe(10);
     for (const b of todos) {
       expect(b.tagName).toBe('BUTTON');
       // Ningún control se saca del recorrido por teclado con tabindex="-1".
@@ -293,15 +294,86 @@ describe('controles · 7.1 · acciones alcanzables por teclado en orden visual',
     const accionesEnDom = Array.from(controles.raiz.querySelectorAll<HTMLButtonElement>('.kl-control')).map((b) =>
       b.getAttribute('data-accion'),
     );
-    expect(accionesEnDom).toEqual(['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion']);
+    expect(accionesEnDom).toEqual(['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion', 'paralelo']);
     const velEnDom = Array.from(controles.raiz.querySelectorAll<HTMLButtonElement>('.kl-velocidad')).map((b) =>
       b.getAttribute('data-velocidad'),
     );
     expect(velEnDom).toEqual(['lenta', 'normal', 'rapida', 'inmediata']);
-    // El grupo de velocidad va después de las cinco acciones en el orden del DOM.
+    // El grupo de velocidad va después de las seis acciones en el orden del DOM.
     const hijosBoton = Array.from(controles.raiz.querySelectorAll('button')) as HTMLButtonElement[];
-    const idxUltimaAccion = hijosBoton.findIndex((b) => b.getAttribute('data-accion') === 'demostracion');
+    const idxUltimaAccion = hijosBoton.findIndex((b) => b.getAttribute('data-accion') === 'paralelo');
     const idxPrimeraVel = hijosBoton.findIndex((b) => b.getAttribute('data-velocidad') === 'lenta');
     expect(idxUltimaAccion).toBeLessThan(idxPrimeraVel);
+  });
+});
+
+// ===========================================================================
+// Acción «Ver en paralelo» (spec 04, tarea 14.3, R11.3)
+// ===========================================================================
+describe('controles · acción «Ver en paralelo»', () => {
+  it('tiene el texto visible y el nombre accesible acordados, y este contiene a aquel', () => {
+    const { controles } = montar();
+    const b = controles.boton('paralelo');
+    expect((b.textContent ?? '').trim()).toContain('Ver en paralelo');
+    expect(b.getAttribute('aria-label')).toBe('Ver en paralelo mi recorrido y el de Kiro');
+    expect(b.querySelector('.kl-control-icono')!.getAttribute('aria-hidden')).toBe('true');
+  });
+
+  it('nace deshabilitada, por estado programático y visual, y activarla no hace nada', () => {
+    const { controles, reg } = montar();
+    expect(controles.habilitada('paralelo')).toBe(false);
+    expect(controles.boton('paralelo').getAttribute('aria-disabled')).toBe('true');
+    click(controles.boton('paralelo'));
+    expect(reg.paralelo).toBe(0);
+  });
+
+  it('se habilita cuando existe un intento ejecutado y activarla invoca verEnParalelo', () => {
+    const { controles, reg } = montar();
+    controles.marcarIntentoEjecutado(true);
+    expect(controles.habilitada('paralelo')).toBe(true);
+    expect(controles.boton('paralelo').getAttribute('aria-disabled')).toBe('false');
+    click(controles.boton('paralelo'));
+    expect(reg.paralelo).toBe(1);
+  });
+
+  it('se deshabilita mientras hay una ejecución en curso y vuelve al terminar', () => {
+    const { controles } = montar();
+    controles.marcarIntentoEjecutado(true);
+    controles.marcarEjecucionEnCurso();
+    expect(controles.habilitada('paralelo')).toBe(false);
+    controles.marcarFinDeSecuencia();
+    expect(controles.habilitada('paralelo')).toBe(true);
+  });
+
+  it('un intento marcado durante la ejecución espera al fin para habilitarse', () => {
+    const { controles } = montar();
+    controles.marcarEjecucionEnCurso();
+    controles.marcarIntentoEjecutado(true);
+    expect(controles.habilitada('paralelo')).toBe(false);
+    controles.marcarFinDeSecuencia();
+    expect(controles.habilitada('paralelo')).toBe(true);
+  });
+
+  it('tras detener por el jugador, el intento sigue disponible para comparar', () => {
+    const { controles } = montar();
+    controles.marcarIntentoEjecutado(true);
+    controles.marcarEjecucionEnCurso();
+    controles.marcarDetenido();
+    expect(controles.habilitada('paralelo')).toBe(true);
+  });
+
+  it('sin intento, terminar o detener no la habilita', () => {
+    const { controles } = montar();
+    controles.marcarFinDeSecuencia();
+    expect(controles.habilitada('paralelo')).toBe(false);
+    controles.marcarDetenido();
+    expect(controles.habilitada('paralelo')).toBe(false);
+  });
+
+  it('descartar el intento (nivel nuevo) la vuelve a deshabilitar', () => {
+    const { controles } = montar();
+    controles.marcarIntentoEjecutado(true);
+    controles.marcarIntentoEjecutado(false);
+    expect(controles.habilitada('paralelo')).toBe(false);
   });
 });

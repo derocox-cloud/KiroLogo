@@ -881,3 +881,177 @@ acaba de ganar. El resplandor ahí no decora, señala un logro; en el logo o en 
 para que la decisión no se erosione con el tiempo, una prueba estructural (`Prueba_Color_Plano`) lee el
 texto real de `pantalla.css` y `tema.css` y falla si reaparece cualquiera de los efectos retirados,
 admitiendo solo esas dos excepciones por su selector y propiedad exactos y la Sombra_Dura sin desenfoque.
+
+---
+
+## Spec 05 · Mundo 4 · Parámetros (tarea 14.4)
+
+El mundo 4 es el primero donde el lenguaje deja de ser una lista de órdenes con números fijos y pasa a
+tener **valores**: parámetros en `PARA`, aritmética, `AZAR`, `ESCRIBE` y `ROTULA`. Casi todo el
+intérprete, el parser y el impresor era nuevo, así que las diez decisiones de abajo se tomaron en la fase
+de requisitos, antes de escribir una línea. Cada una lleva su decisión, su razón y lo que se descartó. Se
+numeran como «4·1» a «4·10» para no confundirlas con las decisiones 1 a 11 de la sesión de concepción.
+Después van las resoluciones D1 a D21 del diseño, que son otra cosa: no cambian ninguna decisión, ajustan
+los requisitos al código real.
+
+### Decisión 4·1 · `AZAR` es determinista: se siembra con la semilla del reto
+
+**La decisión.** Toda ejecución crea su PRNG con la semilla efectiva del reto. El mismo programa con el
+mismo reto produce siempre las mismas operaciones.
+
+**La razón.** Con un azar distinto en cada corrida, un programa con `AZAR` no podría aprobar un nivel de
+forma estable, y la demostración, el paso a paso, la reproducción en paralelo y la validación verían
+figuras distintas. Con la semilla, un reporte con el código del reto se reproduce al píxel, y repetir la
+corrida no sirve para aprobar por suerte. Ningún programa de referencia usa `AZAR`: la figura que se
+valida nunca depende de él.
+
+**Descartado.** Limitar `AZAR` al modo libre: hoy no habría ningún consumidor, porque el modo libre aún no
+existe. Dejarlo sin semilla fija: rompe la regla de «nada de `Math.random`» y la reproducibilidad.
+
+### Decisión 4·2 · Se incluyen los paréntesis
+
+**La decisión.** `(` y `)` agrupan, con `*` y `/` sobre `+` y `-`, asociatividad por la izquierda, menos
+unario y un tope de anidación de 32.
+
+**La razón.** Sin paréntesis, `360 / 2 + 1` y `360 / (2 + 1)` no se pueden distinguir ni escribir, y
+`360 * 2 / :puntas` queda a merced de la precedencia. El tope evita que un texto con miles de paréntesis
+desborde la pila del analizador.
+
+**Descartado.** Aritmética sin paréntesis, que obligaría a rodeos con `SUMA` y `COCIENTE` para expresar
+algo tan simple como un ángulo derivado.
+
+### Decisión 4·3 · Ámbito léxico, parámetros por valor e inmutables
+
+**La decisión.** Un procedimiento solo ve los parámetros de su propia cabecera. Cada llamada recibe copias
+de los valores y no puede cambiarlos. No hay asignación. Un procedimiento que llama a otro no le presta
+sus variables.
+
+**La razón.** Es más predecible para quien aprende y permite detectar un `:parámetro` no declarado
+**antes de ejecutar**. Además condiciona la recursión del mundo 5: cada llamada recursiva tiene sus
+propios valores y ninguna observa los de otra, que es lo que hace comprensible `ESPIRAL :largo + 5`. El
+steering lo dice con una frase: el mundo 5 hereda esas tres reglas para su recursión.
+
+**Descartado.** El ámbito dinámico del Logo clásico, donde una llamada ve las variables de quien la llamó:
+vuelve impredecible el efecto de renombrar un parámetro y solo se descubre un error al ejecutar. También
+se descartó el paso por referencia, que exigiría asignación y con ella estado mutable que el juego todavía
+no necesita.
+
+### Decisión 4·4 · `ROTULA` y `ESCRIBE` no cuentan para la precisión geométrica
+
+**La decisión.** El validador compara trazos. El texto no participa. `ROTULA` escribe aunque el lápiz
+esté arriba, porque un rótulo no es un trazo. Ambos cuentan una instrucción en el presupuesto y un paso
+de ejecución.
+
+**La razón.** Comparar texto dependería de cómo cada navegador dibuja la tipografía, y los generadores
+solo emiten tramos, así que no hay un texto de referencia que igualar. Rotular sin penalización es
+coherente con «explorar nunca se castiga». Que cuenten en el presupuesto evita que sean instrucciones
+gratis.
+
+**Descartado.** Comparar rótulos contra una referencia, y que no cuenten en el presupuesto.
+
+### Decisión 4·5 · La consola es un registro plegable, sin región `aria-live` propia
+
+**La decisión.** `ESCRIBE` va a un elemento `role="log"` enfocable por teclado, plegado hasta la primera
+línea de una ejecución. Al terminar, **un único** anuncio por `#anuncios` resume cuántas líneas se
+escribieron y cuál fue la última. Su aparición no cambia el tamaño de los lienzos ni el alto del editor.
+
+**La razón.** La interfaz ya tiene una sola región `aria-live` como único canal de anuncios. Una segunda
+competiría con los anuncios de la tortuga y leería cada línea de un `REPITE 100 [ES 1]`.
+
+**Descartado.** Una consola con su propia región viva, y un panel fijo siempre visible que le quitaría
+espacio al lienzo.
+
+### Decisión 4·6 · Conciliación del vocabulario: manda el steering, salvo en `SUMA` y `PRODUCTO`
+
+**La decisión.** `AZAR` pasa a aridad 1 (resultado entre 0 y n-1), `ESCRIBE` acepta un valor, `ROTULA`
+acepta texto o un valor numérico. `SUMA` y `PRODUCTO` quedan con exactamente dos argumentos, y se corrige
+el steering que decía «dos o más».
+
+**La razón.** Las firmas que tenía `vocabulario.ts` eran marcadores escritos antes de decidir la
+semántica. Una aridad variable sin paréntesis es ambigua (`ES SUMA 1 2 3`) y los operadores `+` y `*` ya
+cubren las sumas largas. El steering se versiona con el código, así que se corrige en la misma spec.
+
+**Descartado.** Aridad variable en `SUMA` y `PRODUCTO`, y dejar `AZAR` con dos límites.
+
+### Decisión 4·7 · Los comandos de operador producen valores y no son instrucciones
+
+**La decisión.** `SUMA`, `RESTA`, `PRODUCTO`, `COCIENTE`, `RESTO` y `AZAR` son expresiones. Se distinguen
+con un campo nuevo, `produceValor`, en la misma tabla del vocabulario. Escritos solos en una línea son un
+error que explica qué hacer con el valor, al estilo del Logo clásico.
+
+**La razón.** Así el lexer, el parser, el panel y las sugerencias siguen leyendo una sola tabla. Por eso
+el ejemplo de cada operador en el panel es un programa válido por sí solo (`ESCRIBE SUMA 30 40`).
+
+**Descartado.** Una lista de operadores aparte del vocabulario, que sería una segunda fuente de verdad, y
+tratar `SUMA 1 2` suelto como instrucción que descarta su resultado en silencio.
+
+### Decisión 4·8 · Una expresión es parte de la instrucción que la contiene
+
+**La decisión.** Las expresiones aritméticas, las referencias a parámetros y los comandos de operador
+cuentan 0. `AVANZA 100`, `AVANZA 50 + 50` y `AVANZA SUMA 50 50` cuestan 1. `ESCRIBE` y `ROTULA` cuestan 1.
+
+**La razón.** El jugador no debe ser empujado a elegir una forma de escribir por su costo. La regla
+confirma lo que `conteo.ts` ya hacía con los nodos de expresión y la extiende a los nuevos, sin crear una
+segunda implementación del presupuesto.
+
+**Descartado.** Contar cada operador como una instrucción, que castigaría escribir `360 / :lados` frente
+a un literal y desalentaría justo la generalización que el mundo quiere enseñar.
+
+### Decisión 4·9 · El nivel 4.2 declara un `margenLimiteDuro` de 6
+
+**La decisión.** El 4.2 declara un margen de 6 sobre la referencia.
+
+**La razón.** La referencia (un `PARA` de 3 instrucciones y 3 llamadas) cuenta 6. El rodeo de tres
+procedimientos con 3 instrucciones cada uno y 3 llamadas cuenta 12. Con el margen por omisión de 3 el
+límite sería 9 y ese programa se bloquearía, así que el jugador nunca vería la explicación de Kiro sobre
+por qué aprobó la precisión pero no la abstracción. Con 6, el límite es 12 y el rodeo se ejecuta. El
+margen es un dato del nivel; `presupuestoEstrella` y `limiteDuro` se siguen derivando.
+
+**Descartado.** Un presupuesto escrito a mano, que rompería la regla de que la meta es el conteo de lo
+que Kiro acaba de dibujar, y subir el margen por omisión de todos los mundos.
+
+### Decisión 4·10 · `usaParametros` exige que el procedimiento se invoque
+
+**La decisión.** La estrella de abstracción del mundo 4 exige un `PARA` con parámetros que se use en su
+cuerpo **y** que se invoque al menos una vez. Además la abstracción exige precisión.
+
+**La razón.** Sin la segunda condición, un jugador dibuja a mano con `REPITE` y deja un `PARA` sin llamar
+para ganar la estrella. La estrella debe premiar haber generalizado, no haber declarado algo.
+
+**Descartado.** Mantener la regla de la spec 04, que solo miraba la declaración.
+
+### Resoluciones D1 a D21 del diseño
+
+Al leer el código real de la spec 04, algunas piezas no coincidían con los requisitos. Ninguna de las diez
+decisiones resultó inviable. Estas son las resoluciones, resumidas:
+
+- **D1, D2 y D14 · impresor, pistas y panel.** El impresor solo sabía escribir comandos simples y se
+  reescribe, y su prueba cambia el ejemplo de nodo reservado a `condicionalUnaRama`. Las pistas leen las
+  llamadas del nivel superior porque los giros viven dentro de un `PARA`. El panel sigue listando todos
+  los procedimientos y muestra la cabecera de los que tienen parámetros: quitar los demás sería una
+  regresión.
+- **D3 y D20 · generadores.** `cajaDeReferencia` devolvía `null` ante un `PARA` y habría descartado todos
+  los candidatos; se amplía con el evaluador. Con 3 lados casi nada cabe, y se deja que el descarte y
+  reintento lo filtre.
+- **D4 y D5 · guardas.** `REPITE n` apilaba n marcos y disparaba la guarda de recursión sin recursión; los
+  marcos ahora llevan un contador. La guarda de 5 s nunca disparaba en producción por no inyectar `ahora`;
+  se corrige junto con un tope determinista de ciclos.
+- **D6, D9 y D17 · lo que cambia lo ya probado.** Filtrar solo `escribir` y `rotular` en la divergencia
+  mantiene el comportamiento del mundo 2. La regla de la línea separa `AVANZA AVANZA 10` de
+  `AVANZA⏎GIRADERECHA 90`. Un anuncio por operación en el paso a paso y uno solo al final en la ejecución
+  continua, como decidió la spec 00.
+- **D7 y D11 · calificación.** `calificar` exige precisión para la abstracción. El desafío del mundo 4 se
+  liga a las tres estrellas con una tabla de datos, sin tocar los otros mundos.
+- **D8, D10, D12 y D21 · piezas menores.** Campos `produceValor` y `ejecutable` obligatorios; nombres de
+  parámetro en minúsculas; semilla nueva con `crypto.getRandomValues` inyectable; el lienzo gana texto.
+- **D13 · consola.** `role="log"` implica `aria-live="polite"`, que la decisión 4·5 quería evitar, así que
+  se pone `aria-live="off"` explícito. Queda pendiente validarlo con un lector de pantalla real.
+- **D15, D16 y D19 · niveles.** El 4.3 se renombra «Polígonos encajados»: las figuras comparten un vértice
+  y el primer lado, no son concéntricas. `Nivel` gana un `enunciado` opcional. Una llamada de un `PARA` a
+  sí mismo no cuenta como invocación.
+- **D18 · deuda conocida.** `lenguaje/interprete.ts` importa `motor/tortuga.ts`, contra la regla de
+  `estructura.md`. No lo introdujo esta spec y no se corrige aquí; los módulos nuevos de `lenguaje/` no
+  importan nada.
+
+Las resoluciones D6, D7, D9, D11, D13 y D17 alteran la letra de algún criterio y se marcaron «a confirmar»
+en el diseño.
