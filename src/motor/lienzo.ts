@@ -57,6 +57,10 @@ export type ContextoDibujo = Pick<
   | 'lineJoin'
   | 'strokeStyle'
   | 'fillStyle'
+  | 'fillText'
+  | 'font'
+  | 'textAlign'
+  | 'textBaseline'
 >;
 
 // ============================================================================
@@ -111,12 +115,20 @@ export interface TrazoTema {
   readonly guiones: readonly number[];
 }
 
+/** Tipografía de los rótulos: color por omisión, familia y tamaño en unidades lógicas. */
+export interface TipografiaRotulo {
+  readonly color: string;
+  readonly fuente: string;
+  readonly tamano: number;
+}
+
 export interface EstiloLienzo {
   readonly fondo: TrazoTema;
   readonly cuadricula20: TrazoTema;
   readonly cuadricula100: TrazoTema;
   readonly estelaJugador: TrazoTema;
   readonly estelaReferencia: TrazoTema;
+  readonly rotulo: TipografiaRotulo;
 }
 
 /**
@@ -356,6 +368,45 @@ export function dibujarRellenos(ctx: ContextoDibujo, rellenos: readonly RellenoD
 }
 
 // ============================================================================
+// Rótulos (R11.5, R11.6, R11.7)
+// ============================================================================
+
+/** Un rótulo ya aplicado: su texto, dónde empieza y el color que pidió el jugador, si lo pidió. */
+export interface RotuloDibujado {
+  readonly texto: string;
+  readonly posicion: Punto;
+  readonly color: Color | null;
+}
+
+/**
+ * Pinta los rótulos. La transformación del lienzo invierte `y`, así que cada texto se
+ * dibuja con `scale(1, -1)` para que no salga espejado; es siempre horizontal, sin
+ * depender del rumbo. Se recorta al cuadrado lógico y nunca lanza. Sin rótulos no
+ * hace ninguna llamada.
+ */
+export function dibujarRotulos(
+  ctx: ContextoDibujo,
+  rotulos: readonly RotuloDibujado[],
+  tipografia: TipografiaRotulo,
+): void {
+  if (rotulos.length === 0) return;
+  ctx.save();
+  recortarAlCuadrado(ctx);
+  ctx.font = `${tipografia.tamano}px ${tipografia.fuente}`;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'alphabetic';
+  for (const rotulo of rotulos) {
+    ctx.fillStyle = rotulo.color === null ? tipografia.color : cssDeColor(rotulo.color);
+    ctx.save();
+    ctx.translate(rotulo.posicion.x, rotulo.posicion.y);
+    ctx.scale(1, -1);
+    ctx.fillText(rotulo.texto, 0, 0);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+// ============================================================================
 // Lienzo: cuatro capas y las operaciones que las gobiernan
 // ============================================================================
 
@@ -385,6 +436,11 @@ export interface Lienzo {
    * (R4.7). Solo la capa del jugador se rellena; en la de Kiro no hace nada.
    */
   rellenar(capa: CapaEstela, color: Color, punto: Punto): void;
+  /**
+   * Escribe un rótulo horizontal en la capa del jugador; se repinta tras la estela y
+   * se borra con ella. En la capa de Kiro no hace nada.
+   */
+  rotular(capa: CapaEstela, rotulo: RotuloDibujado): void;
   /** Borra la estela de una capa sin tocar las otras tres. */
   limpiarEstela(capa: CapaEstela): void;
   /** Devuelve una copia de los segmentos guardados de una capa de estela. */
@@ -425,6 +481,9 @@ export function crearLienzo(
   // debajo de su estela; BORRAPANTALLA y reiniciar los descartan con ella.
   let rellenosJugador: RellenoDibujado[] = [];
 
+  // Rótulos del jugador: van encima de su estela y se descartan con ella.
+  let rotulosJugador: RotuloDibujado[] = [];
+
   function fijarTransformaciones(): void {
     for (const nombre of ORDEN_CAPAS) {
       aplicarTransformacion(capas[nombre], escalado);
@@ -463,6 +522,7 @@ export function crearLienzo(
     if (capa === 'jugador') dibujarRellenos(ctx, rellenosJugador);
     // Solo la figura del jugador lleva su color y grosor; la de Kiro, siempre el tema.
     dibujarEstela(ctx, estelas[capa], trazoDeCapa(capa, estilo), capa === 'jugador');
+    if (capa === 'jugador') dibujarRotulos(ctx, rotulosJugador, estilo.rotulo);
   }
 
   function redibujar(): void {
@@ -490,7 +550,10 @@ export function crearLienzo(
 
     ponerEstela(capa: CapaEstela, segmentos: readonly TramoDibujo[]): void {
       estelas[capa] = segmentos.map((s) => ({ ...s }));
-      if (capa === 'jugador') rellenosJugador = [];
+      if (capa === 'jugador') {
+        rellenosJugador = [];
+        rotulosJugador = [];
+      }
       redibujarEstela(capa, leerTema());
     },
 
@@ -507,9 +570,18 @@ export function crearLienzo(
       redibujarEstela('jugador', leerTema());
     },
 
+    rotular(capa: CapaEstela, rotulo: RotuloDibujado): void {
+      if (capa !== 'jugador') return;
+      rotulosJugador.push({ ...rotulo, posicion: { ...rotulo.posicion } });
+      redibujarEstela('jugador', leerTema());
+    },
+
     limpiarEstela(capa: CapaEstela): void {
       estelas[capa] = [];
-      if (capa === 'jugador') rellenosJugador = [];
+      if (capa === 'jugador') {
+        rellenosJugador = [];
+        rotulosJugador = [];
+      }
       redibujarEstela(capa, leerTema());
     },
 

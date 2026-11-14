@@ -7,7 +7,8 @@
 // secuencia es determinista por su raíz (Property 13), que rota entre los
 // niveles generados del mundo en el orden del catálogo (Property 14), y que la
 // disponibilidad se deriva de que el mundo esté completo y tenga generados
-// (Property 15), de forma retroactiva a los mundos 0, 1, 2 y 3.
+// (Property 15), de forma retroactiva a los mundos 0, 1, 2 y 3. El mundo 4 cicla 4.2, 4.3, 4.4 y
+// solo se habilita con tres estrellas (R24.5, R24.6).
 
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
@@ -41,6 +42,18 @@ function califPrecision(): Calificacion {
   };
 }
 
+/** Calificación con las tres estrellas otorgadas. */
+function califTresEstrellas(): Calificacion {
+  return {
+    precision: { otorgada: true },
+    economia: { otorgada: true },
+    abstraccion: { otorgada: true },
+    conteoJugador: 1,
+    presupuestoEstrella: 1,
+    mensajeAbstraccion: null,
+  };
+}
+
 /** Ids de todos los niveles de un mundo, en orden del catálogo. */
 function idsDelMundo(mundo: Mundo): readonly string[] {
   return CATALOGO.filter((n) => n.mundo === mundo).map((n) => n.id);
@@ -51,9 +64,9 @@ function idsDelMundo(mundo: Mundo): readonly string[] {
  * que es lo que vuelve «completo» al mundo. Sigue el patrón de menu-mundos.test:
  * aprobar guardando una calificación de precisión por nivel.
  */
-function conMundoCompleto(mundo: Mundo): Progreso {
+function conMundoCompleto(mundo: Mundo, calif: () => Calificacion = califPrecision): Progreso {
   const progreso = cargarProgreso(null);
-  for (const id of idsDelMundo(mundo)) progreso.guardar(id, 1, califPrecision(), 1);
+  for (const id of idsDelMundo(mundo)) progreso.guardar(id, 1, calif(), 1);
   return progreso;
 }
 
@@ -74,8 +87,15 @@ describe('desafio-infinito · niveles generados del mundo', () => {
     }
   });
 
-  it('los mundos 4 y 5 no tienen niveles generados hoy', () => {
-    expect(nivelesGeneradosDelMundo(4)).toEqual([]);
+  it('el mundo 4 tiene generados 4.2, 4.3 y 4.4 en orden del catálogo (R24.6)', () => {
+    // 4.1 es autorado; el desafío cicla por los otros tres.
+    expect(nivelesGeneradosDelMundo(4)).toEqual(['4.2', '4.3', '4.4']);
+    for (let i = 0; i < 7; i++) {
+      expect(retoDesafio(4, 7, i).idNivel).toBe(['4.2', '4.3', '4.4'][i % 3]);
+    }
+  });
+
+  it('el mundo 5 no tiene niveles generados hoy', () => {
     expect(nivelesGeneradosDelMundo(5)).toEqual([]);
   });
 });
@@ -191,13 +211,10 @@ describe('desafio-infinito · Property 15: disponible sii mundo completo y con g
     }
   });
 
-  it('mundo sin niveles generados (4 y 5) ⇒ nunca disponible, aun completo', () => {
-    for (const mundo of [4, 5] as const) {
-      // Completar el mundo (está vacío, así que no hay nada que aprobar) no basta:
-      // sin generados no hay desafío.
-      const progreso = conMundoCompleto(mundo);
-      expect(desafioDisponible(mundo, progreso)).toBe(false);
-    }
+  it('mundo sin niveles generados (5) ⇒ nunca disponible, aun completo', () => {
+    // Sin generados no hay desafío, sin importar el progreso.
+    expect(desafioDisponible(5, conMundoCompleto(5))).toBe(false);
+    expect(desafioDisponible(5, conMundoCompleto(5, califTresEstrellas))).toBe(false);
   });
 
   it('mundo completo con generados ⇒ disponible; retroactivo a 0, 1, 2 y 3', () => {
@@ -205,6 +222,20 @@ describe('desafio-infinito · Property 15: disponible sii mundo completo y con g
       const completo = conMundoCompleto(mundo);
       expect(desafioDisponible(mundo, completo)).toBe(true);
     }
+  });
+
+  it('mundo 4: solo precisión no basta; con tres estrellas en todos sus niveles ⇒ disponible (R24.5)', () => {
+    expect(desafioDisponible(4, cargarProgreso(null))).toBe(false);
+    expect(desafioDisponible(4, conMundoCompleto(4))).toBe(false);
+    expect(desafioDisponible(4, conMundoCompleto(4, califTresEstrellas))).toBe(true);
+  });
+
+  it('mundo 4: un nivel sin las tres estrellas lo deja no disponible', () => {
+    const ids = idsDelMundo(4);
+    const progreso = cargarProgreso(null);
+    for (const id of ids.slice(0, -1)) progreso.guardar(id, 1, califTresEstrellas(), 1);
+    progreso.guardar(ids[ids.length - 1]!, 1, califPrecision(), 1);
+    expect(desafioDisponible(4, progreso)).toBe(false);
   });
 
   it('un nivel faltante en el mundo lo deja no disponible', () => {

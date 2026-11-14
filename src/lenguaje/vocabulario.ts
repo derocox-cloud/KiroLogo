@@ -1,4 +1,4 @@
-export type TipoArgumento = 'numero' | 'palabra' | 'lista' | 'expresion' | 'color' | 'nombre';
+export type TipoArgumento = 'numero' | 'palabra' | 'lista' | 'expresion' | 'color' | 'nombre' | 'valorEscribible';
 export type Aridad = 0 | 1 | 2 | 3 | 'variable';
 export type Mundo = 0 | 1 | 2 | 3 | 4 | 5;
 
@@ -11,6 +11,8 @@ export interface EntradaVocabulario {
   readonly descripcion: string;                         // español, 1 línea, ≤ 120 caracteres
   readonly ejemplo: string;
   readonly insercion: string;                           // texto que inserta el panel: nombre+' ', nombre, o ejemplo
+  readonly produceValor: boolean;                       // true solo en los operadores que devuelven un valor
+  readonly ejecutable: boolean;                         // false en SI, SINO, ALTO y DEVUELVE
 }
 
 // Tabla completa del vocabulario
@@ -25,6 +27,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'La tortuga camina hacia adelante los pasos que le digas.',
     ejemplo: 'AVANZA 100',
     insercion: 'AVANZA ',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'RETROCEDE',
@@ -35,6 +39,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'La tortuga camina hacia atrás sin cambiar de rumbo.',
     ejemplo: 'RETROCEDE 50',
     insercion: 'RETROCEDE ',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'GIRADERECHA',
@@ -45,6 +51,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Gira a la derecha los grados que le digas.',
     ejemplo: 'GIRADERECHA 90',
     insercion: 'GIRADERECHA ',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'GIRAIZQUIERDA',
@@ -55,6 +63,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Gira a la izquierda los grados que le digas.',
     ejemplo: 'GIRAIZQUIERDA 45',
     insercion: 'GIRAIZQUIERDA ',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'CENTRO',
@@ -65,6 +75,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Vuelve al centro del lienzo mirando hacia arriba.',
     ejemplo: 'CENTRO',
     insercion: 'CENTRO',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'BORRAPANTALLA',
@@ -75,6 +87,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Limpia el lienzo y vuelve al centro mirando hacia arriba.',
     ejemplo: 'BORRAPANTALLA',
     insercion: 'BORRAPANTALLA',
+    produceValor: false,
+    ejecutable: true,
   },
 
   // Mundo 1: REPITE (bloqueado en mundo 0)
@@ -87,6 +101,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Repite una secuencia de comandos varias veces.',
     ejemplo: 'REPITE 4 [AVANZA 100 GIRADERECHA 90]',
     insercion: 'REPITE 4 [AVANZA 100 GIRADERECHA 90]',
+    produceValor: false,
+    ejecutable: true,
   },
 
   // Mundo 2: comandos de lápiz y estructura (bloqueados)
@@ -99,6 +115,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Levanta el lápiz para mover la tortuga sin dibujar.',
     ejemplo: 'SUBELAPIZ',
     insercion: 'SUBELAPIZ',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'BAJALAPIZ',
@@ -109,6 +127,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Baja el lápiz para dibujar al mover la tortuga.',
     ejemplo: 'BAJALAPIZ',
     insercion: 'BAJALAPIZ',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'PONCOLOR',
@@ -119,6 +139,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Cambia el color del trazo.',
     ejemplo: 'PONCOLOR "rojo',
     insercion: 'PONCOLOR "rojo',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'PONGROSOR',
@@ -129,6 +151,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Cambia el grosor del trazo.',
     ejemplo: 'PONGROSOR 3',
     insercion: 'PONGROSOR ',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'RELLENA',
@@ -139,6 +163,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Rellena con un color la figura cerrada donde está la tortuga.',
     ejemplo: 'RELLENA "azul',
     insercion: 'RELLENA "azul',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'PARA',
@@ -149,6 +175,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Le enseña a Kiro un comando nuevo con un nombre.',
     ejemplo: 'PARA cuadrado',
     insercion: 'PARA cuadrado',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'FIN',
@@ -159,6 +187,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Marca el final de un procedimiento.',
     ejemplo: 'FIN',
     insercion: 'FIN',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'OCULTATORTUGA',
@@ -169,6 +199,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Oculta la tortuga de la pantalla.',
     ejemplo: 'OCULTATORTUGA',
     insercion: 'OCULTATORTUGA',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'MUESTRATORTUGA',
@@ -179,6 +211,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Muestra la tortuga en la pantalla.',
     ejemplo: 'MUESTRATORTUGA',
     insercion: 'MUESTRATORTUGA',
+    produceValor: false,
+    ejecutable: true,
   },
 
   // Mundo 3: no agrega vocabulario (anida el que ya hay)
@@ -191,8 +225,10 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     tiposArgumento: ['numero', 'numero'],
     mundo: 4,
     descripcion: 'Suma dos números.',
-    ejemplo: 'SUMA 5 3',
-    insercion: 'SUMA 5 3',
+    ejemplo: 'ESCRIBE SUMA 30 40',
+    insercion: 'ESCRIBE SUMA 30 40',
+    produceValor: true,
+    ejecutable: true,
   },
   {
     nombre: 'RESTA',
@@ -201,8 +237,10 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     tiposArgumento: ['numero', 'numero'],
     mundo: 4,
     descripcion: 'Resta el segundo número del primero.',
-    ejemplo: 'RESTA 10 4',
-    insercion: 'RESTA 10 4',
+    ejemplo: 'ESCRIBE RESTA 65 45',
+    insercion: 'ESCRIBE RESTA 65 45',
+    produceValor: true,
+    ejecutable: true,
   },
   {
     nombre: 'PRODUCTO',
@@ -211,8 +249,10 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     tiposArgumento: ['numero', 'numero'],
     mundo: 4,
     descripcion: 'Multiplica dos números.',
-    ejemplo: 'PRODUCTO 7 8',
-    insercion: 'PRODUCTO 7 8',
+    ejemplo: 'ESCRIBE PRODUCTO 5 10',
+    insercion: 'ESCRIBE PRODUCTO 5 10',
+    produceValor: true,
+    ejecutable: true,
   },
   {
     nombre: 'COCIENTE',
@@ -220,9 +260,11 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     aridad: 2,
     tiposArgumento: ['numero', 'numero'],
     mundo: 4,
-    descripcion: 'Divide el primer número por el segundo.',
-    ejemplo: 'COCIENTE 20 5',
-    insercion: 'COCIENTE 20 5',
+    descripcion: 'Divide el primer número entre el segundo, sin truncar.',
+    ejemplo: 'ESCRIBE COCIENTE 8 2',
+    insercion: 'ESCRIBE COCIENTE 8 2',
+    produceValor: true,
+    ejecutable: true,
   },
   {
     nombre: 'RESTO',
@@ -231,40 +273,47 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     tiposArgumento: ['numero', 'numero'],
     mundo: 4,
     descripcion: 'Calcula el resto de la división.',
-    ejemplo: 'RESTO 17 5',
-    insercion: 'RESTO 17 5',
+    ejemplo: 'ESCRIBE RESTO 5 3',
+    insercion: 'ESCRIBE RESTO 5 3',
+    produceValor: true,
+    ejecutable: true,
   },
   {
     nombre: 'AZAR',
     abreviatura: null,
-    aridad: 2,
-    tiposArgumento: ['numero', 'numero'],
+    aridad: 1,
+    tiposArgumento: ['numero'],
     mundo: 4,
-    descripcion: 'Elige un número al azar entre dos límites.',
-    ejemplo: 'AZAR 1 10',
-    insercion: 'AZAR 1 10',
+    descripcion: 'Elige un número entero al azar entre 0 y n-1.',
+    ejemplo: 'ESCRIBE AZAR 100',
+    insercion: 'ESCRIBE AZAR 100',
+    produceValor: true,
+    ejecutable: true,
   },
   {
     nombre: 'ESCRIBE',
     abreviatura: 'ES',
     aridad: 1,
-    tiposArgumento: ['palabra'],
+    tiposArgumento: ['valorEscribible'],
     mundo: 4,
-    descripcion: 'Escribe texto en la pantalla.',
-    ejemplo: 'ESCRIBE "Hola"',
-    insercion: 'ESCRIBE "Hola"',
+    descripcion: 'Muestra un valor en la consola.',
+    ejemplo: 'ESCRIBE 360 / 5',
+    insercion: 'ESCRIBE 360 / 5',
+    produceValor: false,
+    ejecutable: true,
   },
   {
     nombre: 'ROTULA',
     abreviatura: 'RO',
     aridad: 1,
-    tiposArgumento: ['numero'],
+    tiposArgumento: ['valorEscribible'],
     mundo: 4,
-    descripcion: 'Escribe el valor de un número en la pantalla.',
-    ejemplo: 'ROTULA 42',
-    insercion: 'ROTULA ',
+    descripcion: 'Escribe un texto o un número sobre el lienzo.',
+    ejemplo: 'ROTULA "hola',
+    insercion: 'ROTULA "hola',
+    produceValor: false,
+    ejecutable: true,
   },
-
   // Mundo 5: control de flujo (bloqueado)
   {
     nombre: 'SI',
@@ -275,6 +324,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Ejecuta comandos solo si una condición es verdadera.',
     ejemplo: 'SI 5 > 3 [AVANZA 100]',
     insercion: 'SI 5 > 3 [AVANZA 100]',
+    produceValor: false,
+    ejecutable: false,
   },
   {
     nombre: 'SINO',
@@ -285,6 +336,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Ejecuta unos comandos si es verdadero, otros si es falso.',
     ejemplo: 'SINO [AVANZA 100] [RETROCEDE 50]',
     insercion: 'SINO [AVANZA 100] [RETROCEDE 50]',
+    produceValor: false,
+    ejecutable: false,
   },
   {
     nombre: 'ALTO',
@@ -295,6 +348,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Detiene la ejecución del programa.',
     ejemplo: 'ALTO',
     insercion: 'ALTO',
+    produceValor: false,
+    ejecutable: false,
   },
   {
     nombre: 'DEVUELVE',
@@ -305,6 +360,8 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     descripcion: 'Devuelve un valor desde un procedimiento.',
     ejemplo: 'DEVUELVE 10',
     insercion: 'DEVUELVE ',
+    produceValor: false,
+    ejecutable: false,
   },
 ] as const;
 

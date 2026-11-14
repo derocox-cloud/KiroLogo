@@ -1086,7 +1086,8 @@ describe('main · con el index.html real', () => {
     expect(ejecutar).toBe(primerComando + 1);
     // Y visualmente (el CSS no reordena nada) el DOM es ese mismo.
     const hijos = [...document.querySelectorAll('#programa > *')].map((e) => e.className.split(' ')[0]);
-    expect(hijos).toEqual(['kl-globo', 'kl-editor', 'kl-panel-comandos', 'kl-controles']);
+    // La ranura de la consola va al final: vacía (y oculta) antes del mundo 4.
+    expect(hijos).toEqual(['kl-globo', 'kl-editor', 'kl-panel-comandos', 'kl-controles', 'kl-consola-ranura']);
   });
 
   it('los seis atajos son una sola parada de Tab: no suman seis Tabs antes de Ejecutar', () => {
@@ -1936,8 +1937,13 @@ describe('21.3 · estructura de archivos', () => {
       if (!ruta.endsWith('.test.ts')) continue;
       const relativo = rel(ruta);
       if (AYUDAS_ADMITIDAS.has(relativo)) continue;
-      // `.propiedad`, `.senales`, `.desafio` y `.docs` son sufijos de pruebas que acompañan al mismo módulo.
-      const radical = relativo.replace(/\.test\.ts$/, '').replace(/\.(propiedad|senales|desafio|docs)$/, '');
+      // `<modulo>[.<tema>…].test.ts` acompaña a `<modulo>.ts` de la misma carpeta: lo que va
+      // entre puntos (`.propiedad`, `.senales`, `.mundo-4`, `.ambito.propiedad`…) solo dice qué
+      // aspecto del módulo se prueba. El módulo tiene que existir, así que una prueba suelta
+      // sin módulo sigue fallando.
+      const sinSufijo = relativo.replace(/\.test\.ts$/, '');
+      const corte = sinSufijo.lastIndexOf('/') + 1;
+      const radical = sinSufijo.slice(0, corte) + sinSufijo.slice(corte).split('.')[0]!;
       const moduloEsperado = join(RAIZ_SRC, radical + '.ts');
       if (!ARCHIVOS_TS.includes(moduloEsperado)) {
         infracciones.push(`${relativo} no acompaña a ${radical}.ts`);

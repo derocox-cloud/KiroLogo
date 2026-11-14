@@ -3,7 +3,7 @@
 
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { contarInstrucciones } from './conteo.js';
+import { contarInstrucciones, type ResultadoConteo } from './conteo.js';
 import type {
   Programa,
   Instruccion,
@@ -17,6 +17,8 @@ import { analizarLexico } from './lexer.js';
 import { analizar } from './parser.js';
 import { crearPrng } from '../azar/prng.js';
 import { generarPrograma } from '../azar/generadores-prueba.test.js';
+
+type ResultadoConteoExito = Extract<ResultadoConteo, { exito: true }>;
 
 // ============================================================================
 // Constructores de nodos para los ejemplos con nodos reservados
@@ -332,6 +334,77 @@ describe('conteo', () => {
         }),
         { seed: 2, numRuns: 50 },
       );
+    });
+  });
+
+  // ==========================================================================
+  // Requisito 13 (mundo 4): conteo con parámetros y expresiones
+  // Valida: Requisitos 13.1, 13.2, 13.3, 13.5, 13.7
+  // ==========================================================================
+
+  describe('Requisito 13: conteo con expresiones', () => {
+    // Se analiza texto real en el mundo 4 para que el AST sea el mismo que produce
+    // el editor del jugador, con referencias, aritmética y comandos de operador.
+    function contarMundo4(texto: string): ResultadoConteoExito {
+      const { tokens, errores: erroresLexicos } = analizarLexico(texto);
+      expect(erroresLexicos).toEqual([]);
+      const { programa: prog, errores } = analizar(tokens, { mundo: 4 });
+      expect(errores).toEqual([]);
+      const r = contarInstrucciones(prog!);
+      if (!r.exito) throw new Error(`conteo falló: ${r.error.id}`);
+      return r;
+    }
+
+    it('R13.5 PARA POLIGONO :lados :largo … FIN POLIGONO 6 80 cuenta 4', () => {
+      const r = contarMundo4(
+        'PARA POLIGONO :lados :largo\n' +
+          '  REPITE :lados [AVANZA :largo GIRADERECHA 360 / :lados]\n' +
+          'FIN\n' +
+          'POLIGONO 6 80',
+      );
+      expect(r.instrucciones).toBe(4);
+    });
+
+    it('R13.1 AVANZA 100, AVANZA 50 + 50 y AVANZA SUMA 50 50 cuentan 1 cada uno', () => {
+      expect(contarMundo4('AVANZA 100').instrucciones).toBe(1);
+      expect(contarMundo4('AVANZA 50 + 50').instrucciones).toBe(1);
+      expect(contarMundo4('AVANZA SUMA 50 50').instrucciones).toBe(1);
+    });
+
+    it('R13.1 las expresiones cuestan 0 a cualquier profundidad', () => {
+      expect(contarMundo4('AVANZA -(SUMA 10 (2 * 3) + PRODUCTO 2 RESTO 7 3) / 2').instrucciones).toBe(1);
+    });
+
+    it('R13.2 ESCRIBE y ROTULA cuentan 1 sin importar sus argumentos', () => {
+      expect(contarMundo4('ESCRIBE "hola').instrucciones).toBe(1);
+      expect(contarMundo4('ESCRIBE SUMA 1 2 * 3').instrucciones).toBe(1);
+      expect(contarMundo4('ROTULA "kiro').instrucciones).toBe(1);
+      expect(contarMundo4('ROTULA 10 + 20').instrucciones).toBe(1);
+    });
+
+    it('R13.3 la cabecera de PARA suma 0 con parámetros, y el cuerpo se cuenta una vez', () => {
+      const definicion = 'PARA LADO :largo :giro\n  AVANZA :largo\n  GIRADERECHA :giro\nFIN\n';
+      expect(contarMundo4(definicion).instrucciones).toBe(2);
+      expect(contarMundo4(definicion + 'LADO 80 90\nLADO 40 + 40 SUMA 45 45').instrucciones).toBe(4);
+    });
+
+    it('R13.7 un nodo desconocido dentro de una expresión da nodoDesconocidoEnConteo sin conteo parcial', () => {
+      const raro = { tipo: 'expresionInventada', linea: 1, columna: 1 } as unknown as NumeroLiteral;
+      const anidado: InvocacionComando = {
+        tipo: 'invocacionComando',
+        nombre: 'AVANZA',
+        argumentos: [
+          { tipo: 'expresionAritmetica', operador: '+', izquierda: numero(50), derecha: raro, ...pos() },
+        ],
+        ...pos(),
+      } as unknown as InvocacionComando;
+      const r = contarInstrucciones(programa([invocacion('AVANZA', numero(100)), anidado]));
+      expect(r.exito).toBe(false);
+      expect(r).not.toHaveProperty('instrucciones');
+      if (!r.exito) {
+        expect(r.error.id).toBe('nodoDesconocidoEnConteo');
+        expect(r.error.severidad).toBe('programacion');
+      }
     });
   });
 

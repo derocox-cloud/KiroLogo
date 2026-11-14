@@ -2,7 +2,13 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { crearGloboKiro, mensajeNegacion, type GloboKiro, type IdentidadReto } from './globo-kiro.js';
-import type { Calificacion } from '../juego/estrellas.js';
+import { calificar, type Calificacion } from '../juego/estrellas.js';
+import { resolverReto, type Reto } from '../juego/reto.js';
+import { crearMascara, type Veredicto } from '../motor/validador.js';
+import { analizarLexico } from '../lenguaje/lexer.js';
+import { analizar } from '../lenguaje/parser.js';
+import type { Programa } from '../lenguaje/ast.js';
+import type { ExigenciaAbstraccion } from '../niveles/tipos.js';
 import { crearError } from '../lenguaje/errores.js';
 
 const PISTAS: readonly [string, string, string] = [
@@ -54,6 +60,141 @@ describe('globo-kiro · comentario de resultado', () => {
     expect(t).toContain('negada');
     expect(t.length).toBeLessThanOrEqual(300);
     expect(anuncios.at(-1)).toBe(t);
+  });
+});
+
+describe('globo-kiro · explicación de abstracción y pistas multilínea (D7)', () => {
+  it('pone el resultado en la primera línea, una línea por invitación y sin el detalle genérico', () => {
+    const { globo, anuncios } = montar();
+    const largo = 'x'.repeat(250);
+    globo.comentarCalificacion({
+      ...calificacion({ p: true, e: true, a: false }),
+      abstraccion: {
+        otorgada: false,
+        motivo: { clave: 'exigenciasSinConfirmar', claves: ['usaRepite', 'usaParametros'] },
+      },
+      mensajeAbstraccion: `Primera invitación.\n${largo}`,
+    });
+    const lineas = [...globo.raiz.querySelectorAll('.kl-globo-mensaje')].map((p) => p.textContent);
+    expect(lineas).toHaveLength(3);
+    expect(lineas[0]).toMatch(/^Resultado: /);
+    expect(lineas[1]).toBe('Primera invitación.');
+    expect(lineas[2]).toBe(largo);
+    expect(globo.texto()).not.toContain('Todavía falta cumplir');
+    expect(anuncios.at(-1)).toBe(lineas.join('\n'));
+  });
+
+  it('muestra cada línea de una pista con saltos de línea en su propio párrafo', () => {
+    const { globo } = montar();
+    globo.presentarReto({ ...IDENTIDAD_0_1, pistas: ['a', 'b', 'PARA x\n  ___\nFIN'] });
+    globo.pedirPista();
+    globo.pedirPista();
+    globo.pedirPista();
+    const lineas = [...globo.raiz.querySelectorAll('.kl-globo-mensaje')].map((p) => p.textContent);
+    expect(lineas).toEqual(['Pista esqueleto: PARA x', '  ___', 'FIN']);
+  });
+});
+
+// Del intento a lo que Kiro dice: `calificar` sobre un reto real del mundo 4 y el globo
+// mostrando el resultado. Los textos de R22.4 van escritos a mano para que un cambio en el
+// catálogo no pase sin que esta prueba lo note.
+describe('globo-kiro · invitaciones de abstracción del mundo 4 (R22)', () => {
+  const TEXTO_PARAMETROS =
+    'Lo lograste, pero dibujaste con números fijos. Intenta enseñarme un PARA con parámetros, como :lados, y luego pídemelo cambiando los números.';
+  const textoProcedimientos = (definidos: number, maximo: number): string =>
+    `Lo lograste, pero definiste ${definidos} procedimientos y para este reto basta con ${maximo}. Enséñame uno solo con parámetros y pídemelo varias veces con números distintos.`;
+  const GENERICO = 'Todavía falta cumplir';
+
+  const TRES_PARA_SIN_PARAMETROS =
+    'PARA A\nAVANZA 20\nFIN\nPARA B\nAVANZA 20\nFIN\nPARA C\nAVANZA 20\nFIN\nA\nB\nC';
+  const DOS_PARA_CON_PARAMETROS = 'PARA L :x\nAVANZA :x\nFIN\nPARA M :y\nAVANZA :y\nFIN\nL 20\nM 20';
+  const UN_PARA_CON_PARAMETROS = 'PARA L :x\nAVANZA :x\nFIN\nL 20';
+
+  function programa(texto: string): Programa {
+    const lexico = analizarLexico(texto);
+    expect(lexico.errores, texto).toEqual([]);
+    const { programa: ast, errores } = analizar(lexico.tokens, { mundo: 4 });
+    expect(errores, texto).toEqual([]);
+    return ast!;
+  }
+
+  function veredicto(coincide: boolean): Veredicto {
+    const vacia = crearMascara();
+    return {
+      coincide,
+      iou: coincide ? 1 : 0.3,
+      excesoPorcentaje: 0,
+      motivo: coincide ? 'coincide' : 'iouInsuficiente',
+      traslacion: { x: 0, y: 0 },
+      traslacionObjetivo: { x: 0, y: 0 },
+      angulo: 0,
+      mascaraObjetivo: vacia,
+      mascaraJugador: vacia,
+      coincidencia: vacia,
+      exceso: vacia,
+      falta: vacia,
+    };
+  }
+
+  /** Reto real del 4.2; `exigencias` reemplaza las del nivel cuando se quiere otro orden. */
+  function reto42(exigencias?: readonly ExigenciaAbstraccion[]): Reto {
+    const r = resolverReto('4.2', 0);
+    if (!r.exito) throw new Error('no se pudo resolver 4.2');
+    return exigencias === undefined ? r.reto : { ...r.reto, nivel: { ...r.reto.nivel, abstraccion: exigencias } };
+  }
+
+  function comentar(texto: string, reto: Reto, coincide = true): { lineas: string[]; anuncio: string } {
+    const { globo, anuncios } = montar();
+    globo.comentarCalificacion(calificar(programa(texto), veredicto(coincide), reto));
+    const lineas = [...globo.raiz.querySelectorAll('.kl-globo-mensaje')].map((p) => p.textContent ?? '');
+    return { lineas, anuncio: anuncios.at(-1) ?? '' };
+  }
+
+  it('muestra el texto exacto de usaParametros, sin el genérico', () => {
+    const { lineas } = comentar('AVANZA 20', reto42([{ clave: 'usaParametros' }]));
+    expect(lineas).toHaveLength(2);
+    expect(lineas[1]).toBe(TEXTO_PARAMETROS);
+    expect(lineas.join('\n')).not.toContain(GENERICO);
+  });
+
+  it('muestra el texto exacto de maximoProcedimientos con definidos y máximo sustituidos', () => {
+    const { lineas } = comentar(DOS_PARA_CON_PARAMETROS, reto42());
+    expect(lineas).toEqual([expect.stringMatching(/^Resultado: /), textoProcedimientos(2, 1)]);
+    expect(lineas.join('\n')).not.toContain(GENERICO);
+  });
+
+  it('pone las dos invitaciones en un solo globo, una por línea, en el orden del nivel', () => {
+    const enOrden = comentar(TRES_PARA_SIN_PARAMETROS, reto42());
+    expect(enOrden.lineas.slice(1)).toEqual([TEXTO_PARAMETROS, textoProcedimientos(3, 1)]);
+    expect(enOrden.anuncio).toBe(enOrden.lineas.join('\n'));
+    expect(enOrden.anuncio).not.toContain(GENERICO);
+
+    const alReves = comentar(
+      TRES_PARA_SIN_PARAMETROS,
+      reto42([{ clave: 'maximoProcedimientos', maximo: 1 }, { clave: 'usaParametros' }]),
+    );
+    expect(alReves.lineas.slice(1)).toEqual([textoProcedimientos(3, 1), TEXTO_PARAMETROS]);
+  });
+
+  it('no recorta a 300 caracteres: el globo completo supera ese largo y cada línea queda entera', () => {
+    const { lineas, anuncio } = comentar(TRES_PARA_SIN_PARAMETROS, reto42());
+    expect(anuncio.length).toBeGreaterThan(300);
+    expect(lineas[1]).toBe(TEXTO_PARAMETROS);
+    expect(lineas[2]).toBe(textoProcedimientos(3, 1));
+  });
+
+  it('no muestra ninguna invitación sin la estrella de precisión', () => {
+    const { lineas } = comentar(TRES_PARA_SIN_PARAMETROS, reto42(), false);
+    expect(lineas).toHaveLength(1);
+    expect(lineas[0]).toMatch(/^Resultado: precisión negada/);
+    expect(lineas[0]).not.toContain('Lo lograste');
+  });
+
+  it('no muestra ninguna invitación cuando todas las exigencias se confirman', () => {
+    const { lineas } = comentar(UN_PARA_CON_PARAMETROS, reto42());
+    expect(lineas).toHaveLength(1);
+    expect(lineas[0]).toMatch(/abstracción otorgada\./);
+    expect(lineas[0]).not.toContain('Lo lograste');
   });
 });
 

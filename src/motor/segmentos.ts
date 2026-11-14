@@ -58,11 +58,14 @@ export function extraerSegmentos(operaciones: readonly Operacion[]): readonly Se
         // Descartar todo lo acumulado; los posteriores conservan su paso y línea.
         acumulados = [];
         break;
-      // `girar`, `reubicar`, `lapiz` y `visibilidad` no aportan nada.
+      // `girar`, `reubicar`, `lapiz` y `visibilidad` no aportan nada. Tampoco el texto:
+      // `escribir` y `rotular` no mueven la tortuga, así que no cambian la geometría validada.
       case 'girar':
       case 'reubicar':
       case 'lapiz':
       case 'visibilidad':
+      case 'escribir':
+      case 'rotular':
         break;
     }
   }

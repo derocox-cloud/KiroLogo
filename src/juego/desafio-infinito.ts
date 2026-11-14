@@ -3,7 +3,7 @@
 // Secuencia determinista e ilimitada de retos generados de un mundo, derivada de
 // una semilla raíz con el PRNG del proyecto, que rota entre los niveles generados
 // del mundo y no retrocede. Es retroactivo: cualquier mundo con niveles generados
-// (0, 1, 2 y 3 hoy) tiene desafío; los que no tienen generados (4 y 5) no.
+// (0 a 4 hoy) tiene desafío; el que no tiene generados (el 5) no.
 //
 // Módulo **puro y sin estado propio persistido**: no guarda la secuencia, la
 // recalcula de (mundo, raíz, índice). Así dos corridas con la misma raíz producen
@@ -36,14 +36,35 @@ export function nivelesGeneradosDelMundo(mundo: Mundo): readonly string[] {
 // Disponibilidad
 // ============================================================================
 
+type Umbral = 'precision' | 'tresEstrellas';
+
 /**
- * ¿Están aprobados (estrella de precisión) todos los niveles del mundo? Un mundo
+ * Qué se exige en cada nivel para dar el mundo por completo. El desafío del mundo
+ * 4 se liga a la insignia de Generalización, que pide las tres estrellas (R24.5);
+ * en los demás basta la precisión.
+ */
+const UMBRAL_DESAFIO_POR_MUNDO: Readonly<Record<Mundo, Umbral>> = {
+  0: 'precision',
+  1: 'precision',
+  2: 'precision',
+  3: 'precision',
+  4: 'tresEstrellas',
+  5: 'precision',
+};
+
+/**
+ * ¿Cumplen el umbral del mundo todos sus niveles? Un mundo
  * sin niveles declarados no cuenta como completo.
  */
 function mundoCompleto(mundo: Mundo, progreso: Progreso): boolean {
   const niveles = CATALOGO.filter((n) => n.mundo === mundo);
   if (niveles.length === 0) return false;
-  return niveles.every((n) => progreso.estrellasDe(n.id)?.precision === true);
+  const umbral = UMBRAL_DESAFIO_POR_MUNDO[mundo];
+  return niveles.every((n) => {
+    const e = progreso.estrellasDe(n.id);
+    if (e === null || e === undefined) return false;
+    return umbral === 'tresEstrellas' ? e.precision && e.economia && e.abstraccion : e.precision;
+  });
 }
 
 /**

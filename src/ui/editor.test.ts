@@ -600,3 +600,151 @@ describe('editor · aviso de bloqueo por límite duro (Property 4)', () => {
     expect(editor.raiz.querySelector('.kl-contador-bloqueo')).not.toBeNull();
   });
 });
+
+// ============================================================================
+// Tarea 13.10 (spec 05-mundo-4-parametros) · Pruebas de ejemplo del editor en
+// el mundo 4: resaltado doble del paso a paso dentro de un procedimiento y aviso
+// de bloqueo por límite duro.
+//
+// Validates: Requirements 25.6, 25.11
+// ============================================================================
+
+/** Montaje del mundo 4 con el límite duro dado (activo desde el mundo 3). */
+function montarMundo4(presupuesto: number, limiteDuro: number): Editor {
+  const contenedor = document.createElement('div');
+  document.body.appendChild(contenedor);
+  return crearEditor({
+    contenedor,
+    mundo: 4,
+    presupuestoEstrella: presupuesto,
+    limiteDuro,
+    limiteDuroActivo: true,
+    pedirMensajeLimite: () => {},
+    reloj: RELOJ_INMEDIATO,
+  });
+}
+
+/** Números de línea con la clase dada en la canaleta, en orden. */
+function lineasConClase(editor: Editor, clase: string): number[] {
+  return Array.from(editor.raiz.querySelectorAll(`.kl-canaleta-linea.${clase}`)).map((s) =>
+    Number(s.getAttribute('data-linea')),
+  );
+}
+
+const PROGRAMA_POLIGONO = [
+  'PARA POLIGONO :lados :largo',
+  '  REPITE :lados [AVANZA :largo GIRADERECHA 360 / :lados]',
+  'FIN',
+  'POLIGONO 5 60',
+  'POLIGONO 3 80',
+].join('\n');
+
+describe('editor · mundo 4 · resaltarLineas (R25.6)', () => {
+  it('el programa de ejemplo del mundo 4 se analiza sin errores', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    expect(editor.estadoContador().errores).toEqual([]);
+  });
+
+  it('marca a la vez la línea del cuerpo y la de la llamada, cada una con su clase', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([2]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([4]);
+  });
+
+  it('al pasar a la segunda llamada la marca de la llamada se mueve, no se acumula', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    editor.resaltarLineas(2, 5);
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([2]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([5]);
+  });
+
+  it('al terminar el procedimiento (llamada null) retira la marca de la llamada', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    editor.resaltarLineas(5, null);
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([5]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([]);
+  });
+
+  it('resaltarLinea delega sin llamada y una llamada 0 también la retira', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    editor.resaltarLinea(4);
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([4]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([]);
+
+    editor.resaltarLineas(2, 4);
+    editor.resaltarLineas(2, 0);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([]);
+  });
+
+  it('el resaltado sobrevive al reanálisis del texto (la canaleta se reconstruye)', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    editor.analizarAhora();
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([2]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([4]);
+  });
+
+  it('presentarReto retira las dos marcas', () => {
+    const editor = montarMundo4(20, 30);
+    escribir(editor, PROGRAMA_POLIGONO);
+    editor.resaltarLineas(2, 4);
+    editor.presentarReto(20, 30, true);
+    escribir(editor, PROGRAMA_POLIGONO);
+    expect(lineasConClase(editor, 'kl-canaleta-actual')).toEqual([]);
+    expect(lineasConClase(editor, 'kl-canaleta-llamada')).toEqual([]);
+  });
+});
+
+describe('editor · mundo 4 · aviso de bloqueo por límite duro (R25.11)', () => {
+  it('al exceder el límite muestra conteo, límite y la frase de bloqueo por texto', () => {
+    // presupuesto 2, límite duro 3; cuatro instrucciones lo exceden.
+    const editor = montarMundo4(2, 3);
+    escribir(editor, programaDe(4));
+    expect(editor.estadoContador().conteo).toBe(4);
+
+    const contador = editor.raiz.querySelector('.kl-editor-contador')!;
+    expect(contador.textContent).toContain('Instrucciones: 4');
+    expect(editor.raiz.querySelector('.kl-contador-limite')?.textContent).toBe('Límite: 3');
+    expect(editor.raiz.querySelector('.kl-contador-bloqueo')?.textContent).toBe(FRASE_BLOQUEO);
+
+    const nombre = contador.getAttribute('aria-label')!;
+    expect(nombre).toContain('Instrucciones 4');
+    expect(nombre).toContain('límite 3');
+    expect(nombre).toContain(FRASE_BLOQUEO);
+  });
+
+  it('retira la señal cuando el conteo deja de exceder el límite', () => {
+    const editor = montarMundo4(2, 3);
+    escribir(editor, programaDe(4));
+    expect(editor.raiz.querySelector('.kl-contador-bloqueo')).not.toBeNull();
+
+    escribir(editor, programaDe(3));
+    expect(editor.raiz.querySelector('.kl-contador-bloqueo')).toBeNull();
+    expect(editor.raiz.querySelector('.kl-contador-limite')).toBeNull();
+    const nombre = editor.raiz.querySelector('.kl-editor-contador')!.getAttribute('aria-label')!;
+    expect(nombre).not.toContain(FRASE_BLOQUEO);
+    expect(nombre).not.toContain('límite 3');
+  });
+
+  it('cuenta las llamadas con parámetros al decidir el bloqueo', () => {
+    // PROGRAMA_POLIGONO cuenta más de 3: con límite 3 se bloquea, con un límite holgado no.
+    const bloqueado = montarMundo4(1, 3);
+    escribir(bloqueado, PROGRAMA_POLIGONO);
+    expect(bloqueado.estadoContador().conteo).toBeGreaterThan(3);
+    expect(bloqueado.raiz.querySelector('.kl-contador-bloqueo')).not.toBeNull();
+
+    const holgado = montarMundo4(1, 100);
+    escribir(holgado, PROGRAMA_POLIGONO);
+    expect(holgado.raiz.querySelector('.kl-contador-bloqueo')).toBeNull();
+  });
+});

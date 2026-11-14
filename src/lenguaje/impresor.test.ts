@@ -98,10 +98,10 @@ describe('impresor', () => {
 
   describe('nodo no imprimible', () => {
     it('un nodo reservado produce nodoNoImprimible sin texto parcial', () => {
-      const repeticion: Instruccion = {
-        tipo: 'repeticion',
-        veces: { tipo: 'numeroLiteral', valor: 4, linea: 1, columna: 1 },
-        cuerpo: [],
+      const reservado: Instruccion = {
+        tipo: 'condicionalUnaRama',
+        condicion: { tipo: 'numeroLiteral', valor: 1, linea: 1, columna: 1 },
+        entonces: [],
         linea: 1,
         columna: 1,
       };
@@ -109,7 +109,7 @@ describe('impresor', () => {
         tipo: 'programa',
         instrucciones: [
           { tipo: 'invocacionComando', nombre: 'AVANZA', argumentos: [{ tipo: 'numeroLiteral', valor: 100, linea: 1, columna: 1 }], linea: 1, columna: 1 },
-          repeticion,
+          reservado,
         ],
       };
       const r = imprimir(prog);

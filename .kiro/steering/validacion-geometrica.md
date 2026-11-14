@@ -103,14 +103,39 @@ módulo, para que el número que ve el jugador mientras escribe sea exactamente 
 - `usaRepite` — hay al menos un nodo `REPITE`
 - `usaRepiteAnidado` — hay un `REPITE` dentro de otro
 - `defineProcedimiento` — hay al menos un `PARA`
-- `usaParametros` — un procedimiento declara y usa parámetros
-- `maximoProcedimientos: 1` — no se permite resolverlo duplicando procedimientos
+- `usaParametros` — un procedimiento declara parámetros, usa al menos uno propio en una expresión de su
+  cuerpo (a cualquier profundidad) y **se invoca al menos una vez fuera de su propio cuerpo**. Definir
+  un `PARA` con parámetros y no llamarlo no cuenta, ni tampoco que solo se llame a sí mismo: una
+  definición que nadie invoca no abstrae nada. Una referencia a un parámetro de otro `PARA` tampoco
+  cuenta.
+- `maximoProcedimientos: 1` — no se permite resolverlo duplicando procedimientos; cuenta todas las
+  definiciones, con o sin parámetros e invocadas o no
 - `usaRecursion` — un procedimiento se invoca a sí mismo
+
+**La abstracción exige precisión.** La estrella de abstracción solo se otorga si la de precisión se
+otorgó: un programa que usa `REPITE` o parámetros pero dibuja otra cosa no demostró haber abstraído el
+problema. Sin precisión, la estrella queda sin otorgar con el motivo `sinPrecision`. Con precisión
+otorgada, Kiro explica una línea por cada exigencia sin cumplir, en el orden en que el nivel las
+declara (`usaRepite`, `usaParametros`, `maximoProcedimientos`), y esa explicación se muestra completa,
+sin recorte.
 
 Cuando la estrella de abstracción no se otorga, Kiro dice **por qué** en una frase concreta: *"Lo
 lograste, pero dibujaste los cuatro cuadrados uno por uno. Intenta enseñarme qué es un cuadrado con
 PARA, y luego pídemelo cuatro veces."* Un nivel resuelto sin esa estrella es una oportunidad de
 enseñanza, no un castigo.
+
+## El texto no participa en la comparación
+
+`ESCRIBE` y `ROTULA` (mundo 4) **no participan en la comparación geométrica**. No mueven la tortuga,
+no producen segmentos y no cambian la posición, el rumbo ni el lápiz. La lista de segmentos de un
+programa es idéntica con y sin ellos, así que no afectan el IoU, el exceso de trazo, el diff visual ni
+la precisión. El texto de `ESCRIBE` va a la consola y el de `ROTULA` se pinta sobre el lienzo del
+jugador, pero ninguno es parte de la figura. Cuentan como instrucciones para la estrella de economía
+(1 cada uno), no para la geometría.
+
+Los números pueden venir de expresiones y de `AZAR`. `AZAR` usa la semilla del reto: la referencia y el
+programa del jugador se ejecutan con la **misma semilla**, de modo que el mismo programa produce la
+misma figura en ambos.
 
 ## Diff visual al fallar
 
@@ -138,6 +163,10 @@ Detalles que importan:
 
 - La divergencia se busca sobre **operaciones de la tortuga**, no sobre líneas de código: los dos
   programas pueden estar escritos de forma completamente distinta y aun así compararse paso a paso.
+- Las operaciones `escribir` y `rotular` se filtran antes de comparar: no cuentan como pasos. Así una
+  línea de `ESCRIBE` no se confunde con un paso en que la tortuga se quedó quieta. El resto de las
+  operaciones (`lapiz`, `color`, etc.) sí se comparan.
+- El paso de separación se numera desde 1 (`orden`), como lo lee el jugador.
 - Si un programa tiene más pasos que el otro, se reporta el punto donde el corto se acabó.
 - Si nunca divergen y el jugador aun así falló la precisión, el problema está en el exceso de trazo al
   final del recorrido. El mensaje lo dice así.

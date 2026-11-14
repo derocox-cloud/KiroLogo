@@ -1,0 +1,1890 @@
+{
+  "pbtResults": {
+    "1.5 Prueba de propiedad en `src/lenguaje/errores.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794610645976
+    },
+    "3.9 Prueba de propiedad en `src/lenguaje/parser.ambito.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794611293397
+    },
+    "3.12 Prueba de propiedad en `src/lenguaje/parser.parentesis.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794611357640
+    },
+    "3.11 Prueba de propiedad en `src/lenguaje/parser.bloqueo.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794611662246
+    },
+    "3.10 Prueba de propiedad en `src/lenguaje/parser.llamadas.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794611460427
+    },
+    "4.6 Prueba de propiedad en `src/lenguaje/evaluador.resto.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794611782555
+    },
+    "4.5 Prueba de propiedad en `src/lenguaje/evaluador.equivalencia.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794611791703
+    },
+    "4.4 Prueba de propiedad en `src/lenguaje/evaluador.modelo.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794611865101
+    },
+    "4.7 Prueba de propiedad en `src/lenguaje/evaluador.texto.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794611866712
+    },
+    "5.9 Prueba de propiedad en `src/lenguaje/interprete.azar.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794612021558
+    },
+    "5.11 Prueba de propiedad en `src/lenguaje/interprete.limites.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794612027079
+    },
+    "5.7 Prueba de propiedad en `src/lenguaje/interprete.aritmetica.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794612035405
+    },
+    "5.8 Prueba de propiedad en `src/lenguaje/interprete.repite.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794612051315
+    },
+    "5.10 Prueba de propiedad en `src/lenguaje/interprete.llamadas.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794612056050
+    },
+    "7.6 Prueba de propiedad en `src/lenguaje/conteo.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794612197483
+    },
+    "7.5 Prueba de propiedad en `src/lenguaje/impresor.idavuelta.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794612224165
+    },
+    "10.12 Prueba de propiedad en `src/juego/estrellas.explicacion.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794612369547
+    },
+    "8.9 Prueba de propiedad en `src/motor/texto.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794614002095
+    },
+    "10.13 Prueba de propiedad en `src/juego/estrellas.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794614132596
+    },
+    "10.11 Prueba de propiedad en `src/juego/abstraccion.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794614151654
+    },
+    "11.12 Prueba de propiedad en `src/niveles/generadores/mundo-4.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794614198856
+    },
+    "11.17 Prueba de propiedad en `src/juego/insignias.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794614306638
+    },
+    "11.16 Prueba de propiedad en `src/juego/reto.semilla.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794614326195
+    },
+    "11.15 Prueba de propiedad en `src/juego/pistas.mundo-4.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794614352707
+    },
+    "11.13 Prueba de propiedad en `src/juego/reto.mundo-4.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794614458283
+    },
+    "11.14 Prueba de propiedad en `src/juego/rodeos.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794614480699
+    },
+    "11.18 Prueba de propiedad en `src/juego/desafio-infinito.propiedad.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794614590817
+    },
+    "15.5 Regresión de tres estrellas en `src/niveles/mundo-4-parametros.regresion.test.ts`": {
+      "status": "passed",
+      "lastRunTimestamp": 1794615465653
+    }
+  },
+  "executionHistory": {
+    "0.1 Crear la rama de la spec a partir de `spec-04-mundo-3`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689204
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510698677
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510759490
+      }
+    ],
+    "1.1 `src/lenguaje/vocabulario.ts`: `produceValor`, `ejecutable`, `valorEscribible` y las ocho entradas": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689313
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510764972
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510897316
+      }
+    ],
+    "1.2 `src/lenguaje/errores.ts`: 17 ids nuevos y ampliación de `argumentoDeTipoEquivocado`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689385
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510765066
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510897462
+      }
+    ],
+    "1.3 Actualizar las pruebas existentes de `vocabulario.test.ts` y `errores.test.ts`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689456
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510987545
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512055557
+      }
+    ],
+    "2.1 `src/lenguaje/ast.ts`: nodos de expresión nuevos": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689526
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510765419
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510898020
+      }
+    ],
+    "2.2 `src/lenguaje/lexer.ts`: tokens `operador`, `parentesis_abre`, `parentesis_cierra`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689607
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510987775
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512055741
+      }
+    ],
+    "3.1 Firmas de procedimientos y parámetros en la cabecera": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689668
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512135888
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512693276
+      }
+    ],
+    "3.2 Gramática de expresiones, regla de la línea y paréntesis": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689738
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512980510
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513241282
+      }
+    ],
+    "3.3 Ámbito léxico: `variableNoDefinida`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689807
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513249195
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513340559
+      }
+    ],
+    "3.4 Llamadas con argumentos y aridad": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689869
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513684853
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514022701
+      }
+    ],
+    "3.5 Comandos de operador frente a comandos de acción (D9)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689933
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514029219
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514283842
+      }
+    ],
+    "3.6 Bloqueo por mundo: `aritmeticaBloqueada` y `comandoBloqueado`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510689997
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514287297
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794606943781
+      }
+    ],
+    "3.7 Actualizar las pruebas existentes de `src/lenguaje/parser.test.ts`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690060
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794606947907
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607054673
+      }
+    ],
+    "4.1 Implementar `evaluar`, `formatearNumero` y `cantidadDeRepeticiones`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690125
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510988578
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512056231
+      }
+    ],
+    "5.1 Operaciones nuevas, `lineaLlamada` y tipos de guarda": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690185
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512135992
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512694070
+      }
+    ],
+    "5.2 Marcos con entorno y llamadas con argumentos (D4)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690245
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512980614
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513240479
+      }
+    ],
+    "5.3 Evaluación de argumentos, `REPITE`, `AZAR`, `ESCRIBE` y `ROTULA`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690302
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513347623
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513518006
+      }
+    ],
+    "5.4 Guardas: escrituras, ciclos y tiempo (D5)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690362
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513684941
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514024543
+      }
+    ],
+    "5.5 Actualizar las pruebas existentes de `src/lenguaje/interprete.test.ts`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690421
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514029951
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514284644
+      }
+    ],
+    "6. Checkpoint - Lenguaje completo hasta el intérprete": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690513
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607272344
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607609355
+      }
+    ],
+    "7.1 `src/lenguaje/conteo.ts`: recorrido exhaustivo de expresiones": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690569
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512136654
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512694876
+      }
+    ],
+    "7.2 `src/lenguaje/impresor.ts`: reescritura (D1)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690634
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512704789
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512898416
+      }
+    ],
+    "7.3 Actualizar la prueba existente de `src/lenguaje/impresor.test.ts` (D1)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690697
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512980852
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513239675
+      }
+    ],
+    "8.1 `src/motor/segmentos.ts`: casos explícitos de texto": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690759
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512981658
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513238884
+      }
+    ],
+    "8.2 `src/motor/divergencia.ts`: filtro de texto, orden 1-based y semilla (D6)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690823
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513686337
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514023497
+      }
+    ],
+    "8.3 `src/motor/animador.ts`: `escribir` y `rotular`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690886
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513246849
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513341570
+      }
+    ],
+    "8.4 `src/motor/lienzo.ts`: rótulos y tipografía (D21)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510690946
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512982350
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513242081
+      }
+    ],
+    "8.5 Actualizar `src/motor/lienzo.test.ts` y `src/motor/doble-dibujo.test.ts`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691007
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513348390
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513520858
+      }
+    ],
+    "8.6 `src/ui/reproduccion-paralelo.ts`: usar `operacionesComparables`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691069
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514030669
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514285664
+      }
+    ],
+    "9. Checkpoint - Lenguaje y motor": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691137
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607613588
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607853259
+      }
+    ],
+    "10.1 `src/juego/abstraccion.ts`: `usaParametros` endurecido": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691199
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512137710
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512695671
+      }
+    ],
+    "10.2 `src/juego/estrellas.ts`: abstracción exige precisión y explicación de Kiro (D7)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691274
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513246959
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513342370
+      }
+    ],
+    "10.3 `src/juego/pistas.ts`: placeholders del mundo 4 (D2)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691332
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513349499
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513519265
+      }
+    ],
+    "10.4 `src/juego/insignias.ts`: insignia *Generalización*": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691396
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512138190
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512696414
+      }
+    ],
+    "10.5 `src/juego/desafio-infinito.ts`: umbral por mundo (D11)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691456
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512704915
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512898497
+      }
+    ],
+    "10.6 `src/azar/entropia.ts` (NUEVO): entropía de semillas (D12)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691518
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510766257
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510898800
+      }
+    ],
+    "10.7 Actualizar la prueba existente de `src/juego/estrellas.test.ts`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691578
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513350288
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513520064
+      }
+    ],
+    "11.1 `src/niveles/tipos.ts`: campo `enunciado?` (D16)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691642
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510766633
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510899591
+      }
+    ],
+    "11.2 `src/niveles/generadores/comun.ts`: constructores de AST y `cajaDeReferencia` ampliada (D3)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691706
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512705476
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512904082
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512976221
+      }
+    ],
+    "11.4 Generador `tres-poligonos-m4` (nivel 4.2) y `generadores/poligono-comun.ts`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691811
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513247629
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513343427
+      }
+    ],
+    "11.5 Generador `estrella-parametrica-m4` (nivel 4.4)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691875
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513248491
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513344220
+      }
+    ],
+    "11.6 Generador `poligonos-encajados-m4` (nivel 4.3, D15)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691937
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513350939
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513518184
+      }
+    ],
+    "11.7 `src/niveles/generadores/registro.ts`: registrar los tres generadores": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510691996
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513685598
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514025340
+      }
+    ],
+    "11.8 `src/niveles/mundo-4-parametros.ts` (NUEVO): niveles 4.1 a 4.4": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692056
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514031412
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514286513
+      }
+    ],
+    "11.9 `src/niveles/catalogo.ts` y `catalogo.test.ts`: agregar `...MUNDO_4`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692119
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514288108
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794606946890
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607055702
+      }
+    ],
+    "11.10 Actualizar `src/juego/desafio-infinito.test.ts`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692178
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607061229
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607198619
+      }
+    ],
+    "12. Checkpoint - Juego y niveles": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692242
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607856874
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794608400466
+      }
+    ],
+    "13.1 `src/estilos/tema.css` y `pantalla.css`: fichas y reglas de consola, rótulo y llamada": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692307
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510900117
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510982774
+      }
+    ],
+    "13.2 `src/ui/consola.ts` (NUEVO)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692366
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510989130
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512056992
+      }
+    ],
+    "13.3 `src/ui/editor.ts`: `resaltarLineas(principal, llamada)`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692429
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510989727
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512057777
+      }
+    ],
+    "13.4 `src/ui/panel-comandos.ts`: `fijarFirmas`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692489
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512058345
+      },
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512127307
+      }
+    ],
+    "13.5 `src/ui/globo-kiro.ts`: explicación de abstracción y pistas multilínea (D7)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692552
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513525723
+      },
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513684754
+      }
+    ],
+    "13.6 `src/main.ts` (1/2): consola, anuncios (D17), resaltado y panel": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692612
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794606948266
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607053705
+      }
+    ],
+    "13.7 `src/main.ts` (2/2): guardas, semillas, divergencia y estilo de rótulo": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692672
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607059326
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607199060
+      }
+    ],
+    "13.8 Actualizar las pruebas existentes de `src/main.test.ts`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692739
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607204028
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607268247
+      }
+    ],
+    "14.1 `.kiro/steering/lenguaje-kirologo.md`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692797
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607059429
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607199952
+      }
+    ],
+    "14.2 `.kiro/steering/niveles-y-progresion.md`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692856
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607059872
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607197534
+      }
+    ],
+    "14.3 `.kiro/steering/validacion-geometrica.md`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692918
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607061151
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607197661
+      }
+    ],
+    "14.4 `docs/bitacora.md`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510692980
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607203473
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607269262
+      }
+    ],
+    "14.5 `.kiro/steering/estructura.md`": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510693046
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607203570
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607269465
+      }
+    ],
+    "16. Checkpoint final - Cierre de la spec": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510693106
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794608402760
+      },
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794608662152
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794615805985
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794616259815
+      }
+    ],
+    "0. Precondición de rama (R27.1)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794510759573
+      }
+    ],
+    "1. Vocabulario y catálogo de errores — `vocabulario.ts`, `errores.ts` (AMPLIAR)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512055645
+      }
+    ],
+    "2. AST y lexer — `ast.ts`, `lexer.ts` (AMPLIAR)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512055796
+      }
+    ],
+    "4. Evaluador — `src/lenguaje/evaluador.ts` (NUEVO)": [
+      {
+        "executionId": "e53f788c-719f-489d-abdf-9554c50f22cf",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794512056288
+      }
+    ],
+    "7. Conteo e impresor — `conteo.ts`, `impresor.ts`": [
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513239772
+      }
+    ],
+    "10. Juego — `abstraccion.ts`, `estrellas.ts`, `pistas.ts`, `insignias.ts`, `desafio-infinito.ts`, `azar/entropia.ts`": [
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794513520123
+      }
+    ],
+    "5. Intérprete — `src/lenguaje/interprete.ts` (AMPLIAR)": [
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514284714
+      }
+    ],
+    "8. Motor — `segmentos.ts`, `divergencia.ts`, `animador.ts`, `lienzo.ts`": [
+      {
+        "executionId": "6024c3c9-d6cf-475a-88b2-0101850e3a8e",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794514285730
+      }
+    ],
+    "3. Parser — `src/lenguaje/parser.ts` (AMPLIAR)": [
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607054730
+      }
+    ],
+    "11. Niveles y generadores — `src/niveles/`": [
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607198683
+      }
+    ],
+    "13. Interfaz — `ui/` y `main.ts`": [
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607268327
+      }
+    ],
+    "14. Documentación y steering (R26)": [
+      {
+        "executionId": "67b91864-6d1a-43f0-b5bc-23c7f7fc4905",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794607269530
+      }
+    ],
+    "1.4 Pruebas de ejemplo nuevas en `vocabulario.test.ts` y `errores.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794610515230
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611149512
+      }
+    ],
+    "1.5 Prueba de propiedad en `src/lenguaje/errores.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794610515345
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611150633
+      }
+    ],
+    "2.3 Pruebas del lexer en `src/lenguaje/lexer.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794610516355
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611151455
+      }
+    ],
+    "3.8 Pruebas de ejemplo nuevas del parser en `src/lenguaje/parser.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794610517228
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611152615
+      }
+    ],
+    "4.3 Arbitrarios y modelo independiente en `src/pruebas/arbitrarios.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794610518192
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611153504
+      }
+    ],
+    "3.9 Prueba de propiedad en `src/lenguaje/parser.ambito.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611157748
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611696449
+      }
+    ],
+    "3.10 Prueba de propiedad en `src/lenguaje/parser.llamadas.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611158948
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611696553
+      }
+    ],
+    "3.11 Prueba de propiedad en `src/lenguaje/parser.bloqueo.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611160187
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611696638
+      }
+    ],
+    "3.12 Prueba de propiedad en `src/lenguaje/parser.parentesis.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611161383
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611697087
+      }
+    ],
+    "4.2 Pruebas de ejemplo en `src/lenguaje/evaluador.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611162353
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611698125
+      }
+    ],
+    "4.4 Prueba de propiedad en `src/lenguaje/evaluador.modelo.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611708151
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611887092
+      }
+    ],
+    "4.5 Prueba de propiedad en `src/lenguaje/evaluador.equivalencia.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611708246
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611887219
+      }
+    ],
+    "4.6 Prueba de propiedad en `src/lenguaje/evaluador.resto.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611708328
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611887533
+      }
+    ],
+    "4.7 Prueba de propiedad en `src/lenguaje/evaluador.texto.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611708794
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611888710
+      }
+    ],
+    "5.6 Pruebas de ejemplo nuevas en `src/lenguaje/interprete.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611709871
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611889717
+      }
+    ],
+    "5.7 Prueba de propiedad en `src/lenguaje/interprete.aritmetica.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611896701
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612070538
+      }
+    ],
+    "5.8 Prueba de propiedad en `src/lenguaje/interprete.repite.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611897933
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612071803
+      }
+    ],
+    "5.9 Prueba de propiedad en `src/lenguaje/interprete.azar.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611899108
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612072981
+      }
+    ],
+    "5.10 Prueba de propiedad en `src/lenguaje/interprete.llamadas.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611900287
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612074181
+      }
+    ],
+    "5.11 Prueba de propiedad en `src/lenguaje/interprete.limites.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794611901453
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612075392
+      }
+    ],
+    "7.4 Pruebas de ejemplo en `src/lenguaje/conteo.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612079416
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612240532
+      }
+    ],
+    "7.5 Prueba de propiedad en `src/lenguaje/impresor.idavuelta.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612080627
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612240842
+      }
+    ],
+    "7.6 Prueba de propiedad en `src/lenguaje/conteo.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612081852
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612242042
+      }
+    ],
+    "8.7 Pruebas de ejemplo de segmentos, divergencia y animador": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612083099
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612243049
+      }
+    ],
+    "8.8 Pruebas de rótulos en `src/motor/lienzo.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612084353
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612244017
+      }
+    ],
+    "8.9 Prueba de propiedad en `src/motor/texto.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612247917
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614025318
+      }
+    ],
+    "10.8 Pruebas de ejemplo en `src/juego/abstraccion.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612249103
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614026783
+      }
+    ],
+    "10.9 Pruebas de ejemplo en `src/azar/entropia.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612250394
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614028226
+      }
+    ],
+    "10.10 Pruebas de ejemplo en `src/juego/pistas.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612251034
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614028377
+      }
+    ],
+    "10.12 Prueba de propiedad en `src/juego/estrellas.explicacion.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794612252460
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614029844
+      }
+    ],
+    "10.11 Prueba de propiedad en `src/juego/abstraccion.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614034541
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614215834
+      }
+    ],
+    "10.13 Prueba de propiedad en `src/juego/estrellas.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614036049
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614216631
+      }
+    ],
+    "11.3 Pruebas de ejemplo en `src/niveles/generadores/comun.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614037563
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614218192
+      }
+    ],
+    "11.11 Pruebas de ejemplo en `src/niveles/mundo-4-parametros.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614038126
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614218634
+      }
+    ],
+    "11.12 Prueba de propiedad en `src/niveles/generadores/mundo-4.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614039708
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614220184
+      }
+    ],
+    "11.13 Prueba de propiedad en `src/juego/reto.mundo-4.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614224540
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614501361
+      }
+    ],
+    "11.14 Prueba de propiedad en `src/juego/rodeos.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614226124
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614501954
+      }
+    ],
+    "11.15 Prueba de propiedad en `src/juego/pistas.mundo-4.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614226921
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614502695
+      }
+    ],
+    "11.16 Prueba de propiedad en `src/juego/reto.semilla.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614228537
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614504340
+      }
+    ],
+    "11.17 Prueba de propiedad en `src/juego/insignias.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614229158
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614504930
+      }
+    ],
+    "11.18 Prueba de propiedad en `src/juego/desafio-infinito.propiedad.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614509254
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614906126
+      }
+    ],
+    "13.9 Pruebas de ejemplo en `src/ui/consola.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614510910
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614906384
+      }
+    ],
+    "13.10 Pruebas de ejemplo en `src/ui/editor.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614511574
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614908092
+      }
+    ],
+    "13.11 Pruebas de ejemplo en `src/ui/panel-comandos.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614513218
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614908774
+      }
+    ],
+    "13.12 Pruebas de ejemplo en `src/ui/globo-kiro.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614513846
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614909680
+      }
+    ],
+    "13.13 Prueba de contraste de la consola en `src/ui/consola.contraste.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614913597
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794615216775
+      }
+    ],
+    "15.1 Punta a punta de la consola en `src/main.consola.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614915306
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794615211721
+      }
+    ],
+    "15.2 Punta a punta del mundo 4 en `src/main.mundo-4.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614915991
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794615213724
+      }
+    ],
+    "15.3 Límite duro en `src/main.limite-duro.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614917772
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794615214110
+      }
+    ],
+    "15.4 Errores a mitad de camino en `src/main.errores.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794614918004
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794615214930
+      }
+    ],
+    "15. Pruebas de punta a punta, regresión y escaneos": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794615211834
+      }
+    ],
+    "15.5 Regresión de tres estrellas en `src/niveles/mundo-4-parametros.regresion.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794615222132
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794615781554
+      }
+    ],
+    "15.6 Escaneos del repositorio en `src/escaneo-mundo-4.test.ts`": [
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794615222960
+      },
+      {
+        "executionId": "99a693bd-1716-4e62-8642-5aa88fdc6540",
+        "chatSessionId": "sess_5e0fad9e-8e96-4520-ac20-8d2995b69256",
+        "timestamp": 1794615783473
+      }
+    ]
+  }
+}
