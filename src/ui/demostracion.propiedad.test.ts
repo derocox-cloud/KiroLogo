@@ -88,6 +88,8 @@ function crearContextoNulo() {
     clip: nada, fill: nada, stroke: nada, clearRect: nada, setLineDash: nada,
     lineWidth: 1, lineCap: 'butt' as CanvasLineCap, lineJoin: 'miter' as CanvasLineJoin,
     strokeStyle: '#000', fillStyle: '#000',
+    fillText: nada, font: '10px sans-serif',
+    textAlign: 'start' as CanvasTextAlign, textBaseline: 'alphabetic' as CanvasTextBaseline,
   };
 }
 

@@ -8,9 +8,18 @@ import { ESTADO_INICIAL } from '../../motor/tortuga.js';
 import { extraerSegmentos } from '../../motor/segmentos.js';
 import { calcularEncuadre } from '../../motor/encuadre.js';
 import type { Segmento } from '../../motor/segmentos.js';
+import { CATALOGO } from '../catalogo.js';
+import { buscarGenerador } from './registro.js';
+import { definicionPoligono, llamadaPoligono } from './poligono-comun.js';
 import {
   avanza,
   giro,
+  repite,
+  numero,
+  parametro,
+  operacion,
+  definicion,
+  llamada,
   cajaDeReferencia,
   esAceptable,
   generarConReintento,
@@ -329,4 +338,186 @@ describe('comun · generarConReintento', () => {
       expect(a.descartes).toBe(b.descartes);
     }
   });
+});
+
+// ============================================================================
+// cajaDeReferencia con procedimientos y expresiones (mundo 4, D3)
+// ============================================================================
+
+/** Caja del encuadre real: ejecuta con el intérprete y encuadra los segmentos. */
+function cajaReal(prog: Programa, mundo: 0 | 1 | 2 | 3 | 4) {
+  const gen = ejecutar(prog, {
+    estadoInicial: ESTADO_INICIAL,
+    comandosPermitidos: comandosDelMundo(mundo),
+    semilla: 1,
+  });
+  let paso = gen.next();
+  while (!paso.done) paso = gen.next();
+  expect(paso.value.error).toBeNull();
+  expect(paso.value.guardaActivada).toBeNull();
+  const real = calcularEncuadre(extraerSegmentos(paso.value.operaciones));
+  if (!real.hayCaja) throw new Error('la ejecución real no dibujó ningún tramo');
+  return real.caja;
+}
+
+/** Afirma que la caja de comun coincide con la del motor con tolerancia 1e-6. */
+function esperarMismaCaja(prog: Programa, mundo: 0 | 1 | 2 | 3 | 4): void {
+  const caja = cajaDeReferencia(prog);
+  expect(caja).not.toBeNull();
+  const real = cajaReal(prog, mundo);
+  expect(Math.abs(caja!.izquierda - real.izquierda)).toBeLessThan(1e-6);
+  expect(Math.abs(caja!.derecha - real.derecha)).toBeLessThan(1e-6);
+  expect(Math.abs(caja!.abajo - real.abajo)).toBeLessThan(1e-6);
+  expect(Math.abs(caja!.arriba - real.arriba)).toBeLessThan(1e-6);
+}
+
+describe('comun · cajaDeReferencia con PARA y expresiones', () => {
+  it('una llamada a POLIGONO 4 100 da la caja de un cuadrado de lado 100', () => {
+    const prog = programa(definicionPoligono(), llamadaPoligono(4, 100, 5));
+    const caja = cajaDeReferencia(prog);
+    expect(caja).not.toBeNull();
+    expect(caja!.izquierda).toBeCloseTo(0, 6);
+    expect(caja!.derecha).toBeCloseTo(100, 6);
+    expect(caja!.abajo).toBeCloseTo(0, 6);
+    expect(caja!.arriba).toBeCloseTo(100, 6);
+    esperarMismaCaja(prog, 4);
+  });
+
+  it('POLIGONO con otros lados coincide con el motor', () => {
+    for (const lados of [3, 5, 6, 8]) {
+      esperarMismaCaja(programa(definicionPoligono(), llamadaPoligono(lados, 120, 5)), 4);
+    }
+  });
+
+  it('la definición sola no dibuja: sin llamada la caja es null', () => {
+    expect(cajaDeReferencia(programa(definicionPoligono()))).toBeNull();
+  });
+
+  it('un REPITE con cantidad calculada (2 + 2) da un cuadrado', () => {
+    const prog = programa(
+      repite(operacion('+', numero(2, 1), numero(2, 1), 1), [avanza(100, 2), giro('GIRADERECHA', 90, 3)], 1),
+    );
+    const caja = cajaDeReferencia(prog);
+    expect(caja).not.toBeNull();
+    expect(caja!.derecha - caja!.izquierda).toBeCloseTo(100, 6);
+    expect(caja!.arriba - caja!.abajo).toBeCloseTo(100, 6);
+    esperarMismaCaja(prog, 4);
+  });
+
+  it('argumentos calculados y REPITE :n dentro de un procedimiento coinciden con el motor', () => {
+    // PARA FIGURA :n :l  REPITE :n [AVANZA :l * 2  GIRADERECHA 360 / :n]  FIN
+    // FIGURA 2 * 3 40   → hexágono de lado 80
+    const cuerpo = [
+      repite(
+        parametro('n', 2),
+        [
+          avanza(operacion('*', parametro('l', 3), numero(2, 3), 3), 3),
+          giro('GIRADERECHA', operacion('/', numero(360, 4), parametro('n', 4), 4), 4),
+        ],
+        2,
+      ),
+    ];
+    const prog = programa(
+      definicion('FIGURA', ['n', 'l'], cuerpo, 1),
+      llamada('FIGURA', [operacion('*', numero(2, 6), numero(3, 6), 6), numero(40, 6)], 6),
+    );
+    esperarMismaCaja(prog, 4);
+  });
+
+  it('una llamada sin distinguir mayúsculas encuentra la definición', () => {
+    const prog = programa(definicionPoligono(), llamada('poligono', [numero(4, 5), numero(100, 5)], 5));
+    expect(cajaDeReferencia(prog)).not.toBeNull();
+  });
+});
+
+describe('comun · cajaDeReferencia devuelve null ante error', () => {
+  it('división entre cero en un argumento', () => {
+    const prog = programa(avanza(operacion('/', numero(100, 1), numero(0, 1), 1), 1));
+    expect(cajaDeReferencia(prog)).toBeNull();
+  });
+
+  it('división entre cero en la cantidad de un REPITE', () => {
+    const prog = programa(
+      repite(operacion('/', numero(4, 1), numero(0, 1), 1), [avanza(100, 2)], 1),
+    );
+    expect(cajaDeReferencia(prog)).toBeNull();
+  });
+
+  it('cantidad de REPITE no entera o negativa', () => {
+    expect(cajaDeReferencia(programa(repite(2.5, [avanza(100, 2)], 1)))).toBeNull();
+    expect(cajaDeReferencia(programa(repite(-3, [avanza(100, 2)], 1)))).toBeNull();
+  });
+
+  it('un parámetro sin valor en el entorno', () => {
+    expect(cajaDeReferencia(programa(avanza(parametro('largo', 1), 1)))).toBeNull();
+  });
+
+  it('un procedimiento inexistente, aunque antes se haya dibujado', () => {
+    const prog = programa(avanza(100, 1), llamada('NOEXISTE', [], 2));
+    expect(cajaDeReferencia(prog)).toBeNull();
+  });
+
+  it('una llamada con número de argumentos distinto al de la definición', () => {
+    const prog = programa(definicionPoligono(), llamada('POLIGONO', [numero(4, 5)], 5));
+    expect(cajaDeReferencia(prog)).toBeNull();
+  });
+
+  it('más de 50 000 pasos simulados', () => {
+    expect(cajaDeReferencia(programa(repite(60_000, [avanza(1, 2)], 1)))).toBeNull();
+  });
+
+  it('recursión sin caso base', () => {
+    const prog = programa(
+      definicion('ESPIRAL', [], [avanza(10, 2), giro('GIRADERECHA', 10, 3), llamada('ESPIRAL', [], 4)], 1),
+      llamada('ESPIRAL', [], 6),
+    );
+    expect(cajaDeReferencia(prog)).toBeNull();
+  });
+});
+
+// ============================================================================
+// Regresión: los generadores de los mundos 0 a 3 conservan su caja
+// ============================================================================
+
+describe('comun · regresión de cajaDeReferencia en los mundos 0 a 3', () => {
+  // Programa del mundo 1 con literal, tal como se construía antes de D3: la caja
+  // debe ser exactamente la misma, número por número.
+  it('REPITE 4 [AVANZA 100 GIRADERECHA 90] da la misma caja que antes', () => {
+    const caja = cajaDeReferencia(
+      programa(repite(4, [avanza(100, 2), giro('GIRADERECHA', 90, 3)], 1)),
+    );
+    expect(caja).not.toBeNull();
+    // La trigonometría deja residuos del orden de 1e-14 en los bordes; la caja
+    // anterior era la misma, así que basta comparar a 12 decimales.
+    expect(caja!.derecha).toBeCloseTo(100, 12);
+    expect(caja!.arriba).toBeCloseTo(100, 12);
+    expect(caja!.izquierda).toBeCloseTo(0, 12);
+    expect(caja!.abajo).toBeCloseTo(0, 12);
+  });
+
+  // Solo los generadores de `registro.ts` filtran con `cajaDeReferencia`; los de
+  // los mundos 1 y 2 viven en `juego/` y encuadran con el motor directamente.
+  const generados = CATALOGO.filter(
+    (n) =>
+      n.mundo <= 3 && n.origen.tipo === 'generado' && buscarGenerador(n.origen.idGenerador) !== null,
+  );
+
+  it('el catálogo tiene niveles generados con registro en los mundos 0 a 3', () => {
+    expect(generados.length).toBeGreaterThan(0);
+  });
+
+  for (const nivel of generados) {
+    if (nivel.origen.tipo !== 'generado') continue;
+    const { idGenerador, parametros } = nivel.origen;
+    it(`${nivel.id} (${idGenerador}): la caja coincide con el motor en 30 semillas`, () => {
+      const generador = buscarGenerador(idGenerador);
+      expect(generador).not.toBeNull();
+      for (let semilla = 0; semilla < 30; semilla++) {
+        const r = generador!({ semilla, parametros, intentosMaximos: 200 });
+        expect(r.exito).toBe(true);
+        if (!r.exito) continue;
+        esperarMismaCaja(r.referencia, nivel.mundo as 0 | 1 | 2 | 3);
+      }
+    });
+  }
 });

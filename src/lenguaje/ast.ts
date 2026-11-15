@@ -105,11 +105,35 @@ export interface DevolucionValor extends NodoBase {
   readonly valor: Expresion;
 }
 
+/** Palabra con comilla en `ESCRIBE` y `ROTULA`. `valor` es el texto sin la comilla. Implementa: spec 05 · mundo 4. */
+export interface PalabraLiteral extends NodoBase {
+  readonly tipo: 'palabraLiteral';
+  readonly valor: string;
+}
+
+/** Menos unario: `-:largo`, `-(1 + 2)`. Nodo propio (no `0 - x`) para que el impresor distinga ambas formas. */
+export interface MenosUnario extends NodoBase {
+  readonly tipo: 'menosUnario';
+  readonly operando: Expresion;
+}
+
+/**
+ * Comando que produce valor (`SUMA`, `RESTA`, `PRODUCTO`, `COCIENTE`, `RESTO`, `AZAR`).
+ * `nombre` es `string` a propósito: ninguna lista de nombres vive fuera de `vocabulario.ts`.
+ */
+export interface ComandoOperador extends NodoBase {
+  readonly tipo: 'comandoOperador';
+  readonly nombre: string;
+  readonly argumentos: readonly Expresion[];
+}
+
 // ============================================================================
 // Tipos unión
 // ============================================================================
 
-export type Expresion = NumeroLiteral | ReferenciaParametro | ExpresionAritmetica;
+export type Expresion =
+  | NumeroLiteral | PalabraLiteral | ReferenciaParametro
+  | ExpresionAritmetica | MenosUnario | ComandoOperador;
 export type Instruccion =
   | InvocacionComando | Repeticion | DefinicionProcedimiento | InvocacionProcedimiento
   | CondicionalUnaRama | CondicionalDosRamas | Interrupcion | DevolucionValor;

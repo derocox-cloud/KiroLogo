@@ -2,7 +2,7 @@
 // Única fuente del presupuesto del proyecto: el editor, el reto y las estrellas
 // obtienen su número de aquí, sin recorrer el AST por su cuenta.
 
-import type { Programa, Instruccion, Nodo } from './ast.js';
+import type { Programa, Instruccion, Expresion, Nodo } from './ast.js';
 import { crearError, type ErrorKiroLogo } from './errores.js';
 
 // ============================================================================
@@ -62,22 +62,29 @@ function contarLista(instrucciones: readonly Instruccion[]): number {
  * | definicionProcedimiento | 0 por la cabecera + cuerpo contado una sola vez |
  * | interrupcion, devolucionValor | 1 |
  * | numeroLiteral, referenciaParametro, expresionAritmetica | 0 |
+ * | menosUnario, palabraLiteral, comandoOperador (mundo 4) | 0 |
+ *
+ * Las expresiones cuestan 0 a cualquier profundidad: `AVANZA 100`,
+ * `AVANZA 50 + 50` y `AVANZA SUMA 50 50` cuentan 1 cada uno.
  */
 function contarNodo(nodo: Instruccion): number {
   switch (nodo.tipo) {
     case 'invocacionComando':
-      return 1;
+      // ESCRIBE y ROTULA también cuentan 1, sin importar sus argumentos.
+      return 1 + contarExpresiones(nodo.argumentos);
     case 'invocacionProcedimiento':
-      return 1;
+      return 1 + contarExpresiones(nodo.argumentos);
     case 'repeticion':
       // 1 por la repetición + el cuerpo escrito una sola vez; 0 por `veces`.
-      return 1 + contarLista(nodo.cuerpo);
+      return 1 + contarExpresion(nodo.veces) + contarLista(nodo.cuerpo);
     case 'condicionalUnaRama':
       // 1 por el condicional + su única lista; 0 por la condición.
-      return 1 + contarLista(nodo.entonces);
+      return 1 + contarExpresion(nodo.condicion) + contarLista(nodo.entonces);
     case 'condicionalDosRamas':
       // 1 por el condicional + sus dos listas; 0 por la condición.
-      return 1 + contarLista(nodo.entonces) + contarLista(nodo.siNo);
+      return (
+        1 + contarExpresion(nodo.condicion) + contarLista(nodo.entonces) + contarLista(nodo.siNo)
+      );
     case 'definicionProcedimiento':
       // 0 por la cabecera (nombre y parámetros) + el cuerpo contado una vez.
       return contarLista(nodo.cuerpo);
@@ -85,9 +92,39 @@ function contarNodo(nodo: Instruccion): number {
       return 1;
     case 'devolucionValor':
       // 1 por la devolución; 0 por la expresión del valor.
-      return 1;
+      return 1 + contarExpresion(nodo.valor);
     default:
       // Discriminante fuera de la unión declarada por el AST.
+      lanzarNodoDesconocido(nodo);
+  }
+}
+
+function contarExpresiones(expresiones: readonly Expresion[]): number {
+  let total = 0;
+  for (const expresion of expresiones) {
+    total += contarExpresion(expresion);
+  }
+  return total;
+}
+
+/**
+ * Recorre una expresión a cualquier profundidad. Todo nodo de expresión cuesta
+ * 0; el recorrido existe para que un nodo desconocido anidado se detecte y
+ * produzca `nodoDesconocidoEnConteo` en lugar de un conteo parcial.
+ */
+function contarExpresion(nodo: Expresion): number {
+  switch (nodo.tipo) {
+    case 'numeroLiteral':
+    case 'referenciaParametro':
+    case 'palabraLiteral':
+      return 0;
+    case 'expresionAritmetica':
+      return contarExpresion(nodo.izquierda) + contarExpresion(nodo.derecha);
+    case 'menosUnario':
+      return contarExpresion(nodo.operando);
+    case 'comandoOperador':
+      return contarExpresiones(nodo.argumentos);
+    default:
       lanzarNodoDesconocido(nodo);
   }
 }

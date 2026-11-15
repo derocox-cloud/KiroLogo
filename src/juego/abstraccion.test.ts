@@ -16,6 +16,7 @@ import type {
   InvocacionComando,
 } from '../lenguaje/ast.js';
 import type { ExigenciaAbstraccion } from '../niveles/tipos.js';
+import { NIVEL_4_2 } from '../niveles/mundo-4-parametros.js';
 
 // ============================================================================
 // Constructores de nodos
@@ -59,13 +60,50 @@ describe('abstraccion · las seis claves', () => {
     expect(analizarClave(prog([av(100)]), 'defineProcedimiento')).toBe(false);
   });
 
-  it('usaParametros: exige declarar Y usar un parámetro de esa misma definición', () => {
-    // Declara :lado y lo usa.
-    expect(analizarClave(prog([definir('CUADRADO', ['lado'], [avRef('lado')])]), 'usaParametros')).toBe(true);
+  it('usaParametros: exige declarar, usar un parámetro propio e invocar fuera del cuerpo', () => {
+    const cuadrado = definir('CUADRADO', ['lado'], [avRef('lado')]);
+    // Declara :lado, lo usa y se invoca.
+    expect(analizarClave(prog([cuadrado, llamar('CUADRADO')]), 'usaParametros')).toBe(true);
+    // Sin invocar (R21.4).
+    expect(analizarClave(prog([cuadrado]), 'usaParametros')).toBe(false);
     // Declara :lado pero no lo usa.
-    expect(analizarClave(prog([definir('CUADRADO', ['lado'], [av(100)])]), 'usaParametros')).toBe(false);
+    expect(analizarClave(prog([definir('CUADRADO', ['lado'], [av(100)]), llamar('CUADRADO')]), 'usaParametros')).toBe(false);
     // No declara parámetros.
-    expect(analizarClave(prog([definir('CUADRADO', [], [av(100)])]), 'usaParametros')).toBe(false);
+    expect(analizarClave(prog([definir('CUADRADO', [], [av(100)]), llamar('CUADRADO')]), 'usaParametros')).toBe(false);
+    // Sin ningún PARA (R21.3).
+    expect(analizarClave(prog([av(100)]), 'usaParametros')).toBe(false);
+  });
+
+  it('usaParametros: una llamada del PARA a sí mismo no lo hace alcanzable (D19)', () => {
+    const recursivo = definir('ESPIRAL', ['n'], [avRef('n'), llamar('ESPIRAL')]);
+    expect(analizarClave(prog([recursivo]), 'usaParametros')).toBe(false);
+    expect(analizarClave(prog([recursivo, llamar('ESPIRAL')]), 'usaParametros')).toBe(true);
+  });
+
+  it('usaParametros: el parámetro de otro PARA no cuenta', () => {
+    const a = definir('A', ['x'], [av(1)]);
+    const b = definir('B', [], [avRef('x')]);
+    expect(analizarClave(prog([a, b, llamar('A'), llamar('B')]), 'usaParametros')).toBe(false);
+  });
+
+  it('usaParametros: cuenta un parámetro dentro de expresiones anidadas', () => {
+    const anidado: InvocacionComando = {
+      tipo: 'invocacionComando',
+      nombre: 'AVANZA',
+      argumentos: [{
+        tipo: 'menosUnario',
+        operando: { tipo: 'comandoOperador', nombre: 'SUMA', argumentos: [ref('largo'), num(10)], ...P },
+        ...P,
+      }],
+      ...P,
+    };
+    const def = definir('LINEA', ['largo'], [repite([anidado])]);
+    expect(analizarClave(prog([def, llamar('LINEA')]), 'usaParametros')).toBe(true);
+  });
+
+  it('maximoProcedimientos: dos PARA con parámetros superan el máximo 1', () => {
+    const dos = prog([definir('A', ['x'], [avRef('x')]), definir('B', ['y'], [avRef('y')])]);
+    expect(analizarClave(dos, 'maximoProcedimientos', 1)).toBe(false);
   });
 
   it('usaRecursion: confirma solo si el cuerpo se invoca a sí mismo', () => {
@@ -104,8 +142,8 @@ describe('abstraccion · conjunto vacío y orden', () => {
   });
 
   it('dos AST iguales nodo por nodo dan el mismo resultado', () => {
-    const a = prog([definir('CUADRADO', ['lado'], [avRef('lado')])]);
-    const b = prog([definir('CUADRADO', ['lado'], [avRef('lado')])]);
+    const a = prog([definir('CUADRADO', ['lado'], [avRef('lado')]), llamar('CUADRADO')]);
+    const b = prog([definir('CUADRADO', ['lado'], [avRef('lado')]), llamar('CUADRADO')]);
     const exigencias: ExigenciaAbstraccion[] = [{ clave: 'defineProcedimiento' }, { clave: 'usaParametros' }];
     expect(analizar(a, exigencias)).toEqual(analizar(b, exigencias));
   });
@@ -239,5 +277,90 @@ describe('Property 12: usaRepiteAnidado analiza el AST, no el texto (mundo 3)', 
     const vAbreviado = analizar(abreviado, [exigencia]);
     expect(vLargo).toEqual(vAbreviado);
     expect(vLargo.confirmadas).not.toContain('usaRepiteAnidado');
+  });
+});
+
+// ============================================================================
+// usaParametros y maximoProcedimientos juntos, con las exigencias del 4.2 (R21.8)
+// ============================================================================
+//
+// Los casos de R21.8 se evalúan aquí sobre las dos exigencias que declara el
+// nivel 4.2, tomadas del dato del nivel y no reescritas, y sobre programas
+// parseados como los escribiría el jugador del mundo 4. Así se comprueba que cada
+// exigencia se evalúa por separado (R21.3) y no solo cada clave aislada.
+
+describe('abstraccion · usaParametros y maximoProcedimientos del nivel 4.2 (R21.8)', () => {
+  // Validates: Requirements 21.3, 21.4, 21.5, 21.7, 21.8
+  const exigencias4_2 = NIVEL_4_2.abstraccion;
+
+  function astMundo4(texto: string): Programa {
+    const { tokens } = analizarLexico(texto);
+    const { programa, errores } = analizar_(tokens, { mundo: 4 });
+    if (programa === null || errores.length > 0) {
+      throw new Error(`texto inválido: "${texto}" — ${errores.map((e) => e.mensaje).join('; ')}`);
+    }
+    return programa;
+  }
+
+  const analizar4_2 = (texto: string) => analizar(astMundo4(texto), exigencias4_2);
+
+  it('el 4.2 declara usaParametros y maximoProcedimientos con máximo 1, en ese orden', () => {
+    expect(exigencias4_2).toEqual([{ clave: 'usaParametros' }, { clave: 'maximoProcedimientos', maximo: 1 }]);
+  });
+
+  it('un solo PARA con parámetros, usado e invocado, cumple ambas', () => {
+    const r = analizar4_2(
+      'PARA POLIGONO :lados REPITE :lados [AVANZA 60 GIRADERECHA 360 / :lados] FIN POLIGONO 3 POLIGONO 4 POLIGONO 5',
+    );
+    expect(r.confirmadas).toEqual(['usaParametros', 'maximoProcedimientos']);
+    expect(r.sinConfirmar).toEqual([]);
+  });
+
+  it('sin ningún PARA confirma maximoProcedimientos (0 ≤ 1) y no usaParametros (R21.3)', () => {
+    const r = analizar4_2('REPITE 3 [AVANZA 60 GIRADERECHA 120] REPITE 4 [AVANZA 60 GIRADERECHA 90]');
+    expect(r.confirmadas).toEqual(['maximoProcedimientos']);
+    expect(r.sinConfirmar).toEqual(['usaParametros']);
+  });
+
+  it('un PARA con parámetros que su cuerpo no usa deja usaParametros sin confirmar', () => {
+    const r = analizar4_2('PARA CUADRADO :lado REPITE 4 [AVANZA 60 GIRADERECHA 90] FIN CUADRADO 60');
+    expect(r.confirmadas).toEqual(['maximoProcedimientos']);
+    expect(r.sinConfirmar).toEqual(['usaParametros']);
+  });
+
+  it('un PARA que usa sus parámetros pero nunca se invoca deja usaParametros sin confirmar (R21.4)', () => {
+    const r = analizar4_2('PARA CUADRADO :lado REPITE 4 [AVANZA :lado GIRADERECHA 90] FIN');
+    expect(r.confirmadas).toEqual(['maximoProcedimientos']);
+    expect(r.sinConfirmar).toEqual(['usaParametros']);
+  });
+
+  it('el parámetro dentro de un comando operador cuenta como usado: AVANZA SUMA :largo 10 (R21.5)', () => {
+    const r = analizar4_2('PARA LINEA :largo AVANZA SUMA :largo 10 FIN LINEA 50');
+    expect(r.confirmadas).toEqual(['usaParametros', 'maximoProcedimientos']);
+  });
+
+  it('el parámetro dentro de un menos unario cuenta como usado: AVANZA -:largo (R21.5)', () => {
+    const r = analizar4_2('PARA LINEA :largo AVANZA -:largo FIN LINEA 50');
+    expect(r.confirmadas).toEqual(['usaParametros', 'maximoProcedimientos']);
+  });
+
+  it('el parámetro dentro de una expresión infija cuenta como usado (R21.5)', () => {
+    const r = analizar4_2('PARA LINEA :largo AVANZA 2 * (:largo + 10) FIN LINEA 20');
+    expect(r.confirmadas).toEqual(['usaParametros', 'maximoProcedimientos']);
+  });
+
+  it('la invocación desde dentro de un REPITE también lo hace alcanzable (R21.1 c)', () => {
+    const r = analizar4_2('PARA LADO :largo AVANZA :largo GIRADERECHA 90 FIN REPITE 4 [LADO 60]');
+    expect(r.confirmadas).toEqual(['usaParametros', 'maximoProcedimientos']);
+  });
+
+  it('dos PARA con parámetros en el 4.2 confirman usaParametros pero no maximoProcedimientos (R21.7)', () => {
+    const r = analizar4_2(
+      'PARA TRIANGULO :lado REPITE 3 [AVANZA :lado GIRADERECHA 120] FIN ' +
+        'PARA CUADRADO :lado REPITE 4 [AVANZA :lado GIRADERECHA 90] FIN ' +
+        'TRIANGULO 60 CUADRADO 60',
+    );
+    expect(r.confirmadas).toEqual(['usaParametros']);
+    expect(r.sinConfirmar).toEqual(['maximoProcedimientos']);
   });
 });

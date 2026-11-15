@@ -11,7 +11,8 @@ import { crearError, type ErrorKiroLogo } from './errores.js';
 
 export type TipoToken =
   | 'comando' | 'identificador' | 'numero' | 'palabra'
-  | 'parametro' | 'corchete_abre' | 'corchete_cierra';
+  | 'parametro' | 'corchete_abre' | 'corchete_cierra'
+  | 'operador' | 'parentesis_abre' | 'parentesis_cierra';
 
 interface TokenBase {
   readonly textoOriginal: string;   // tal como se escribió
@@ -110,6 +111,24 @@ export function analizarLexico(texto: string): ResultadoLexico {
     }
     if (c === ']') {
       tokens.push({ tipo: 'corchete_cierra', valor: ']', textoOriginal: ']', linea: cursor.linea, columna: cursor.columna });
+      avanzar(cursor);
+      continue;
+    }
+
+    // Operadores y paréntesis: se emiten siempre, sin mirar el mundo (el parser bloquea).
+    // No hay lexado especial de signos: `-5` son dos tokens.
+    if (c === '+' || c === '-' || c === '*' || c === '/') {
+      tokens.push({ tipo: 'operador', valor: c, textoOriginal: c, linea: cursor.linea, columna: cursor.columna });
+      avanzar(cursor);
+      continue;
+    }
+    if (c === '(') {
+      tokens.push({ tipo: 'parentesis_abre', valor: '(', textoOriginal: '(', linea: cursor.linea, columna: cursor.columna });
+      avanzar(cursor);
+      continue;
+    }
+    if (c === ')') {
+      tokens.push({ tipo: 'parentesis_cierra', valor: ')', textoOriginal: ')', linea: cursor.linea, columna: cursor.columna });
       avanzar(cursor);
       continue;
     }

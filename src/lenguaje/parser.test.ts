@@ -3,14 +3,14 @@
 
 import { describe, it, expect } from 'vitest';
 import fc from 'fast-check';
-import { analizar, nombresDeProcedimientos } from './parser.js';
+import { analizar, nombresDeProcedimientos, firmasDeProcedimientos } from './parser.js';
 import { analizarLexico } from './lexer.js';
 import type {
   InvocacionComando, NumeroLiteral, Repeticion,
   DefinicionProcedimiento, InvocacionProcedimiento, ArgumentoColor,
 } from './ast.js';
 import { crearPrng } from '../azar/prng.js';
-import { type Mundo } from './vocabulario.js';
+import { type Mundo, VOCABULARIO } from './vocabulario.js';
 
 // ============================================================================
 // Ayuda: analizar texto directamente (lexer + parser)
@@ -133,9 +133,31 @@ describe('parser', () => {
       expect(errores[0]!.linea).toBe(1);
     });
 
-    it('un comando de aridad 1 seguido de otro comando reporta argumentoFaltante', () => {
-      const { errores } = analizarTexto('AVANZA GIRADERECHA 90');
+    it('un comando de aridad 1 seguido de una acción en la misma línea reporta argumentoDeTipoEquivocado (D9)', () => {
+      const { errores } = analizarTexto('AVANZA AVANZA 10');
+      expect(errores[0]!.id).toBe('argumentoDeTipoEquivocado');
+    });
+
+    it('un comando de aridad 1 seguido de una acción en una línea posterior reporta argumentoFaltante (D9)', () => {
+      const { errores } = analizarTexto('AVANZA\nGIRADERECHA 90');
       expect(errores[0]!.id).toBe('argumentoFaltante');
+    });
+
+    it('un comando de operador como instrucción reporta operadorSinUso con ejemplo', () => {
+      const { errores } = analizarTexto('SUMA 30 40', 4);
+      expect(errores).toHaveLength(1);
+      expect(errores[0]!.id).toBe('operadorSinUso');
+      expect(errores[0]!.mensaje).toContain('ESCRIBE SUMA 30 40');
+    });
+
+    it('un procedimiento en posición de expresión reporta argumentoDeTipoEquivocado', () => {
+      const { errores } = analizarTexto('PARA CUADRADO\nAVANZA 10\nFIN\nAVANZA CUADRADO', 4);
+      expect(errores[0]!.id).toBe('argumentoDeTipoEquivocado');
+    });
+
+    it('AVANZA GIRADERECHA 90 en una sola línea reporta argumentoDeTipoEquivocado', () => {
+      const { errores } = analizarTexto('AVANZA GIRADERECHA 90');
+      expect(errores[0]!.id).toBe('argumentoDeTipoEquivocado');
     });
   });
 
@@ -152,9 +174,9 @@ describe('parser', () => {
       expect(errores[0]!.id).toBe('argumentoDeTipoEquivocado');
     });
 
-    it('un comando de aridad 1 seguido de parámetro reporta argumentoDeTipoEquivocado', () => {
+    it('un comando de aridad 1 seguido de parámetro fuera de ámbito reporta variableNoDefinida', () => {
       const { errores } = analizarTexto('AVANZA :largo');
-      expect(errores[0]!.id).toBe('argumentoDeTipoEquivocado');
+      expect(errores[0]!.id).toBe('variableNoDefinida');
     });
   });
 
@@ -512,12 +534,12 @@ describe('parser', () => {
       expect(programa).toBeNull();
     });
 
-    it('desde el mundo 4 un :param se acepta y se ignora hasta que se implementen los parámetros', () => {
-      const { programa, errores } = analizarTexto('PARA CUADRADO :lado AV 100 FIN', 4);
+    it('desde el mundo 4 un :param se guarda en el nodo, normalizado a minúsculas', () => {
+      const { programa, errores } = analizarTexto('PARA CUADRADO :Lado AV 100 FIN', 4);
       expect(errores).toHaveLength(0);
       const def = programa!.instrucciones[0] as DefinicionProcedimiento;
       expect(def.tipo).toBe('definicionProcedimiento');
-      expect(def.parametros).toEqual([]);
+      expect(def.parametros).toEqual(['lado']);
       expect(def.cuerpo).toHaveLength(1);
     });
   });
@@ -1039,8 +1061,11 @@ describe('PARA — errores de sintaxis propios (punto 8)', () => {
       expect(ids('PARA X :lado AV 100 FIN X 50')[0]).toBe('paraConParametros');
     });
 
-    it('desde el mundo 4 los parámetros se aceptan como antes (se ignoran hasta que se implementen)', () => {
-      expect(ids('PARA X :lado AV 100 FIN', 4)).toEqual([]);
+    it('desde el mundo 4 los parámetros se aceptan y quedan en el nodo, en minúsculas', () => {
+      const { programa, errores } = analizarTexto('PARA X :Lado :otro AV 100 FIN', 4);
+      expect(errores).toEqual([]);
+      const def = programa!.instrucciones[0] as DefinicionProcedimiento;
+      expect(def.parametros).toEqual(['lado', 'otro']);
     });
   });
 });
@@ -1062,5 +1087,294 @@ describe('nombresDeProcedimientos — filtro por mundo', () => {
 
   it.each([2, 3, 4, 5] as const)('desde el mundo %i devuelve los procedimientos en orden de definición', (mundo) => {
     expect(nombresDeProcedimientos(tokens(), mundo)).toEqual(['CUADRADO', 'FLOR']);
+  });
+});
+
+describe('firmas de procedimientos con parametros (mundo 4)', () => {
+  it('un parametro repetido reporta parametroDuplicado y no define el procedimiento', () => {
+    const { programa, errores } = analizarTexto('PARA P :a :A AV :a FIN', 4);
+    expect(errores.map((e) => e.id)).toContain('parametroDuplicado');
+    expect(programa).toBeNull();
+  });
+
+  it('firmasDeProcedimientos devuelve parametros en minusculas y omite las rechazadas', () => {
+    const lex = analizarLexico('PARA POLIGONO :Lados :largo FIN PARA MAL :x :x FIN');
+    const firmas = firmasDeProcedimientos(lex.tokens, 4);
+    expect(firmas).toHaveLength(1);
+    expect(firmas[0]).toMatchObject({ nombre: 'POLIGONO', parametros: ['lados', 'largo'], escritos: [':Lados', ':largo'], rechazada: false });
+  });
+});
+
+describe('bloqueo por mundo de la aritmética y los comandos del mundo 4', () => {
+  it('reporta un solo aritmeticaBloqueada con el primer símbolo y su línea', () => {
+    const r = analizarTexto('AVANZA 20\nAVANZA 10 + 5\nAVANZA (3 * 2)', 3);
+    expect(r.programa).toBeNull();
+    expect(r.errores).toHaveLength(1);
+    expect(r.errores[0]).toMatchObject({ id: 'aritmeticaBloqueada', linea: 2 });
+    expect(r.errores[0]!.mensaje).toContain('+');
+    expect(r.errores[0]!.mensaje).toContain('mundo 4');
+  });
+
+  it('el mismo programa se analiza en el mundo 4', () => {
+    expect(analizarTexto('AVANZA 10 + 5', 4).errores).toEqual([]);
+  });
+
+  it('reporta comandoBloqueado por cada ocurrencia de un comando del mundo 4', () => {
+    const r = analizarTexto('ESCRIBE 5\nROTULA 6', 3);
+    expect(r.errores.map((e) => e.id)).toEqual(['comandoBloqueado', 'comandoBloqueado']);
+  });
+});
+
+// ============================================================================
+// Mundo 4: expresiones, llamadas con argumentos y errores en contexto
+// ============================================================================
+
+describe('mundo 4 — ejemplos del parser', () => {
+  const POLIGONO = 'PARA POLIGONO :lados :largo\n  REPITE :lados [AVANZA :largo GIRADERECHA 360 / :lados]\nFIN\n';
+
+  /** Primer argumento de la primera instrucción del programa, que debe analizarse sin errores. */
+  function primerArgumento(texto: string, indice = 0) {
+    const { programa, errores } = analizarTexto(texto, 4);
+    expect(errores).toEqual([]);
+    const instruccion = programa!.instrucciones[indice] as InvocacionComando | InvocacionProcedimiento;
+    return instruccion.argumentos[0]!;
+  }
+
+  const num = (valor: number) => ({ tipo: 'numeroLiteral', valor });
+  const op = (operador: string, izquierda: object, derecha: object) =>
+    ({ tipo: 'expresionAritmetica', operador, izquierda, derecha });
+
+  describe('precedencia y asociatividad (R3.2, R3.3)', () => {
+    it('10 - 3 - 2 asocia por la izquierda', () => {
+      expect(primerArgumento('AVANZA 10 - 3 - 2')).toMatchObject(op('-', op('-', num(10), num(3)), num(2)));
+    });
+
+    it('100 / 10 / 2 asocia por la izquierda', () => {
+      expect(primerArgumento('AVANZA 100 / 10 / 2')).toMatchObject(op('/', op('/', num(100), num(10)), num(2)));
+    });
+
+    it('-2 * 3 es (-2) * 3: el menos unario pesa más que *', () => {
+      expect(primerArgumento('AVANZA -2 * 3')).toMatchObject(
+        op('*', { tipo: 'menosUnario', operando: num(2) }, num(3)),
+      );
+    });
+
+    it('360 / 2 + 1 divide primero y 360 / (2 + 1) suma primero', () => {
+      expect(primerArgumento('GIRADERECHA 360 / 2 + 1')).toMatchObject(op('+', op('/', num(360), num(2)), num(1)));
+      expect(primerArgumento('GIRADERECHA 360 / (2 + 1)')).toMatchObject(op('/', num(360), op('+', num(2), num(1))));
+    });
+  });
+
+  describe('menos unario (R3.4)', () => {
+    it('AVANZA -50 es un menos unario sobre 50', () => {
+      expect(primerArgumento('AVANZA -50')).toMatchObject({ tipo: 'menosUnario', operando: num(50) });
+    });
+
+    it('AVANZA 100 * -1 acepta el menos después de otro operador', () => {
+      expect(primerArgumento('AVANZA 100 * -1')).toMatchObject(op('*', num(100), { tipo: 'menosUnario', operando: num(1) }));
+    });
+
+    it('AVANZA (-:largo) acepta el menos después de un paréntesis', () => {
+      const { programa, errores } = analizarTexto('PARA P :largo\n  AVANZA (-:largo)\nFIN', 4);
+      expect(errores).toEqual([]);
+      const def = programa!.instrucciones[0] as DefinicionProcedimiento;
+      expect((def.cuerpo[0] as InvocacionComando).argumentos[0]).toMatchObject({
+        tipo: 'menosUnario',
+        operando: { tipo: 'referenciaParametro', nombre: 'largo' },
+      });
+    });
+  });
+
+  it('cada argumento es la expresión más larga posible: SUMA 1 2 * 3 es SUMA 1 (2 * 3) (R3.6)', () => {
+    expect(primerArgumento('ESCRIBE SUMA 1 2 * 3')).toMatchObject({
+      tipo: 'comandoOperador',
+      nombre: 'SUMA',
+      argumentos: [num(1), op('*', num(2), num(3))],
+    });
+  });
+
+  it('POLIGONO 3 + 3 40 * 2 es una llamada válida con dos argumentos (R7.3)', () => {
+    const { programa, errores } = analizarTexto(`${POLIGONO}POLIGONO 3 + 3 40 * 2`, 4);
+    expect(errores).toEqual([]);
+    const llamada = programa!.instrucciones[1] as InvocacionProcedimiento;
+    expect(llamada).toMatchObject({ tipo: 'invocacionProcedimiento', nombre: 'POLIGONO' });
+    expect(llamada.argumentos).toHaveLength(2);
+    expect(llamada.argumentos[0]).toMatchObject(op('+', num(3), num(3)));
+    expect(llamada.argumentos[1]).toMatchObject(op('*', num(40), num(2)));
+  });
+
+  it('POLIGONO 6 -80 se lee como 6 - 80: falta un argumento y sugiere el paréntesis', () => {
+    const { programa, errores } = analizarTexto(`${POLIGONO}POLIGONO 6 -80`, 4);
+    expect(programa).toBeNull();
+    expect(errores).toHaveLength(1);
+    expect(errores[0]!.mensaje).toBe(
+      'POLIGONO necesita 2 argumentos (:lados :largo) y solo le diste 1. Falta 1: :largo. ' +
+        '¿Querías escribir (-80) con paréntesis?',
+    );
+  });
+
+  describe('mensajes del catálogo en contexto (R15)', () => {
+    const casos: readonly (readonly [string, string, string, number])[] = [
+      [
+        'variableNoDefinida',
+        'AVANZA :largo',
+        'No sé qué vale :largo aquí. ¿La declaraste como parámetro en PARA?',
+        1,
+      ],
+      [
+        'parametroDuplicado',
+        'PARA POLIGONO :lados :lados\n  AVANZA :lados\nFIN',
+        'El comando POLIGONO declara :lados dos veces. Cada parámetro necesita un nombre distinto.',
+        1,
+      ],
+      [
+        'procedimientoArgumentosFaltantes',
+        `${POLIGONO}POLIGONO 6`,
+        'POLIGONO necesita 2 argumentos (:lados :largo) y solo le diste 1. Falta 1: :largo.',
+        4,
+      ],
+      [
+        'procedimientoArgumentosFaltantes',
+        `${POLIGONO}POLIGONO`,
+        'POLIGONO necesita 2 argumentos (:lados :largo) y solo le diste 0. Faltan 2: :lados :largo.',
+        4,
+      ],
+      [
+        'procedimientoArgumentosDeMas',
+        `${POLIGONO}\nPOLIGONO 6 80 3`,
+        'POLIGONO recibe 2 argumentos (:lados :largo), pero en la línea 5 le diste más. Quita lo que sobra.',
+        5,
+      ],
+      [
+        'argumentoDeTipoEquivocado',
+        `${POLIGONO}POLIGONO "hola 80`,
+        'POLIGONO necesita un número en :lados, pero le diste una palabra: "hola',
+        4,
+      ],
+      [
+        'operadorSinUso',
+        'SUMA 1 2',
+        'SUMA calcula un valor, pero no dijiste qué hacer con él. Por ejemplo: ESCRIBE SUMA 1 2',
+        1,
+      ],
+      [
+        'parentesisSinCerrar',
+        'AVANZA 10\nAVANZA 20\nAVANZA (1 + 2',
+        'Falta cerrar el paréntesis que abriste en la línea 3.',
+        3,
+      ],
+      [
+        'parentesisDeMas',
+        'AVANZA 10\nAVANZA 20\nAVANZA 30\nAVANZA 1)',
+        'Hay un paréntesis de cierre en la línea 4 que no abriste.',
+        4,
+      ],
+      [
+        'expresionIncompleta',
+        'AVANZA 10\nAVANZA 100 *',
+        'Falta un número después del símbolo * de la línea 2.',
+        2,
+      ],
+      [
+        'expresionDemasiadoProfunda',
+        `AVANZA ${'('.repeat(33)}1${')'.repeat(33)}`,
+        'Tienes demasiados paréntesis anidados (más de 32). Divide la cuenta en pasos más cortos.',
+        1,
+      ],
+    ];
+
+    it.each(casos)('%s: %j', (id, texto, mensaje, linea) => {
+      const { programa, errores } = analizarTexto(texto, 4);
+      expect(programa).toBeNull();
+      expect(errores[0]).toMatchObject({ id, mensaje, linea });
+    });
+
+    it('aritmeticaBloqueada antes del mundo 4', () => {
+      const { errores } = analizarTexto('AVANZA 10 + 5', 3);
+      expect(errores[0]).toMatchObject({
+        id: 'aritmeticaBloqueada',
+        mensaje: 'El símbolo + todavía no está disponible. Se desbloquea en el mundo 4.',
+        linea: 1,
+      });
+    });
+  });
+
+  describe('llamadas antes de la definición (R7.10)', () => {
+    it('una llamada válida anterior al PARA se analiza sin errores', () => {
+      const { programa, errores } = analizarTexto(`POLIGONO 6 80\n${POLIGONO}`, 4);
+      expect(errores).toEqual([]);
+      expect(programa!.instrucciones[0]).toMatchObject({ tipo: 'invocacionProcedimiento', nombre: 'POLIGONO' });
+    });
+
+    it.each(['POLIGONO 6', 'POLIGONO 6 80 3', 'POLIGONO "hola 80'])('%s reporta lo mismo antes y después de la definición, salvo la línea', (llamada) => {
+      const antes = analizarTexto(`${llamada}\n${POLIGONO}`, 4).errores;
+      const despues = analizarTexto(`${POLIGONO}${llamada}`, 4).errores;
+      expect(antes).toHaveLength(1);
+      expect(despues).toHaveLength(1);
+      expect(antes[0]!.id).toBe(despues[0]!.id);
+      // El único dato que cambia es la línea de la llamada (1 frente a 4).
+      expect(antes[0]!.mensaje).toBe(despues[0]!.mensaje.replace('línea 4', 'línea 1'));
+    });
+  });
+
+  describe('PARA con y sin parámetros en cada mundo', () => {
+    it.each([0, 1] as const)('en el mundo %i PARA está bloqueado', (mundo) => {
+      expect(analizarTexto('PARA X :lado AV :lado FIN', mundo).errores[0]!.id).toBe('comandoBloqueado');
+      expect(analizarTexto('PARA X AV 10 FIN', mundo).errores[0]!.id).toBe('comandoBloqueado');
+    });
+
+    it.each([2, 3] as const)('en el mundo %i PARA sin parámetros vale y con parámetros no', (mundo) => {
+      const sin = analizarTexto('PARA X AV 10 FIN X', mundo);
+      expect(sin.errores).toEqual([]);
+      expect((sin.programa!.instrucciones[0] as DefinicionProcedimiento).parametros).toEqual([]);
+      expect(analizarTexto('PARA X :lado AV 10 FIN', mundo).errores.map((e) => e.id)).toEqual(['paraConParametros']);
+    });
+
+    it.each([4, 5] as const)('en el mundo %i PARA vale con y sin parámetros', (mundo) => {
+      const sin = analizarTexto('PARA X AV 10 FIN X', mundo);
+      expect(sin.errores).toEqual([]);
+      expect((sin.programa!.instrucciones[0] as DefinicionProcedimiento).parametros).toEqual([]);
+      const con = analizarTexto('PARA X :lado AV :lado FIN X 10', mundo);
+      expect(con.errores).toEqual([]);
+      expect((con.programa!.instrucciones[0] as DefinicionProcedimiento).parametros).toEqual(['lado']);
+    });
+  });
+
+  describe('regla de la línea', () => {
+    it('el primer argumento de una instrucción puede ir en la línea siguiente', () => {
+      expect(primerArgumento('AVANZA\n100')).toMatchObject(num(100));
+    });
+
+    it('el segundo argumento de una llamada no puede ir en la línea siguiente', () => {
+      const { errores } = analizarTexto(`${POLIGONO}POLIGONO 6\n80`, 4);
+      expect(errores[0]).toMatchObject({ id: 'procedimientoArgumentosFaltantes', linea: 4 });
+    });
+
+    it('un operador en la línea siguiente no continúa la expresión anterior', () => {
+      const { errores } = analizarTexto('AVANZA 10\n+ 5', 4);
+      expect(errores.length).toBeGreaterThan(0);
+      expect(errores.every((e) => e.linea === 2)).toBe(true);
+    });
+
+    it('un operador al final de la línea no toma su operando de la línea siguiente (R3.10)', () => {
+      const { errores } = analizarTexto('AVANZA 10 +\n5', 4);
+      expect(errores[0]).toMatchObject({ id: 'expresionIncompleta', linea: 1 });
+    });
+  });
+
+  describe('ejemplo e inserción de cada comando del mundo 4 (R6.7)', () => {
+    const delMundo4 = VOCABULARIO.filter((entrada) => entrada.mundo === 4);
+
+    it('hay ocho comandos del mundo 4', () => {
+      expect(delMundo4).toHaveLength(8);
+    });
+
+    it.each(delMundo4.map((e) => [e.nombre, e.ejemplo, e.insercion] as const))(
+      '%s: ejemplo e inserción se analizan sin errores',
+      (_nombre, ejemplo, insercion) => {
+        expect(analizarTexto(ejemplo, 4).errores).toEqual([]);
+        expect(analizarTexto(insercion, 4).errores).toEqual([]);
+      },
+    );
   });
 });

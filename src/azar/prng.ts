@@ -226,3 +226,12 @@ export function crearPrng(semilla: number): Prng {
   
   return new PrngImpl(semilla);
 }
+
+/**
+ * Fábrica del azar de una ejecución del intérprete: `n => entero en [0, n - 1]`.
+ * Se inyecta en `opciones.fabricaAzar` de `ejecutar`, así `lenguaje/` no importa de `azar/`.
+ */
+export function fabricaAzar(semilla: number): (n: number) => number {
+  const prng = crearPrng(semilla);
+  return (n: number): number => prng.entero(0, n - 1);
+}

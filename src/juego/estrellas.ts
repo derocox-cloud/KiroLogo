@@ -1,12 +1,12 @@
 // Las tres estrellas de KiroLogo: precisión, economía y abstracción.
-// Cada una es un bicondicional independiente, salvo la única dependencia
-// documentada: en un nivel sin exigencias, la abstracción sigue a la precisión.
+// Precisión y economía son independientes. La abstracción exige además la precisión:
+// sin ella no se otorga, haya o no exigencias en el nivel.
 
 import type { Programa } from '../lenguaje/ast.js';
 import { contarInstrucciones } from '../lenguaje/conteo.js';
 import type { Veredicto } from '../motor/validador.js';
 import type { Reto } from './reto.js';
-import { analizar } from './abstraccion.js';
+import { analizar, contarProcedimientos } from './abstraccion.js';
 import { crearError } from '../lenguaje/errores.js';
 
 // ============================================================================
@@ -109,18 +109,34 @@ export function calificar(
     abstraccion = precision.otorgada ? OTORGADA : { otorgada: false, motivo: { clave: 'sinPrecision' } };
   } else {
     const analisis = analizar(astJugador, exigencias);
-    abstraccion =
-      analisis.sinConfirmar.length === 0
-        ? OTORGADA
-        : {
-            otorgada: false,
-            motivo: { clave: 'exigenciasSinConfirmar', claves: analisis.sinConfirmar },
-          };
-
-    // Invitación afirmativa: solo tras ganar precisión y solo si falta `usaRepite`.
-    // Nunca bloquea la validación; es un mensaje posterior que anima a abstraer.
-    if (precision.otorgada && analisis.sinConfirmar.includes('usaRepite')) {
-      mensajeAbstraccion = crearError('invitacionAbstraccionRepite', {}).mensaje;
+    // La abstracción exige precisión: sin ella no se otorga aunque se cumplan las exigencias.
+    if (!precision.otorgada) {
+      abstraccion = { otorgada: false, motivo: { clave: 'sinPrecision' } };
+    } else if (analisis.sinConfirmar.length === 0) {
+      abstraccion = OTORGADA;
+    } else {
+      abstraccion = {
+        otorgada: false,
+        motivo: { clave: 'exigenciasSinConfirmar', claves: analisis.sinConfirmar },
+      };
+      // Una línea por exigencia sin confirmar, en el orden en que el nivel las declara.
+      const lineas: string[] = [];
+      for (const exigencia of exigencias) {
+        if (!analisis.sinConfirmar.includes(exigencia.clave)) continue;
+        if (exigencia.clave === 'usaRepite') {
+          lineas.push(crearError('invitacionAbstraccionRepite', {}).mensaje);
+        } else if (exigencia.clave === 'usaParametros') {
+          lineas.push(crearError('invitacionAbstraccionParametros', {}).mensaje);
+        } else if (exigencia.clave === 'maximoProcedimientos') {
+          lineas.push(
+            crearError('invitacionAbstraccionProcedimientos', {
+              definidos: contarProcedimientos(astJugador),
+              maximo: exigencia.maximo,
+            }).mensaje,
+          );
+        }
+      }
+      mensajeAbstraccion = lineas.length > 0 ? lineas.join('\n') : null;
     }
   }
 

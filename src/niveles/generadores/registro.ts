@@ -13,6 +13,9 @@ import { generarCamino } from './camino.js';
 import { generarZigzag } from './zigzag.js';
 import { generarRoseton } from './roseton.js';
 import { generarFlor } from './flor.js';
+import { generarTresPoligonos } from './tres-poligonos.js';
+import { generarPoligonosEncajados } from './poligonos-encajados.js';
+import { generarEstrellaParametrica } from './estrella-parametrica.js';
 
 // ============================================================================
 // Tabla de generadores
@@ -27,6 +30,9 @@ const GENERADORES: Readonly<Record<string, Generador>> = {
   zigzag: generarZigzag,
   'roseton-m3': generarRoseton,
   'flor-m3': generarFlor,
+  'tres-poligonos-m4': generarTresPoligonos,
+  'poligonos-encajados-m4': generarPoligonosEncajados,
+  'estrella-parametrica-m4': generarEstrellaParametrica,
 };
 
 // ============================================================================

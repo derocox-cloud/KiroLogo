@@ -9,12 +9,14 @@ import {
   comandosDelMundo,
 } from './vocabulario.js';
 import { resolverPalabraNoEjecutable } from './errores.js';
+import { analizarLexico } from './lexer.js';
+import { analizar } from './parser.js';
 
 describe('vocabulario.ts', () => {
   describe('Tipos básicos', () => {
     it('TipoArgumento es una unión de strings', () => {
-      const tipos: TipoArgumento[] = ['numero', 'palabra', 'lista', 'expresion'];
-      expect(tipos).toHaveLength(4);
+      const tipos: TipoArgumento[] = ['numero', 'palabra', 'lista', 'expresion', 'valorEscribible'];
+      expect(tipos).toHaveLength(5);
     });
 
     it('Aridad es una unión de números y "variable"', () => {
@@ -130,6 +132,29 @@ describe('vocabulario.ts', () => {
       it('Mundo 4 tiene 8 comandos bloqueados', () => {
         const mundo4 = VOCABULARIO.filter(e => e.mundo === 4);
         expect(mundo4).toHaveLength(8);
+      });
+
+      it('Mundo 4: firmas de los operadores, AZAR, ESCRIBE y ROTULA', () => {
+        const firma = (nombre: string) => {
+          const e = VOCABULARIO.find(x => x.nombre === nombre)!;
+          return [e.abreviatura, e.aridad, e.tiposArgumento];
+        };
+        for (const op of ['SUMA', 'RESTA', 'PRODUCTO', 'COCIENTE', 'RESTO']) {
+          expect(firma(op)).toEqual([null, 2, ['numero', 'numero']]);
+        }
+        expect(firma('AZAR')).toEqual([null, 1, ['numero']]);
+        expect(firma('ESCRIBE')).toEqual(['ES', 1, ['valorEscribible']]);
+        expect(firma('ROTULA')).toEqual(['RO', 1, ['valorEscribible']]);
+      });
+
+      it('produceValor es true solo en los cinco operadores y AZAR', () => {
+        const producen = VOCABULARIO.filter(e => e.produceValor).map(e => e.nombre);
+        expect(producen).toEqual(['SUMA', 'RESTA', 'PRODUCTO', 'COCIENTE', 'RESTO', 'AZAR']);
+      });
+
+      it('ejecutable es false solo en SI, SINO, ALTO y DEVUELVE', () => {
+        const noEjecutables = VOCABULARIO.filter(e => !e.ejecutable).map(e => e.nombre);
+        expect(noEjecutables).toEqual(['SI', 'SINO', 'ALTO', 'DEVUELVE']);
       });
 
       it('Mundo 5 tiene 4 comandos bloqueados', () => {
@@ -374,7 +399,7 @@ describe('vocabulario.ts', () => {
     it('insercion cumple su regla derivada en las 28 entradas', () => {
       for (const entrada of VOCABULARIO) {
         const esperado =
-          entrada.aridad === 1 && entrada.tiposArgumento[0] === 'numero'
+          entrada.aridad === 1 && entrada.tiposArgumento[0] === 'numero' && !entrada.produceValor
             ? entrada.nombre + ' '
             : entrada.aridad === 0
               ? entrada.nombre
@@ -420,6 +445,93 @@ describe('vocabulario.ts · RELLENA lleva un argumento de color (punto 7a)', () 
       expect(r.entrada.tiposArgumento).toEqual(['color']);
       expect(r.entrada.ejemplo).toBe('RELLENA "azul');
       expect(r.entrada.insercion).toBe('RELLENA "azul');
+    }
+  });
+});
+
+// ============================================================================
+// Mundo 4: tabla de las ocho entradas (spec 05, tarea 1.4)
+// ============================================================================
+
+describe('vocabulario.ts · las ocho entradas del mundo 4', () => {
+  const OCHO = ['SUMA', 'RESTA', 'PRODUCTO', 'COCIENTE', 'RESTO', 'AZAR', 'ESCRIBE', 'ROTULA'] as const;
+  const OPERADORES = ['SUMA', 'RESTA', 'PRODUCTO', 'COCIENTE', 'RESTO', 'AZAR'] as const;
+  const entrada = (nombre: string) => VOCABULARIO.find((e) => e.nombre === nombre)!;
+
+  it('la tabla completa coincide con el diseño (R12.1–R12.4)', () => {
+    const tabla = OCHO.map((n) => {
+      const e = entrada(n);
+      return [e.nombre, e.abreviatura, e.aridad, e.tiposArgumento, e.mundo, e.produceValor, e.ejecutable, e.descripcion, e.ejemplo];
+    });
+    expect(tabla).toEqual([
+      ['SUMA', null, 2, ['numero', 'numero'], 4, true, true, 'Suma dos números.', 'ESCRIBE SUMA 30 40'],
+      ['RESTA', null, 2, ['numero', 'numero'], 4, true, true, 'Resta el segundo número del primero.', 'ESCRIBE RESTA 65 45'],
+      ['PRODUCTO', null, 2, ['numero', 'numero'], 4, true, true, 'Multiplica dos números.', 'ESCRIBE PRODUCTO 5 10'],
+      ['COCIENTE', null, 2, ['numero', 'numero'], 4, true, true, 'Divide el primer número entre el segundo, sin truncar.', 'ESCRIBE COCIENTE 8 2'],
+      ['RESTO', null, 2, ['numero', 'numero'], 4, true, true, 'Calcula el resto de la división.', 'ESCRIBE RESTO 5 3'],
+      ['AZAR', null, 1, ['numero'], 4, true, true, 'Elige un número entero al azar entre 0 y n-1.', 'ESCRIBE AZAR 100'],
+      ['ESCRIBE', 'ES', 1, ['valorEscribible'], 4, false, true, 'Muestra un valor en la consola.', 'ESCRIBE 360 / 5'],
+      ['ROTULA', 'RO', 1, ['valorEscribible'], 4, false, true, 'Escribe un texto o un número sobre el lienzo.', 'ROTULA "hola'],
+    ]);
+  });
+
+  it('produceValor es verdadero solo en las seis entradas de operador (R6.1)', () => {
+    for (const e of VOCABULARIO) {
+      expect(e.produceValor, e.nombre).toBe((OPERADORES as readonly string[]).includes(e.nombre));
+    }
+  });
+
+  it('ESCRIBE y ROTULA no conservan palabra ni numero en sus tipos (R12.2)', () => {
+    for (const n of ['ESCRIBE', 'ROTULA']) {
+      expect(entrada(n).tiposArgumento).not.toContain('palabra');
+      expect(entrada(n).tiposArgumento).not.toContain('numero');
+    }
+  });
+
+  it('SUMA y PRODUCTO tienen aridad fija 2, no variable (R12.3)', () => {
+    expect(entrada('SUMA').aridad).toBe(2);
+    expect(entrada('PRODUCTO').aridad).toBe(2);
+  });
+
+  it('las descripciones son de una línea, no vacías y de a lo sumo 120 caracteres (R12.5)', () => {
+    for (const n of OCHO) {
+      const { descripcion } = entrada(n);
+      expect(descripcion.trim().length, n).toBeGreaterThan(0);
+      expect(descripcion, n).not.toMatch(/[\r\n]/);
+      expect(descripcion.length, n).toBeLessThanOrEqual(120);
+    }
+  });
+
+  it('ninguna abreviatura se repite ni iguala el nombre de otra entrada, con la normalización del lexer (R12.9)', () => {
+    // Se normaliza pasando cada palabra por el lexer: es la misma normalización que verá el jugador.
+    const normalizar = (palabra: string): string => {
+      const { tokens } = analizarLexico(palabra);
+      return String(tokens[0]!.valor);
+    };
+    const conAbreviatura = VOCABULARIO.filter((e) => e.abreviatura !== null);
+    const abreviaturas = conAbreviatura.map((e) => normalizar(e.abreviatura!));
+    expect(new Set(abreviaturas).size).toBe(abreviaturas.length);
+
+    for (const e of conAbreviatura) {
+      const abreviatura = normalizar(e.abreviatura!);
+      for (const otra of VOCABULARIO) {
+        if (otra === e) continue;
+        expect(normalizar(otra.nombre), `${e.abreviatura} de ${e.nombre} contra ${otra.nombre}`).not.toBe(abreviatura);
+      }
+    }
+  });
+
+  it('el ejemplo de cada entrada y la inserción de cada operador se analizan sin errores en el mundo 4 (R6.7)', () => {
+    const errores = (texto: string) => {
+      const lexico = analizarLexico(texto);
+      return [...lexico.errores, ...analizar(lexico.tokens, { mundo: 4 }).errores].map((e) => e.id);
+    };
+    for (const n of OCHO) {
+      expect(errores(entrada(n).ejemplo), `ejemplo de ${n}`).toEqual([]);
+    }
+    for (const n of OPERADORES) {
+      expect(entrada(n).insercion, n).toBe(entrada(n).ejemplo);
+      expect(errores(entrada(n).insercion), `inserción de ${n}`).toEqual([]);
     }
   });
 });

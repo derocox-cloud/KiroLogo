@@ -1045,3 +1045,180 @@ describe('panel-comandos · comandos del mundo 2 según el mundo (R12.3, R12.4)'
     }
   });
 });
+
+describe('panel-comandos · fijarFirmas (R12.6 a R12.8, D14)', () => {
+  it('muestra la cabecera con parámetros, la incluye en el nombre accesible y lista también los sin parámetros', () => {
+    const { panel } = montar(4);
+    panel.fijarFirmas([
+      { nombre: 'POLIGONO', parametros: ['lados', 'largo'] },
+      { nombre: 'CUADRADO', parametros: [] },
+    ]);
+    const botones = panel.botones.filter((b) => b.classList.contains('kl-procedimiento'));
+    expect(botones.map((b) => b.getAttribute('data-procedimiento'))).toEqual(['POLIGONO', 'CUADRADO']);
+    expect(botones[0]!.textContent).toBe('POLIGONO :lados :largo');
+    expect(botones[0]!.getAttribute('aria-label')).toBe('POLIGONO :lados :largo. Procedimiento que definiste.');
+    expect(botones[1]!.textContent).toBe('CUADRADO');
+  });
+
+  it('activar un procedimiento con parámetros inserta solo su nombre', () => {
+    const { panel, editor } = montar(4);
+    panel.fijarFirmas([{ nombre: 'POLIGONO', parametros: ['lados'] }]);
+    editor.area.setSelectionRange(0, 0);
+    panel.botones.find((b) => b.getAttribute('data-procedimiento') === 'POLIGONO')!.click();
+    expect(editor.area.value).toBe('POLIGONO ');
+  });
+});
+
+// ============================================================================
+// Tarea 13.11 (spec 05-mundo-4-parametros) · pruebas de ejemplo de R12.6 a R12.8
+//
+// Lo que ya cubre «fijarFirmas» (tarea 13.4): la cabecera con parámetros en el
+// botón y en el nombre accesible, D14 (los sin parámetros siguen listados) y que
+// activar un procedimiento inserta solo su nombre. Aquí se añade:
+//   · R12.6/R12.7  las ocho entradas del mundo 4 aparecen desde el mundo 4 (y en
+//                  el 5), con sus cuatro textos, y ninguna en los mundos 0 a 3.
+//   · R12.8        los parámetros van en el orden de la cabecera PARA, y el panel
+//                  se actualiza dentro de 500 ms del cambio del texto con el mismo
+//                  cableado que `main.ts` (editor.alCambiar → firmasDeProcedimientos).
+//   · R25.10       activar con Enter o Espacio una entrada del mundo 4 inserta su
+//                  `insercion` y conserva el foco.
+// ============================================================================
+
+import { analizarLexico } from '../lenguaje/lexer.js';
+import { firmasDeProcedimientos } from '../lenguaje/parser.js';
+
+const COMANDOS_M4 = ['AZAR', 'ESCRIBE', 'ROTULA', 'SUMA', 'RESTA', 'PRODUCTO', 'COCIENTE', 'RESTO'];
+
+describe('panel-comandos · entradas del mundo 4 según el mundo (R12.6, R12.7)', () => {
+  it('en los mundos 0 a 3 no aparece ningún botón de las ocho entradas', () => {
+    for (const mundo of [0, 1, 2, 3] as const) {
+      const { panel } = montar(mundo);
+      const nombres = panel.botones.map((b) => b.getAttribute('data-comando'));
+      for (const comando of COMANDOS_M4) {
+        expect(nombres, `mundo ${mundo}: ${comando}`).not.toContain(comando);
+      }
+    }
+  });
+
+  it('en los mundos 4 y 5 aparecen las ocho, cada una con nombre, abreviatura, descripción y ejemplo', () => {
+    for (const mundo of [4, 5] as const) {
+      const { panel } = montar(mundo);
+      for (const comando of COMANDOS_M4) {
+        const indice = panel.entradas.findIndex((e) => e.nombre === comando);
+        expect(indice, `mundo ${mundo}: ${comando}`).toBeGreaterThanOrEqual(0);
+        const entrada = panel.entradas[indice]!;
+        expect(entrada.mundo).toBe(4);
+        const boton = panel.botones[indice]!;
+        expect(boton.querySelector('.kl-comando-nombre')!.textContent).toBe(entrada.nombre);
+        const abrev = boton.querySelector('.kl-comando-abrev');
+        if (entrada.abreviatura === null) expect(abrev, comando).toBeNull();
+        else expect(abrev!.textContent, comando).toBe(` (${entrada.abreviatura})`);
+        expect(boton.querySelector('.kl-comando-desc')!.textContent, comando).toBe(entrada.descripcion);
+        expect(boton.querySelector('code.kl-comando-ejemplo')!.textContent, comando).toBe(entrada.ejemplo);
+        expect(boton.getAttribute('aria-label'), comando).toBe(textoDeEntrada(entrada));
+      }
+    }
+  });
+
+  it('al pasar del mundo 3 al 4 con fijarMundo aparecen, y al volver al 3 desaparecen', () => {
+    const { panel } = montar(3);
+    const nombres = (): (string | null)[] => panel.botones.map((b) => b.getAttribute('data-comando'));
+    panel.fijarMundo(4);
+    for (const comando of COMANDOS_M4) expect(nombres()).toContain(comando);
+    panel.fijarMundo(3);
+    for (const comando of COMANDOS_M4) expect(nombres()).not.toContain(comando);
+  });
+});
+
+describe('panel-comandos · firmas del texto del editor (R12.8)', () => {
+  // Reloj de rebote real sobre setTimeout, para medir con temporizadores falsos.
+  const RELOJ_REAL = {
+    programar: (cb: () => void, ms: number): number => setTimeout(cb, ms) as unknown as number,
+    cancelar: (id: number): void => clearTimeout(id),
+  };
+
+  function montarCableado(mundo: Mundo): Montaje {
+    const cont = document.createElement('div');
+    document.body.appendChild(cont);
+    const editor = crearEditor({
+      contenedor: cont,
+      mundo,
+      presupuestoEstrella: 1,
+      limiteDuro: Number.MAX_SAFE_INTEGER,
+      limiteDuroActivo: false,
+      pedirMensajeLimite: () => {},
+      reloj: RELOJ_REAL,
+    });
+    const panel = crearPanelComandos({
+      contenedor: cont,
+      mundo,
+      insertarTexto: (texto) => editor.insertarEnCursor(texto),
+      anunciar: () => {},
+    });
+    // El mismo cableado que main.ts.
+    editor.alCambiar((texto) => panel.fijarFirmas(firmasDeProcedimientos(analizarLexico(texto).tokens, mundo)));
+    return { panel, editor, anuncios: [] };
+  }
+
+  const cabeceras = (panel: PanelComandos): string[] =>
+    panel.botones.filter((b) => b.classList.contains('kl-procedimiento')).map((b) => b.textContent ?? '');
+
+  function escribir(editor: Editor, texto: string): void {
+    editor.area.value = texto;
+    editor.area.dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  it('lista los parámetros en el orden de la cabecera PARA, no alfabético', () => {
+    const { panel, editor } = montarCableado(4);
+    escribir(editor, 'PARA POLIGONO :lados :largo\nREPITE :lados [AVANZA :largo GD 360 / :lados]\nFIN\n'
+      + 'PARA ESTRELLA :tam :puntas :angulo\nFIN');
+    expect(cabeceras(panel)).toEqual(['POLIGONO :lados :largo', 'ESTRELLA :tam :puntas :angulo']);
+  });
+
+  it('se actualiza dentro de 500 ms de cada cambio: alta, cambio de parámetros y baja', () => {
+    vi.useFakeTimers();
+    try {
+      const { panel, editor } = montarCableado(4);
+      escribir(editor, 'PARA POLIGONO :lados :largo\nFIN');
+      vi.advanceTimersByTime(500);
+      expect(cabeceras(panel)).toEqual(['POLIGONO :lados :largo']);
+
+      escribir(editor, 'PARA POLIGONO :largo\nFIN');
+      vi.advanceTimersByTime(500);
+      expect(cabeceras(panel)).toEqual(['POLIGONO :largo']);
+
+      escribir(editor, 'AVANZA 100');
+      vi.advanceTimersByTime(500);
+      expect(cabeceras(panel)).toEqual([]);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('una cabecera que el parser rechaza (parámetro repetido) no aparece', () => {
+    const { panel, editor } = montarCableado(4);
+    escribir(editor, 'PARA POLIGONO :lados\nFIN\nPARA MAL :x :x\nFIN');
+    expect(cabeceras(panel)).toEqual(['POLIGONO :lados']);
+  });
+});
+
+describe('panel-comandos · activar una entrada del mundo 4 con el teclado (R25.10)', () => {
+  it('Enter y Espacio sobre cada una de las ocho insertan su insercion y conservan el foco', () => {
+    for (const key of ['Enter', ' ']) {
+      for (const comando of COMANDOS_M4) {
+        const { panel, editor } = montar(4);
+        const indice = panel.entradas.findIndex((e) => e.nombre === comando);
+        const boton = panel.botones[indice]!;
+        boton.focus();
+        editor.area.setSelectionRange(0, 0);
+        const e = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+        boton.dispatchEvent(e);
+        expect(e.defaultPrevented, `${comando} ${key}`).toBe(false);
+        // jsdom no sintetiza el click que el navegador genera tras Enter o Espacio.
+        boton.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        expect(editor.texto(), `${comando} ${key}`).toBe(panel.entradas[indice]!.insercion);
+        expect(document.activeElement, `${comando} ${key}`).toBe(boton);
+      }
+    }
+  });
+});

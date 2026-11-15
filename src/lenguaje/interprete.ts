@@ -6,6 +6,7 @@
 import type { Programa, Instruccion } from './ast.js';
 import { buscarComando, type EntradaVocabulario } from './vocabulario.js';
 import { crearError, type ErrorKiroLogo } from './errores.js';
+import { evaluar, cantidadDeRepeticiones, formatearNumero, type ContextoEvaluacion } from './evaluador.js';
 import {
   resolverColorPorNombre,
   resolverColorRGB,
@@ -34,6 +35,8 @@ export interface OperacionBase {
   readonly profundidad: number;      // 0 a 100, 0 en el cuerpo principal
   readonly estadoAntes: EstadoTortuga;
   readonly estadoDespues: EstadoTortuga;
+  /** Línea de la llamada a procedimiento más interna en curso; sin definir en el cuerpo principal. */
+  readonly lineaLlamada?: number;
 }
 
 /** Campos comunes de una operación salvo `estadoDespues`, que cada caso fija. */
@@ -102,7 +105,23 @@ export interface OperacionRelleno extends OperacionBase {
   readonly color: Color;
 }
 
+/** Texto para la consola. No mueve la tortuga ni produce segmentos. */
+export interface OperacionEscribir extends OperacionBase {
+  readonly tipo: 'escribir';
+  readonly texto: string;            // número formateado, o la palabra sin comilla
+}
+
+/** Rótulo en el lienzo en la posición de la tortuga, que no se mueve. */
+export interface OperacionRotular extends OperacionBase {
+  readonly tipo: 'rotular';
+  readonly texto: string;
+  readonly posicion: Punto;
+  readonly color: Color | null;      // el de PONCOLOR; null = el del tema
+}
+
 export type Operacion =
+  | OperacionEscribir
+  | OperacionRotular
   | OperacionMover
   | OperacionGirar
   | OperacionLapiz
@@ -117,7 +136,7 @@ export type Operacion =
 // Guardas y límites
 // ============================================================================
 
-export type TipoGuarda = 'pasos' | 'recursion' | 'tiempo' | 'rellenos';
+export type TipoGuarda = 'pasos' | 'recursion' | 'tiempo' | 'rellenos' | 'escrituras';
 
 export interface LimitesEjecucion {
   readonly maximoPasos: number;
@@ -133,6 +152,10 @@ export interface LimitesEjecucion {
    * tiempo y cuelga la pestaña en el lienzo.
    */
   readonly maximoRellenos: number;
+  /** `ESCRIBE` y `ROTULA` por ejecución (500 si se omite). */
+  readonly maximoEscrituras?: number;
+  /** Instrucciones despachadas e iteraciones por ejecución (2 000 000 si se omite). */
+  readonly maximoCiclos?: number;
 }
 
 /**
@@ -141,6 +164,9 @@ export interface LimitesEjecucion {
  * (la cuadrícula más grande del mundo 2 tiene 9 paneles) y acotan el costo del
  * lienzo en el peor caso.
  */
+const MAXIMO_CICLOS_PREDETERMINADO = 2_000_000;
+const MAXIMO_ESCRITURAS_PREDETERMINADO = 500;
+
 export const LIMITES_PREDETERMINADOS: LimitesEjecucion = {
   maximoPasos: 200_000,
   maximaProfundidad: 100,
@@ -154,6 +180,12 @@ export interface OpcionesEjecucion {
   readonly comandosPermitidos: readonly EntradaVocabulario[];
   readonly semilla: number;
   readonly ahora?: () => number;
+  /**
+   * Fábrica del azar de la ejecución: recibe la semilla y devuelve `n => entero en [0, n-1]`.
+   * Se inyecta para que `lenguaje/` no dependa de `azar/`; solo se invoca si el programa usa AZAR
+   * (una vez por ejecución). Ver `fabricaAzar` en `azar/prng.ts`.
+   */
+  readonly fabricaAzar?: (semilla: number) => (n: number) => number;
   readonly limites?: LimitesEjecucion;
 }
 
@@ -167,12 +199,22 @@ export interface ResultadoEjecucion {
 // Marcos de ejecución
 // ============================================================================
 
+type Entorno = ReadonlyMap<string, number>;
+
 interface Marco {
   readonly instrucciones: readonly Instruccion[];
   indice: number;
-  readonly nombre: string | null;        // nombre del procedimiento (null en el marco raíz)
-  readonly lineaInvocacion: number | null;
+  /** Iteraciones que faltan tras la actual (REPITE); 0 si el marco no es un REPITE. */
+  restantes: number;
+  /** Valores de los parámetros del procedimiento dueño; vacío en el programa principal. */
+  readonly entorno: Entorno;
+  /** Nombre del procedimiento si es el cuerpo de una llamada; null en el resto. */
+  readonly procedimiento: string | null;
+  /** Línea de la llamada a procedimiento más interna en curso. */
+  readonly lineaLlamada: number | undefined;
 }
+
+const ENTORNO_VACIO: Entorno = new Map();
 
 // ============================================================================
 // Estado decorativo (mundo 2)
@@ -185,16 +227,9 @@ interface Marco {
  * adjunta a las operaciones decorativas que emite. Arranca en negro y grosor 1.
  */
 interface EstadoDecorativo {
-  color: Color;
+  color: Color | null;   // null = el jugador no pidió color; el renderizador usa el del tema
   grosor: number;
 }
-
-/** Color por omisión del trazo: negro. Se resuelve una sola vez del catálogo. */
-const COLOR_NEGRO: Color = (() => {
-  const r = resolverColorPorNombre('negro');
-  // `negro` siempre existe en el catálogo; el fallback deja el tipo sin dudas.
-  return r.ok ? r.color : { r: 0, g: 0, b: 0, nombre: 'negro' };
-})();
 
 /**
  * Resultado de ejecutar un comando. Distingue tres desenlaces que el bucle
@@ -233,9 +268,17 @@ export function* ejecutar(
   const ahora = opciones.ahora ?? (() => 0);
   const permitidos = new Set(opciones.comandosPermitidos.map((e) => e.nombre));
 
-  // El PRNG se crea al inicio de cada ejecución; no se usa en el mundo 0, pero
-  // deja el punto de siembra listo para specs futuras (AZAR).
-  // (No se instancia aún para no arrastrar dependencia innecesaria en esta spec.)
+  // Una instancia de PRNG por ejecución, creada solo si el programa llama a AZAR.
+  let azarCreado: ((n: number) => number) | null = null;
+  const azarDeEjecucion = (n: number): number => {
+    if (azarCreado === null) {
+      if (opciones.fabricaAzar === undefined) {
+        throw new Error('ejecutar: el programa usa AZAR pero no se inyectó opciones.fabricaAzar.');
+      }
+      azarCreado = opciones.fabricaAzar(opciones.semilla);
+    }
+    return azarCreado(n);
+  };
 
   // Estado que se pone en cero al comenzar cada ejecución, sin arrastrar nada.
   let paso = 0;
@@ -243,20 +286,40 @@ export function* ejecutar(
   let estado: EstadoTortuga = opciones.estadoInicial ?? ESTADO_INICIAL;
   // El estado decorativo arranca en los valores por omisión (negro, grosor 1) y
   // se actualiza al ejecutar PONCOLOR/PONGROSOR. RELLENA lleva su propio color y no lo cambia.
-  let decorativo: EstadoDecorativo = { color: COLOR_NEGRO, grosor: 1 };
+  let decorativo: EstadoDecorativo = { color: null, grosor: 1 };
   const inicioTiempo = ahora();
 
   const operaciones: Operacion[] = [];
 
-  // Pila explícita de marcos: profundidad = pila.length - 1 (marco raíz = 0).
+  // Pila explícita de marcos. REPITE apila un solo marco con contador, así que
+  // la pila no crece con la cantidad de repeticiones.
   const pila: Marco[] = [
-    { instrucciones: programa.instrucciones, indice: 0, nombre: null, lineaInvocacion: null },
+    {
+      instrucciones: programa.instrucciones,
+      indice: 0,
+      restantes: 0,
+      entorno: ENTORNO_VACIO,
+      procedimiento: null,
+      lineaLlamada: undefined,
+    },
   ];
+  let nivelProcedimientos = 0;
+
+  // Definiciones indexadas una vez, en lugar de recorrer el programa en cada llamada.
+  const definiciones = new Map<string, Instruccion & { tipo: 'definicionProcedimiento' }>();
+  for (const inst of programa.instrucciones) {
+    if (inst.tipo === 'definicionProcedimiento') definiciones.set(inst.nombre, inst);
+  }
 
   // ---- Ayudas internas ----------------------------------------------------
 
+  /** Profundidad = marcos de procedimiento en curso (0 en el cuerpo principal). */
   function profundidadActual(): number {
-    return pila.length - 1;
+    return nivelProcedimientos;
+  }
+
+  function contextoDe(marco: Marco, linea: number): ContextoEvaluacion {
+    return { valores: marco.entorno, linea, azar: azarDeEjecucion };
   }
 
   /** Comprueba las tres guardas en orden fijo y devuelve la primera que aplica. */
@@ -294,6 +357,8 @@ export function* ejecutar(
         return crearError('guardaTiempo', {});
       case 'rellenos':
         return crearError('guardaRellenos', { maximo: limites.maximoRellenos });
+      case 'escrituras':
+        return crearError('guardaEscrituras', {});
     }
   }
 
@@ -303,20 +368,51 @@ export function* ejecutar(
 
   // ---- Bucle principal ----------------------------------------------------
 
-  // Contador de operaciones desde la última medición de tiempo.
+  // Ciclos: instrucciones despachadas e iteraciones de REPITE, aunque el cuerpo no emita nada.
+  // Cortan un REPITE de cantidad enorme con cuerpo vacío, que no suma pasos (D5). El tiempo se
+  // mide cada pasosEntreMediciones ciclos, no solo cada operación emitida.
+  const maximoCiclos = limites.maximoCiclos ?? MAXIMO_CICLOS_PREDETERMINADO;
+  const maximoEscrituras = limites.maximoEscrituras ?? MAXIMO_ESCRITURAS_PREDETERMINADO;
+  let ciclos = 0;
+  let escrituras = 0;
   let desdeUltimaMedicion = 0;
+
+  /** Cuenta un ciclo y devuelve la guarda que corta la ejecución, si alguna. */
+  function contarCiclo(): TipoGuarda | null {
+    ciclos += 1;
+    if (ciclos > maximoCiclos) return 'pasos';
+    desdeUltimaMedicion += 1;
+    if (desdeUltimaMedicion >= limites.pasosEntreMediciones) {
+      desdeUltimaMedicion = 0;
+      if (ahora() - inicioTiempo > limites.maximoTiempoMs) return 'tiempo';
+    }
+    return null;
+  }
 
   while (pila.length > 0) {
     const marco = pila[pila.length - 1]!;
 
     // Marco agotado: se desapila (retorno del procedimiento).
     if (marco.indice >= marco.instrucciones.length) {
+      if (marco.restantes > 0) {
+        const guardaCiclo = contarCiclo();
+        if (guardaCiclo !== null) return terminar(guardaCiclo, errorDeGuarda(guardaCiclo, null));
+        marco.restantes -= 1;
+        marco.indice = 0;
+        continue;
+      }
       pila.pop();
+      if (marco.procedimiento !== null) nivelProcedimientos -= 1;
       continue;
     }
 
     const instruccion = marco.instrucciones[marco.indice]!;
     marco.indice += 1;
+
+    const guardaCicloInstruccion = contarCiclo();
+    if (guardaCicloInstruccion !== null) {
+      return terminar(guardaCicloInstruccion, errorDeGuarda(guardaCicloInstruccion, null));
+    }
 
     // --- Nodos de procedimiento (decisión D6: sin parámetros ni retorno) ---
     if (instruccion.tipo === 'definicionProcedimiento') {
@@ -327,28 +423,58 @@ export function* ejecutar(
     }
 
     if (instruccion.tipo === 'invocacionProcedimiento') {
+      const definicion = definiciones.get(instruccion.nombre);
+      if (definicion === undefined) {
+        const error = crearError('comandoNoPermitido', { nombre: instruccion.nombre, linea: instruccion.linea }, { linea: instruccion.linea });
+        return { operaciones, guardaActivada: null, error };
+      }
+      // Los argumentos se evalúan de izquierda a derecha en el entorno de quien
+      // llama. Si alguno falla no se crea marco (R7.4).
+      const contextoLlamada = contextoDe(marco, instruccion.linea);
+      const entornoNuevo = new Map<string, number>();
+      for (let i = 0; i < definicion.parametros.length; i++) {
+        const expresion = instruccion.argumentos[i];
+        if (expresion === undefined) break;
+        const r = evaluar(expresion, contextoLlamada);
+        if (!r.exito) return { operaciones, guardaActivada: null, error: r.error };
+        entornoNuevo.set(definicion.parametros[i]!, r.valor);
+      }
       // Entrar a un marco nuevo: comprobar la guarda de recursión (y tiempo).
       const entrada = { nombre: instruccion.nombre, linea: instruccion.linea };
       const guarda = comprobarGuardas(entrada);
       if (guarda !== null) {
         return terminar(guarda, errorDeGuarda(guarda, entrada));
       }
-      // Buscar la definición del procedimiento en el programa raíz.
-      const definicion = buscarDefinicion(programa, instruccion.nombre);
-      if (definicion === null) {
-        const error = crearError('comandoNoPermitido', { nombre: instruccion.nombre, linea: instruccion.linea }, { linea: instruccion.linea });
-        return { operaciones, guardaActivada: null, error };
-      }
-      pila.push({ instrucciones: definicion.cuerpo, indice: 0, nombre: instruccion.nombre, lineaInvocacion: instruccion.linea });
+      pila.push({
+        instrucciones: definicion.cuerpo,
+        indice: 0,
+        restantes: 0,
+        entorno: entornoNuevo,
+        procedimiento: instruccion.nombre,
+        lineaLlamada: instruccion.linea,
+      });
+      nivelProcedimientos += 1;
       continue;
     }
 
-    // --- Repeticion: ejecutar el cuerpo N veces ---
+    // --- Repeticion: un solo marco con contador de iteraciones ---
     if (instruccion.tipo === 'repeticion') {
-      const vecesValor = instruccion.veces.tipo === 'numeroLiteral' ? instruccion.veces.valor : 0;
-      // Apilar en orden inverso para que la pila LIFO ejecute la iteración 0 primero.
-      for (let _rep = vecesValor - 1; _rep >= 0; _rep--) {
-        pila.push({ instrucciones: instruccion.cuerpo, indice: 0, nombre: null, lineaInvocacion: instruccion.linea });
+      const r = evaluar(instruccion.veces, contextoDe(marco, instruccion.linea));
+      if (!r.exito) return { operaciones, guardaActivada: null, error: r.error };
+      const veces = cantidadDeRepeticiones(r.valor);
+      if (veces === null) {
+        const error = crearError('vecesInvalidas', { linea: instruccion.linea, valor: r.valor }, { linea: instruccion.linea });
+        return { operaciones, guardaActivada: null, error };
+      }
+      if (veces > 0) {
+        pila.push({
+          instrucciones: instruccion.cuerpo,
+          indice: 0,
+          restantes: veces - 1,
+          entorno: marco.entorno,
+          procedimiento: null,
+          lineaLlamada: marco.lineaLlamada,
+        });
       }
       continue;
     }
@@ -381,8 +507,20 @@ export function* ejecutar(
       return terminar('rellenos', errorDeGuarda('rellenos', null));
     }
 
+    // Guarda de escrituras: la operación 501 no se emite y se conservan las 500 anteriores (R9.10).
+    const esEscritura = nombreCanonico === 'ESCRIBE' || nombreCanonico === 'ROTULA';
+    if (esEscritura && escrituras >= maximoEscrituras) {
+      return terminar('escrituras', errorDeGuarda('escrituras', null));
+    }
+
+    // Evaluar el argumento en el entorno del marco antes de ejecutar (R4.1, R9.2, R9.3).
+    const argumentoEvaluado = evaluarArgumento(busqueda.hallada ? busqueda.entrada : null, instruccion, contextoDe(marco, instruccion.linea));
+    if (!argumentoEvaluado.exito) {
+      return { operaciones, guardaActivada: null, error: argumentoEvaluado.error };
+    }
+
     // Producir la operación según la semántica del comando (por nombre canónico).
-    const resultado = ejecutarComando(nombreCanonico, instruccion, estado, decorativo, paso, instruccion.linea, profundidadActual());
+    const resultado = ejecutarComando(nombreCanonico, instruccion, argumentoEvaluado, estado, decorativo, paso, instruccion.linea, profundidadActual());
     if (resultado.clase === 'noEjecutable') {
       // Comando permitido pero no ejecutable en esta capa (no debería ocurrir).
       const error = crearError('comandoNoPermitido', { nombre: instruccion.nombre, linea: instruccion.linea }, { linea: instruccion.linea });
@@ -394,21 +532,14 @@ export function* ejecutar(
       return { operaciones, guardaActivada: null, error: resultado.error };
     }
 
-    const operacion = resultado.operacion;
+    const operacion: Operacion =
+      marco.lineaLlamada === undefined ? resultado.operacion : { ...resultado.operacion, lineaLlamada: marco.lineaLlamada };
     operaciones.push(operacion);
     estado = operacion.estadoDespues;
     decorativo = resultado.decorativo;
     paso += 1;
     if (operacion.tipo === 'relleno') rellenos += 1;
-
-    // Medición de tiempo periódica.
-    desdeUltimaMedicion += 1;
-    if (desdeUltimaMedicion >= limites.pasosEntreMediciones) {
-      desdeUltimaMedicion = 0;
-      if (ahora() - inicioTiempo > limites.maximoTiempoMs) {
-        return terminar('tiempo', errorDeGuarda('tiempo', null));
-      }
-    }
+    if (esEscritura) escrituras += 1;
 
     yield operacion;
   }
@@ -420,13 +551,32 @@ export function* ejecutar(
 // Semántica de los comandos del mundo 0
 // ============================================================================
 
-/** Extrae el argumento numérico literal de una invocación, o null si no tiene. */
-function argumento(instruccion: Instruccion & { tipo: 'invocacionComando' }): number | null {
+/** Primer argumento ya evaluado: número, texto (palabra con comilla) o ninguno. */
+interface ArgumentoEvaluado {
+  readonly exito: true;
+  readonly valor: number | null;
+  readonly palabra: string | null;
+}
+
+/**
+ * Evalúa el primer argumento de un comando de tipo `numero` o `valorEscribible`.
+ * Los de color y los sin argumentos no pasan por aquí: se resuelven en su propio caso.
+ */
+function evaluarArgumento(
+  entrada: EntradaVocabulario | null,
+  instruccion: Instruccion & { tipo: 'invocacionComando' },
+  contexto: ContextoEvaluacion,
+): ArgumentoEvaluado | { readonly exito: false; readonly error: ErrorKiroLogo } {
+  const tipo = entrada?.tiposArgumento[0];
   const primero = instruccion.argumentos[0];
-  if (primero && primero.tipo === 'numeroLiteral') {
-    return primero.valor;
+  if ((tipo !== 'numero' && tipo !== 'valorEscribible') || primero === undefined) {
+    return { exito: true, valor: null, palabra: null };
   }
-  return null;
+  if (primero.tipo === 'palabraLiteral') {
+    return { exito: true, valor: null, palabra: primero.valor };
+  }
+  const r = evaluar(primero, contexto);
+  return r.exito ? { exito: true, valor: r.valor, palabra: null } : r;
 }
 
 /**
@@ -446,6 +596,7 @@ function describirListaRGB(valores: readonly number[]): string {
 function ejecutarComando(
   nombre: string,
   instruccion: Instruccion & { tipo: 'invocacionComando' },
+  evaluado: ArgumentoEvaluado,
   estadoAntes: EstadoTortuga,
   decorativo: EstadoDecorativo,
   paso: number,
@@ -453,11 +604,12 @@ function ejecutarComando(
   profundidad: number,
 ): ResultadoComando {
   const base: BaseSinDespues = { paso, linea, profundidad, estadoAntes };
+  const argumento = (): number | null => evaluado.valor;
 
   switch (nombre) {
     case 'AVANZA':
     case 'RETROCEDE': {
-      const distancia = argumento(instruccion) ?? 0;
+      const distancia = argumento() ?? 0;
       const sentido = nombre === 'AVANZA' ? 'adelante' : 'atras';
       const r = desplazar(estadoAntes, distancia, sentido);
       const estadoDespues = r.valido ? r.estado : estadoAntes;
@@ -472,7 +624,7 @@ function ejecutarComando(
     }
     case 'GIRADERECHA':
     case 'GIRAIZQUIERDA': {
-      const grados = argumento(instruccion) ?? 0;
+      const grados = argumento() ?? 0;
       const sentido: SentidoGiro = nombre === 'GIRADERECHA' ? 'derecha' : 'izquierda';
       const r = girar(estadoAntes, grados, sentido);
       const estadoDespues = r.valido ? r.estado : estadoAntes;
@@ -521,13 +673,32 @@ function ejecutarComando(
     case 'PONCOLOR':
       return ejecutarPonColor(instruccion, base, decorativo, estadoAntes);
     case 'PONGROSOR':
-      return ejecutarPonGrosor(instruccion, base, decorativo, estadoAntes);
+      return ejecutarPonGrosor(evaluado.valor, base, decorativo, estadoAntes);
     case 'RELLENA':
       return ejecutarRellena(instruccion, base, decorativo, estadoAntes);
+
+    // --- Mundo 4: texto ---------------------------------------------------
+    // Ninguno mueve la tortuga ni produce segmento. ROTULA escribe en la
+    // posición actual aunque el lápiz esté arriba (R11.3).
+    case 'ESCRIBE': {
+      const texto = textoEscribible(evaluado);
+      return opOk({ ...base, tipo: 'escribir', texto, estadoDespues: estadoAntes }, decorativo);
+    }
+    case 'ROTULA': {
+      const texto = textoEscribible(evaluado);
+      const posicion = { x: estadoAntes.posicion.x, y: estadoAntes.posicion.y };
+      return opOk({ ...base, tipo: 'rotular', texto, posicion, color: decorativo.color, estadoDespues: estadoAntes }, decorativo);
+    }
 
     default:
       return { clase: 'noEjecutable' };
   }
+}
+
+/** Texto de un valor escribible: la palabra sin comilla, o el número formateado. */
+function textoEscribible(evaluado: ArgumentoEvaluado): string {
+  if (evaluado.palabra !== null) return evaluado.palabra;
+  return formatearNumero(evaluado.valor ?? 0);
 }
 
 /** Envuelve una operación que no cambia el estado decorativo. */
@@ -607,12 +778,11 @@ function resolverArgumentoColor(
  * conserva el grosor anterior (R4.4, R4.5).
  */
 function ejecutarPonGrosor(
-  instruccion: Instruccion & { tipo: 'invocacionComando' },
+  g: number | null,
   base: BaseSinDespues,
   decorativo: EstadoDecorativo,
   estadoAntes: EstadoTortuga,
 ): ResultadoComando {
-  const g = argumento(instruccion);
   if (g === null || !Number.isInteger(g) || g < 1 || g > 50) {
     return { clase: 'error', error: crearError('grosorInvalido', {}, { linea: base.linea }) };
   }
@@ -629,19 +799,3 @@ function errorColor(escrita: string, linea: number): ResultadoComando {
   return { clase: 'error', error: crearError('colorInvalido', { escrita: texto }, { linea }) };
 }
 
-// ============================================================================
-// Búsqueda de definiciones de procedimiento
-// ============================================================================
-
-/** Busca una definición de procedimiento por nombre en el programa raíz. */
-function buscarDefinicion(
-  programa: Programa,
-  nombre: string,
-): (Instruccion & { tipo: 'definicionProcedimiento' }) | null {
-  for (const inst of programa.instrucciones) {
-    if (inst.tipo === 'definicionProcedimiento' && inst.nombre === nombre) {
-      return inst;
-    }
-  }
-  return null;
-}

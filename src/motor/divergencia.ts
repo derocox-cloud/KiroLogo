@@ -18,6 +18,7 @@ import { ejecutar, type Operacion } from '../lenguaje/interprete.js';
 import { comandosDelMundo, type Mundo } from '../lenguaje/vocabulario.js';
 import { crearError, type ErrorKiroLogo } from '../lenguaje/errores.js';
 import { ESTADO_INICIAL, normalizarRumbo } from './tortuga.js';
+import { fabricaAzar } from '../azar/prng.js';
 
 // ============================================================================
 // Tipos públicos
@@ -33,7 +34,10 @@ export type TipoOperacion = Operacion['tipo'];
  * un avance.
  */
 export interface PuntoDivergencia {
+  /** Posición (desde 0) sobre la secuencia comparable, sin `escribir` ni `rotular`. */
   readonly indice: number;
+  /** `indice + 1`: el número de orden que se muestra al jugador. */
+  readonly orden: number;
   readonly tipoKiro: TipoOperacion;
   readonly valorKiro: number;
   readonly tipoJugador: TipoOperacion;
@@ -53,6 +57,19 @@ export interface ResultadoParalelo {
   readonly divergencia: PuntoDivergencia | null;
   readonly excesoDespuesDeIgual: boolean;
   readonly programaCortoSeLlamo: 'kiro' | 'jugador' | null;
+  /**
+   * Número de orden (desde 1) de la primera operación que difiere, o, si una
+   * ejecución es más corta, `longitudDeLaCorta + 1`. null si no se separaron.
+   */
+  readonly ordenSeparacion: number | null;
+}
+
+/**
+ * Deja solo las operaciones que importan al comparar recorridos: todas menos el
+ * texto. Insertar o quitar `ESCRIBE`/`ROTULA` no cambia la comparación.
+ */
+export function operacionesComparables(ops: readonly Operacion[]): readonly Operacion[] {
+  return ops.filter((op) => op.tipo !== 'escribir' && op.tipo !== 'rotular');
 }
 
 // ============================================================================
@@ -81,15 +98,17 @@ const TOLERANCIA_RUMBO = 1;
  * @param programaKiro Texto del programa de referencia de Kiro
  * @param programaJugador Texto del programa escrito por el jugador
  * @param mundo Mundo cuyo vocabulario se habilita (por omisión, 1)
+ * @param semilla Semilla de `AZAR`, la misma en las dos ejecuciones (por omisión, 0)
  * @returns El resultado de la comparación paso a paso
  */
 export function ejecutarEnParalelo(
   programaKiro: string,
   programaJugador: string,
   mundo: Mundo = 1,
+  semilla: number = 0,
 ): ResultadoParalelo {
-  const opsKiro = operacionesDe(programaKiro, mundo);
-  const opsJugador = operacionesDe(programaJugador, mundo);
+  const opsKiro = operacionesDe(programaKiro, mundo, semilla);
+  const opsJugador = operacionesDe(programaJugador, mundo, semilla);
   return compararOperaciones(opsKiro, opsJugador);
 }
 
@@ -105,9 +124,11 @@ export function ejecutarEnParalelo(
  * @returns El resultado de la comparación paso a paso
  */
 export function compararOperaciones(
-  opsKiro: readonly Operacion[],
-  opsJugador: readonly Operacion[],
+  todasKiro: readonly Operacion[],
+  todasJugador: readonly Operacion[],
 ): ResultadoParalelo {
+  const opsKiro = operacionesComparables(todasKiro);
+  const opsJugador = operacionesComparables(todasJugador);
   const longMin = Math.min(opsKiro.length, opsJugador.length);
 
   // Recorrer en paralelo hasta la longitud mínima buscando la primera separación.
@@ -118,6 +139,7 @@ export function compararOperaciones(
       return {
         divergencia: {
           indice: i,
+          orden: i + 1,
           tipoKiro: a.tipo,
           valorKiro: valorDe(a),
           tipoJugador: b.tipo,
@@ -125,6 +147,7 @@ export function compararOperaciones(
         },
         excesoDespuesDeIgual: false,
         programaCortoSeLlamo: null,
+        ordenSeparacion: i + 1,
       };
     }
   }
@@ -136,11 +159,21 @@ export function compararOperaciones(
       opsKiro.length < opsJugador.length ? 'kiro' : 'jugador';
     // El jugador dibujó de más cuando él es el programa largo (Kiro es el corto).
     const excesoDespuesDeIgual = quienCorto === 'kiro';
-    return { divergencia: null, excesoDespuesDeIgual, programaCortoSeLlamo: quienCorto };
+    return {
+      divergencia: null,
+      excesoDespuesDeIgual,
+      programaCortoSeLlamo: quienCorto,
+      ordenSeparacion: longMin + 1,
+    };
   }
 
   // Misma longitud y sin divergencia: los dos recorridos son equivalentes.
-  return { divergencia: null, excesoDespuesDeIgual: false, programaCortoSeLlamo: null };
+  return {
+    divergencia: null,
+    excesoDespuesDeIgual: false,
+    programaCortoSeLlamo: null,
+    ordenSeparacion: null,
+  };
 }
 
 // ============================================================================
@@ -243,7 +276,7 @@ function redondear(valor: number): number {
  * programa que no parsea produce una lista vacía: la comparación lo tratará como
  * un recorrido de cero pasos, lo que es correcto para la reproducción.
  */
-function operacionesDe(texto: string, mundo: Mundo): readonly Operacion[] {
+function operacionesDe(texto: string, mundo: Mundo, semilla: number): readonly Operacion[] {
   const lexico = analizarLexico(texto);
   const sintactico = analizar(lexico.tokens, { mundo });
   if (sintactico.programa === null) {
@@ -253,7 +286,8 @@ function operacionesDe(texto: string, mundo: Mundo): readonly Operacion[] {
   const generador = ejecutar(sintactico.programa, {
     estadoInicial: ESTADO_INICIAL,
     comandosPermitidos: comandosDelMundo(mundo),
-    semilla: 0,
+    semilla,
+    fabricaAzar,
   });
 
   let paso = generador.next();

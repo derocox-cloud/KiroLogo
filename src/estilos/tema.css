@@ -152,6 +152,18 @@
   --color-globo-texto: var(--texto);
   --color-globo-sombra: var(--secundario-intenso);
 
+  /* ========== CONSOLA (mundo 4 en adelante) ========== */
+  --color-consola-fondo: var(--tinta-editor);
+  --color-consola-texto: var(--texto);
+  --color-consola-titulo: var(--texto-2);
+  /* Borde del botón de plegado: ≥ 3:1 sobre el fondo de la consola */
+  --color-consola-borde: var(--secundario);
+  --fuente-consola: var(--fuente-codigo);
+
+  /* ========== RÓTULOS DEL LIENZO (ROTULA) ========== */
+  /* El lienzo lo lee por getComputedStyle: apunta directo a una ficha, sin mezclas */
+  --color-rotulo: var(--color-estela-jugador);
+
   /* ========== ESTADOS DE INTERFAZ ========== */
   /* Estados de las estrellas */
   --color-estrella-otorgada: var(--aviso);
@@ -283,6 +295,11 @@
   --fuente-titulo: "Bricolage Grotesque Variable", "Trebuchet MS", "Segoe UI", system-ui, sans-serif;
   --fuente-ui: "Bricolage Grotesque Variable", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --fuente-codigo: "JetBrains Mono Variable", "Cascadia Code", "SF Mono", Consolas, "Courier New", monospace;
+
+  /* ========== CONSOLA ========== */
+  /* El alto máximo del registro es líneas × alto de línea; el resto se desplaza */
+  --lineas-visibles-consola: 6;
+  --alto-linea-consola: 1.5rem;
 
   /* ========== FORMAS ========== */
   --radio-tarjeta: 1.125rem;

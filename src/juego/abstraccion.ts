@@ -3,7 +3,7 @@
 // confirma las exigencias de abstracción del nivel. No lee el texto, no invoca
 // el impresor y no compara contra el programa de referencia.
 
-import type { Programa, Instruccion, Expresion } from '../lenguaje/ast.js';
+import type { Programa, Instruccion, Expresion, DefinicionProcedimiento } from '../lenguaje/ast.js';
 import type { ExigenciaAbstraccion } from '../niveles/tipos.js';
 
 type ClaveAbstraccion = ExigenciaAbstraccion['clave'];
@@ -60,7 +60,7 @@ function cumple(programa: Programa, exigencia: ExigenciaAbstraccion): boolean {
     case 'usaRecursion':
       return hayRecursion(programa.instrucciones);
     case 'maximoProcedimientos':
-      return contarDefiniciones(programa.instrucciones) <= exigencia.maximo;
+      return contarProcedimientos(programa) <= exigencia.maximo;
   }
 }
 
@@ -108,6 +108,10 @@ function hayRepeticionAnidada(instrucciones: readonly Instruccion[]): boolean {
 }
 
 /** Cuenta los nodos de definición de procedimiento en todo el AST. */
+export function contarProcedimientos(programa: Programa): number {
+  return contarDefiniciones(programa.instrucciones);
+}
+
 function contarDefiniciones(instrucciones: readonly Instruccion[]): number {
   let total = 0;
   for (const nodo of instrucciones) {
@@ -118,18 +122,33 @@ function contarDefiniciones(instrucciones: readonly Instruccion[]): number {
 }
 
 /**
- * ¿Alguna definición declara uno o más parámetros Y su cuerpo referencia a un
- * parámetro que ella misma declara?
+ * ¿Alguna definición declara parámetros, usa uno propio en su cuerpo y se invoca
+ * fuera de su propio cuerpo? (D19: una llamada a sí misma no la hace alcanzable.)
  */
-function hayParametroDeclaradoYUsado(instrucciones: readonly Instruccion[]): boolean {
-  for (const nodo of instrucciones) {
-    if (nodo.tipo === 'definicionProcedimiento') {
-      if (nodo.parametros.length > 0 && cuerpoUsaAlguno(nodo.cuerpo, nodo.parametros)) {
+function hayParametroDeclaradoYUsado(raiz: readonly Instruccion[]): boolean {
+  const recorrer = (instrucciones: readonly Instruccion[]): boolean => {
+    for (const nodo of instrucciones) {
+      if (
+        nodo.tipo === 'definicionProcedimiento' &&
+        nodo.parametros.length > 0 &&
+        cuerpoUsaAlguno(nodo.cuerpo, nodo.parametros) &&
+        invocadoFuera(raiz, nodo)
+      ) {
         return true;
       }
+      if (recorrer(hijos(nodo))) return true;
     }
-    // Recurrir a los hijos por si hay definiciones anidadas (specs futuras).
-    if (hayParametroDeclaradoYUsado(hijos(nodo))) return true;
+    return false;
+  };
+  return recorrer(raiz);
+}
+
+/** ¿Hay una invocación de la definición en alguna parte fuera de su propio cuerpo? */
+function invocadoFuera(instrucciones: readonly Instruccion[], definicion: DefinicionProcedimiento): boolean {
+  for (const nodo of instrucciones) {
+    if (nodo === definicion) continue;
+    if (nodo.tipo === 'invocacionProcedimiento' && nodo.nombre === definicion.nombre) return true;
+    if (invocadoFuera(hijos(nodo), definicion)) return true;
   }
   return false;
 }
@@ -172,9 +191,21 @@ function expresionReferenciaParametro(expresion: Expresion, parametros: Readonly
         expresionReferenciaParametro(expresion.izquierda, parametros) ||
         expresionReferenciaParametro(expresion.derecha, parametros)
       );
+    case 'menosUnario':
+      return expresionReferenciaParametro(expresion.operando, parametros);
+    case 'comandoOperador':
+      return expresion.argumentos.some((e) => expresionReferenciaParametro(e, parametros));
     case 'numeroLiteral':
+    case 'palabraLiteral':
       return false;
+    default:
+      return nuncaExpresion(expresion);
   }
+}
+
+// Si se añade un tipo de Expresion sin tratarlo arriba, el compilador falla aquí.
+function nuncaExpresion(expresion: never): never {
+  throw new Error(`Tipo de expresión sin tratar en abstracción: ${JSON.stringify(expresion)}`);
 }
 
 /**

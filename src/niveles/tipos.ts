@@ -84,6 +84,8 @@ export interface Nivel {
   readonly abstraccion: readonly ExigenciaAbstraccion[];
   readonly pistas: readonly [string, string, string]; // conceptual, matemática, esqueleto
   readonly margenLimiteDuro?: number; // 0 a 10, por omisión 3
+  /** Texto con el que Kiro presenta el reto cuando la demostración no basta (≤ 240 caracteres). */
+  readonly enunciado?: string;
 }
 
 // ============================================================================

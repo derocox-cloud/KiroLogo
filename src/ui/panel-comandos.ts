@@ -104,6 +104,24 @@ export interface PanelComandos {
    * llamada (R7.1, R7.2, R7.4, R7.5).
    */
   fijarProcedimientos(nombres: readonly string[]): void;
+  /**
+   * Como `fijarProcedimientos`, pero con los parámetros de cada procedimiento: el
+   * botón muestra la cabecera (`POLIGONO :lados :largo`) y su nombre accesible la
+   * incluye. Se siguen listando todos los procedimientos válidos, con o sin
+   * parámetros (D14; R12.6, R12.7, R12.8).
+   */
+  fijarFirmas(firmas: readonly FirmaProcedimiento[]): void;
+}
+
+/** Nombre de un procedimiento del jugador y sus parámetros, en orden. */
+export interface FirmaProcedimiento {
+  readonly nombre: string;
+  readonly parametros: readonly string[];
+}
+
+/** Cabecera visible: el nombre seguido de cada parámetro con «:» (sin duplicarlo). */
+export function cabeceraDeFirma(firma: FirmaProcedimiento): string {
+  return [firma.nombre, ...firma.parametros.map((p) => (p.startsWith(':') ? p : ':' + p))].join(' ');
 }
 
 // ============================================================================
@@ -149,7 +167,7 @@ export function crearPanelComandos(deps: DependenciasPanel): PanelComandos {
   // Procedimientos del jugador, en orden de definición. El panel los dibuja tras
   // los comandos del lenguaje y los conserva hasta el próximo `fijarProcedimientos`
   // (un cambio de mundo no los borra: siguen siendo los que el texto definió).
-  let procedimientos: readonly string[] = [];
+  let procedimientos: readonly FirmaProcedimiento[] = [];
 
   function activarEntrada(entrada: EntradaVocabulario): void {
     // Inserta el texto de inserción de la entrada (el nombre más un espacio para
@@ -258,7 +276,9 @@ export function crearPanelComandos(deps: DependenciasPanel): PanelComandos {
     // abreviatura, descripción ni ejemplo, porque un procedimiento no los tiene.
     // Se añaden a `botones`, así el roving tabindex y las flechas los recorren en
     // el conjunto combinado y Tab sigue teniendo una sola parada (R7.1, R7.2).
-    for (const nombre of procedimientos) {
+    for (const firma of procedimientos) {
+      const nombre = firma.nombre;
+      const cabecera = cabeceraDeFirma(firma);
       const boton = doc.createElement('button');
       boton.type = 'button';
       boton.className = 'kl-comando kl-procedimiento';
@@ -270,16 +290,16 @@ export function crearPanelComandos(deps: DependenciasPanel): PanelComandos {
       titulo.className = 'kl-comando-titulo';
       const nombreTrozo = doc.createElement('span');
       nombreTrozo.className = 'kl-comando-nombre';
-      nombreTrozo.textContent = nombre;
+      nombreTrozo.textContent = cabecera;
       titulo.appendChild(nombreTrozo);
       boton.appendChild(titulo);
 
       // Nombre accesible: el nombre del procedimiento y que es uno del jugador.
-      boton.setAttribute('aria-label', `${nombre}. Procedimiento que definiste.`);
+      boton.setAttribute('aria-label', `${cabecera}. Procedimiento que definiste.`);
       boton.addEventListener('click', () => activarProcedimiento(nombre));
       for (const evento of ['mouseenter', 'focus']) {
         boton.addEventListener(evento, () => {
-          ayuda.textContent = `${nombre}. Procedimiento que definiste.`;
+          ayuda.textContent = `${cabecera}. Procedimiento que definiste.`;
           ayuda.style.top = `${boton.offsetTop}px`;
           ayuda.classList.add('kl-activa');
         });
@@ -305,6 +325,26 @@ export function crearPanelComandos(deps: DependenciasPanel): PanelComandos {
     marcarActivo(0);
   }
 
+  function fijarFirmas(firmas: readonly FirmaProcedimiento[]): void {
+    // No-op si nada cambió: evita reconstruir (y reiniciar el roving tabindex)
+    // en cada tecleo cuando los procedimientos siguen siendo los mismos.
+    if (
+      firmas.length === procedimientos.length &&
+      firmas.every((f, i) => {
+        const actual = procedimientos[i]!;
+        return (
+          f.nombre === actual.nombre &&
+          f.parametros.length === actual.parametros.length &&
+          f.parametros.every((p, k) => p === actual.parametros[k])
+        );
+      })
+    ) {
+      return;
+    }
+    procedimientos = firmas.map((f) => ({ nombre: f.nombre, parametros: f.parametros.slice() }));
+    reconstruir();
+  }
+
   reconstruir();
   deps.contenedor.appendChild(raiz);
 
@@ -328,16 +368,8 @@ export function crearPanelComandos(deps: DependenciasPanel): PanelComandos {
       reconstruir();
     },
     fijarProcedimientos(nombres: readonly string[]): void {
-      // No-op si la lista no cambió: evita reconstruir (y reiniciar el roving
-      // tabindex) en cada tecleo cuando los procedimientos siguen siendo los mismos.
-      if (
-        nombres.length === procedimientos.length &&
-        nombres.every((n, i) => n === procedimientos[i])
-      ) {
-        return;
-      }
-      procedimientos = nombres.slice();
-      reconstruir();
+      fijarFirmas(nombres.map((nombre) => ({ nombre, parametros: [] })));
     },
+    fijarFirmas,
   };
 }

@@ -26,6 +26,7 @@
 import type { Operacion } from '../lenguaje/interprete.js';
 import type { EstadoTortuga } from '../motor/tortuga.js';
 import type { Reloj } from '../motor/animador.js';
+import { operacionesComparables } from '../motor/divergencia.js';
 import type { ContextoDibujo } from '../motor/lienzo.js';
 import {
   dibujarPersonajes,
@@ -213,10 +214,14 @@ export function crearReproduccionParalelo(
       estadoInicial: EstadoTortuga,
     ): void {
       cancelarProgramado();
-      opsKiro = ok;
-      opsJugador = oj;
+      // Un cuadro por operación comparable: `escribir` y `rotular` no mueven a la
+      // tortuga, y con ellas habría cuadros quietos. Es la misma secuencia con la
+      // que `divergencia.ts` numera `ordenSeparacion`, así que el cuadro N de aquí
+      // es el paso N que Kiro señala.
+      opsKiro = operacionesComparables(ok);
+      opsJugador = operacionesComparables(oj);
       inicial = estadoInicial;
-      totalCuadros = Math.max(ok.length, oj.length);
+      totalCuadros = Math.max(opsKiro.length, opsJugador.length);
       cuadro = 0;
 
       // Cuadro 0: las dos tortugas en el estado inicial, sobre la misma cuadrícula.

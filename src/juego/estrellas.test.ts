@@ -158,6 +158,18 @@ describe('estrellas · invitación de abstracción (nivel 1.1)', () => {
     const cal = calificar(cuadradoAMano, veredicto(false, 'iouInsuficiente', 0.3, 0), reto11());
     expect(cal.precision.otorgada).toBe(false);
     expect(cal.abstraccion.otorgada).toBe(false);
+    if (!cal.abstraccion.otorgada) expect(cal.abstraccion.motivo.clave).toBe('sinPrecision');
+    expect(cal.mensajeAbstraccion).toBeNull();
+  });
+
+  it('un programa con REPITE sin precisión no gana abstracción aunque cumpla la exigencia (D7)', () => {
+    const conRepite: Programa = {
+      tipo: 'programa',
+      instrucciones: [{ tipo: 'repeticion', veces: num(4), cuerpo: [av(100), gd(90)], ...P }],
+    };
+    const cal = calificar(conRepite, veredicto(false, 'iouInsuficiente', 0.3, 0), reto11());
+    expect(cal.abstraccion.otorgada).toBe(false);
+    if (!cal.abstraccion.otorgada) expect(cal.abstraccion.motivo.clave).toBe('sinPrecision');
     expect(cal.mensajeAbstraccion).toBeNull();
   });
 

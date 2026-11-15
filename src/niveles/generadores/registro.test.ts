@@ -31,7 +31,7 @@ describe('registro de generadores', () => {
   });
 
   it('idsGenerador lista los arquetipos registrados en orden', () => {
-    expect(idsGenerador()).toEqual(['camino', 'zigzag', 'roseton-m3', 'flor-m3']);
+    expect(idsGenerador()).toEqual(['camino', 'zigzag', 'roseton-m3', 'flor-m3', 'tres-poligonos-m4', 'poligonos-encajados-m4', 'estrella-parametrica-m4']);
   });
 
   it('la función devuelta es invocable y produce un reto del arquetipo pedido', () => {

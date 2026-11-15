@@ -150,13 +150,40 @@ Concepto: un procedimiento con parámetros resuelve una familia de problemas, no
 
 | Nivel | Tipo | Reto | Referencia / rangos |
 |---|---|---|---|
-| 4.1 | autorado | Hexágono con `POLIGONO` | `PARA POLIGONO :lados :largo` `REPITE :lados [AV :largo GD 360 / :lados]` `FIN` `POLIGONO 6 80` |
-| 4.2 | generado | Tres polígonos distintos | tres cantidades de lados distintas, 3–8; exige `maximoProcedimientos: 1` |
-| 4.3 | generado | Polígonos concéntricos | 3 a 5 copias, lado creciente en pasos de 20 |
-| 4.4 | generado | Estrella de n puntas parametrizada | puntas 5–11 impares; exige `usaParametros` |
+| 4.1 | autorado | Hexágono con `POLIGONO` | `PARA POLIGONO :lados :largo` `REPITE :lados [AV :largo GD 360 / :lados]` `FIN` `POLIGONO 6 80` (conteo 4); exige `usaParametros` |
+| 4.2 | generado | Tres polígonos, un solo `PARA` | tres cantidades de lados distintas, 3–8, mismo largo 40–200 en múltiplos de 20; exige `usaParametros` y `maximoProcedimientos: 1`; `margenLimiteDuro` 6 |
+| 4.3 | generado | Polígonos encajados | 3 a 5 copias del mismo polígono de 3–8 lados, lado creciente en pasos de 20 (de 40 a 200); exige `usaParametros` |
+| 4.4 | generado | Estrella con parámetros | puntas 5, 7, 9 u 11, largo 40–200 en múltiplos de 20, giro `360 * 2 / :puntas`; exige `usaParametros` |
+
+Los tres generados siguen las reglas de siempre: múltiplos de 20, figura encuadrada y no degenerada,
+reintento con la semilla siguiente. El 4.2 y el 4.3 comparten la definición `PARA POLIGONO :lados
+:largo`; el 4.4 parametriza el giro con el número de puntas. Ninguna referencia usa `AZAR`: la figura que se valida
+nunca depende del azar del lenguaje.
+
+**El 4.3 se llama «Polígonos encajados», no «concéntricos».** Las llamadas parten del mismo punto y
+rumbo y no hay instrucciones entre ellas, así que los polígonos comparten el vértice de partida y el
+primer lado: son homotecias con centro en ese vértice, no figuras con el mismo centro. El nombre
+anterior prometía algo que la figura no es (D15).
+
+**La estrella de abstracción exige parámetros de verdad.** `usaParametros` pide un `PARA` que declare
+parámetros, que use al menos uno en su cuerpo y que se **invoque** desde fuera de sí mismo. Declararlo
+y no llamarlo, o escribir la figura a mano con `REPITE`, no la gana. Y la abstracción solo se otorga
+si antes se ganó la precisión.
 
 En 4.2 la estrella de abstracción exige **un solo** procedimiento definido. Tres procedimientos
 distintos que dibujen lo mismo resuelven el nivel pero no ganan la estrella, y Kiro dice por qué.
+Para que Kiro pueda decirlo, ese rodeo tiene que **ejecutarse**, y el límite duro está activo desde el
+mundo 3. Las cuentas:
+
+- referencia: un `PARA` de 3 instrucciones más 3 llamadas = **6**;
+- rodeo de tres procedimientos de 3 instrucciones más 3 llamadas = **12**;
+- con el margen por omisión (3) el límite duro sería 9, y el rodeo se bloquearía sin llegar a correr:
+  el jugador nunca vería la explicación.
+
+Por eso el 4.2 declara `margenLimiteDuro: 6` (límite 12): el rodeo corre, da precisión y pierde la
+abstracción. Es el único margen que declara el mundo 4, y sigue sin ser un presupuesto escrito a
+mano: `presupuestoEstrella` y `limiteDuro` se siguen derivando del conteo de la referencia. El
+margen es un dato del nivel, dentro del rango de 0 a 10 que admite `tipos.ts`.
 
 ## Mundo 5 · Fractales — insignia *Recursión*
 

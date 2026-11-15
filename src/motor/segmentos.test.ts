@@ -210,3 +210,48 @@ describe('segmentos', () => {
     });
   });
 });
+
+// ============================================================================
+// Mundo 4: ESCRIBE y ROTULA no cambian la lista de segmentos (R9.11, R11.8)
+// ============================================================================
+
+import { analizarLexico } from '../lenguaje/lexer.js';
+import { analizar } from '../lenguaje/parser.js';
+
+describe('segmentos · ESCRIBE y ROTULA (mundo 4)', () => {
+  function operacionesDel(texto: string): readonly Operacion[] {
+    const { programa } = analizar(analizarLexico(texto).tokens, { mundo: 4 });
+    expect(programa).not.toBeNull();
+    const gen = ejecutar(programa!, { comandosPermitidos: comandosDelMundo(4), semilla: 0 });
+    let paso = gen.next();
+    while (!paso.done) paso = gen.next();
+    expect(paso.value.error).toBeNull();
+    return paso.value.operaciones;
+  }
+
+  /** La geometría de cada segmento; `paso` cuenta operaciones y se corre al insertar texto. */
+  const geometria = (texto: string): unknown =>
+    extraerSegmentos(operacionesDel(texto)).map(({ desde, hasta }) => ({ desde, hasta }));
+
+  const SIN_TEXTO = 'REPITE 4 [AVANZA 100 GIRADERECHA 90]';
+
+  it('con ESCRIBE y ROTULA (lápiz abajo y arriba) los segmentos son los mismos que sin ellos', () => {
+    const conTexto =
+      'ESCRIBE "inicio REPITE 4 [AVANZA 100 ROTULA "esquina ESCRIBE 360 / 4 GIRADERECHA 90] ' +
+      'SUBELAPIZ ROTULA "fin BAJALAPIZ';
+    expect(operacionesDel(conTexto).some((o) => o.tipo === 'rotular')).toBe(true);
+    expect(operacionesDel(conTexto).some((o) => o.tipo === 'escribir')).toBe(true);
+    expect(geometria(conTexto)).toEqual(geometria(SIN_TEXTO));
+    expect(geometria(SIN_TEXTO)).toHaveLength(4);
+  });
+
+  it('texto solo al final deja la lista idéntica, con el mismo paso y la misma línea', () => {
+    const sin = extraerSegmentos(operacionesDel(SIN_TEXTO));
+    const con = extraerSegmentos(operacionesDel(`${SIN_TEXTO} ESCRIBE 1 ROTULA "hola`));
+    expect(con).toEqual(sin);
+  });
+
+  it('un programa que solo escribe y rotula no aporta segmentos', () => {
+    expect(extraerSegmentos(operacionesDel('ESCRIBE 1 ROTULA "hola ESCRIBE "adios'))).toEqual([]);
+  });
+});

@@ -21,15 +21,13 @@ describe('errores.ts', () => {
   // ==========================================================================
   
   describe('Tipos y constantes básicas', () => {
-    it('IdError contiene los 47 identificadores', () => {
-      // Lista completa de los ids según el diseño
+    it('IdError contiene los 75 identificadores', () => {
+      // Enumeración completa de la unión IdError (la del mundo 4 incluye los 17 ids nuevos)
       const todosIds: IdError[] = [
-        // léxicos (4)
         'caracterNoValido',
         'numeroMalFormado',
         'comillaSinPalabra',
         'parametroSinNombre',
-        // sintácticos (13)
         'palabraDesconocidaConSugerencia',
         'palabraDesconocidaSinSugerencia',
         'comandoEnIngles',
@@ -45,7 +43,13 @@ describe('errores.ts', () => {
         'parametroInesperado',
         'palabraInesperada',
         'numeroInesperado',
-        // ejecución (7)
+        'finSinPara',
+        'paraSinFin',
+        'procedimientoRedefinido',
+        'paraNombreQueEsLenguaje',
+        'paraSinNombre',
+        'paraAnidado',
+        'paraConParametros',
         'comandoNoPermitido',
         'nodoNoImplementado',
         'nodoNoImprimible',
@@ -53,13 +57,12 @@ describe('errores.ts', () => {
         'guardaRecursion',
         'guardaTiempo',
         'guardaRellenos',
-        // interfaz y persistencia (3)
+        'colorInvalido',
+        'grosorInvalido',
         'limiteLineasEditor',
         'limiteCaracteresEditor',
         'progresoNoSeGuarda',
-        // límite duro (1)
         'limiteDuroExcedido',
-        // azar y semillas (8)
         'codigoSemillaLongitud',
         'codigoSemillaSimbolo',
         'codigoSemillaFueraDeDominio',
@@ -68,23 +71,38 @@ describe('errores.ts', () => {
         'listaVacia',
         'pasoInvalido',
         'rangoSinMultiplo',
-        // fallos de programación (6)
         'nodoDesconocidoEnConteo',
         'nivelDesconocido',
         'referenciaNoEjecutable',
         'generadorSinCandidato',
         'generadorDesconocido',
         'solicitudDeErrorInvalida',
-        // invitaciones de abstracción (1)
         'invitacionAbstraccionRepite',
-        // reproducción en paralelo (4)
+        'invitacionAbstraccionParametros',
+        'invitacionAbstraccionProcedimientos',
+        'variableNoDefinida',
+        'parametroDuplicado',
+        'procedimientoArgumentosFaltantes',
+        'procedimientoArgumentosDeMas',
+        'operadorSinUso',
+        'aritmeticaBloqueada',
+        'parentesisSinCerrar',
+        'parentesisDeMas',
+        'expresionIncompleta',
+        'expresionDemasiadoProfunda',
+        'divisionPorCero',
+        'numeroFueraDeRango',
+        'vecesInvalidas',
+        'azarRangoInvalido',
+        'guardaEscrituras',
         'divergenciaGiro',
         'divergenciaAvance',
         'divergenciaJugadorCorto',
         'divergenciaExcesoFinal',
       ];
       
-      expect(todosIds).toHaveLength(49);
+      expect(todosIds).toHaveLength(75);
+      expect(new Set(todosIds).size).toBe(75);
     });
     
     it('SeveridadError es "jugador" o "programacion"', () => {
@@ -1390,5 +1408,158 @@ describe('mensajes de PARA: sin nombre, anidado y con parámetros (punto 8)', ()
     expect(crearError('paraSinFin', { nombre: 'CUADRADO', linea: 3 }).mensaje).toBe(
       'El comando CUADRADO que empezaste en la línea 3 nunca termina con FIN.',
     );
+  });
+});
+
+// ============================================================================
+// Mundo 4: catálogo de R15 y textos de R22.4 (spec 05, tarea 1.4)
+// ============================================================================
+
+describe('Mundo 4: mensajes del catálogo, carácter por carácter', () => {
+  // Cada fila usa los valores de ejemplo de la columna «Mensaje (forma)» de R15.
+  const TABLA_R15: ReadonlyArray<readonly [IdError, Record<string, unknown>, string]> = [
+    ['variableNoDefinida', { nombre: ':largo' },
+      'No sé qué vale :largo aquí. ¿La declaraste como parámetro en PARA?'],
+    ['parametroDuplicado', { procedimiento: 'POLIGONO', parametro: ':lados' },
+      'El comando POLIGONO declara :lados dos veces. Cada parámetro necesita un nombre distinto.'],
+    ['procedimientoArgumentosFaltantes', { nombre: 'POLIGONO', esperados: [':lados', ':largo'], recibidos: 1 },
+      'POLIGONO necesita 2 argumentos (:lados :largo) y solo le diste 1. Falta 1: :largo.'],
+    ['procedimientoArgumentosDeMas', { nombre: 'POLIGONO', esperados: [':lados', ':largo'], linea: 5 },
+      'POLIGONO recibe 2 argumentos (:lados :largo), pero en la línea 5 le diste más. Quita lo que sobra.'],
+    ['argumentoDeTipoEquivocado', { comando: 'POLIGONO', recibido: '"hola', procedimiento: 'POLIGONO', parametro: ':lados' },
+      'POLIGONO necesita un número en :lados, pero le diste una palabra: "hola'],
+    ['operadorSinUso', { nombre: 'SUMA', ejemplo: 'ESCRIBE SUMA 1 2' },
+      'SUMA calcula un valor, pero no dijiste qué hacer con él. Por ejemplo: ESCRIBE SUMA 1 2'],
+    ['aritmeticaBloqueada', { simbolo: '+', mundo: 4 },
+      'El símbolo + todavía no está disponible. Se desbloquea en el mundo 4.'],
+    ['parentesisSinCerrar', { linea: 3 },
+      'Falta cerrar el paréntesis que abriste en la línea 3.'],
+    ['parentesisDeMas', { linea: 4 },
+      'Hay un paréntesis de cierre en la línea 4 que no abriste.'],
+    ['expresionIncompleta', { simbolo: '*', linea: 2 },
+      'Falta un número después del símbolo * de la línea 2.'],
+    ['expresionDemasiadoProfunda', {},
+      'Tienes demasiados paréntesis anidados (más de 32). Divide la cuenta en pasos más cortos.'],
+    ['divisionPorCero', { linea: 4 },
+      'Detuve la ejecución: en la línea 4 intentaste dividir entre cero. ¿Qué valor tenía el divisor?'],
+    ['numeroFueraDeRango', { linea: 3 },
+      'Detuve la ejecución: la cuenta de la línea 3 se volvió demasiado grande para calcularla.'],
+    ['vecesInvalidas', { linea: 3, valor: 2.5 },
+      'Detuve la ejecución: REPITE necesita un número entero de veces y en la línea 3 recibió 2.5.'],
+    ['azarRangoInvalido', { linea: 2, valor: 0 },
+      'AZAR necesita un entero mayor que 0 y en la línea 2 recibió 0. Por ejemplo: AZAR 100'],
+    ['guardaEscrituras', {},
+      'Detuve la ejecución: escribiste demasiadas veces en la consola y en el lienzo. ¿Hay una repetición que nunca termina?'],
+  ];
+
+  it.each(TABLA_R15)('%s produce el texto exacto de la tabla y es severidad jugador (R15.1, R15.4)', (id, parametros, texto) => {
+    const error = crearError(id, parametros as never);
+    expect(error.id).toBe(id);
+    expect(error.severidad).toBe('jugador');
+    expect(error.mensaje).toBe(texto);
+  });
+
+  it('la tabla cubre los 15 ids nuevos más la ampliación de argumentoDeTipoEquivocado', () => {
+    expect(new Set(TABLA_R15.map(([id]) => id)).size).toBe(16);
+  });
+
+  it('procedimientoArgumentosFaltantes: singular y plural (R15.4)', () => {
+    const singular = crearError('procedimientoArgumentosFaltantes', {
+      nombre: 'POLIGONO', esperados: [':lados', ':largo'], recibidos: 1,
+    });
+    expect(singular.mensaje.endsWith(' Falta 1: :largo.')).toBe(true);
+
+    const plural = crearError('procedimientoArgumentosFaltantes', {
+      nombre: 'POLIGONO', esperados: [':lados', ':largo'], recibidos: 0,
+    });
+    expect(plural.mensaje).toBe(
+      'POLIGONO necesita 2 argumentos (:lados :largo) y solo le diste 0. Faltan 2: :lados :largo.',
+    );
+  });
+
+  it('procedimientoArgumentosFaltantes con menosComoResta agrega la sugerencia de paréntesis', () => {
+    const error = crearError('procedimientoArgumentosFaltantes', {
+      nombre: 'POLIGONO', esperados: [':lados', ':largo'], recibidos: 1, menosComoResta: true,
+    });
+    expect(error.mensaje).toBe(
+      'POLIGONO necesita 2 argumentos (:lados :largo) y solo le diste 1. Falta 1: :largo. ¿Querías escribir (-80) con paréntesis?',
+    );
+  });
+
+  it('argumentoDeTipoEquivocado sin procedimiento ni parámetro conserva el texto de siempre', () => {
+    expect(crearError('argumentoDeTipoEquivocado', { comando: 'AVANZA', recibido: '"hola"' }).mensaje).toBe(
+      'AVANZA necesita un número, pero le diste una palabra: "hola"',
+    );
+  });
+
+  it('los nombres del jugador se muestran sin normalizar (R15.5)', () => {
+    expect(crearError('variableNoDefinida', { nombre: ':Ángulo' }).mensaje).toBe(
+      'No sé qué vale :Ángulo aquí. ¿La declaraste como parámetro en PARA?',
+    );
+    expect(crearError('parametroDuplicado', { procedimiento: 'polígono', parametro: ':Lados' }).mensaje).toBe(
+      'El comando polígono declara :Lados dos veces. Cada parámetro necesita un nombre distinto.',
+    );
+  });
+
+  it('el número de línea del texto coincide con el campo linea del error (R15.6)', () => {
+    const error = crearError('divisionPorCero', { linea: 7 }, { linea: 7, columna: 3 });
+    expect(error.linea).toBe(7);
+    expect(error.mensaje).toContain('en la línea 7 ');
+  });
+});
+
+describe('Mundo 4: invitaciones de abstracción de R22.4', () => {
+  it('invitacionAbstraccionParametros tiene el texto exacto', () => {
+    expect(crearError('invitacionAbstraccionParametros', {}).mensaje).toBe(
+      'Lo lograste, pero dibujaste con números fijos. Intenta enseñarme un PARA con parámetros, como :lados, y luego pídemelo cambiando los números.',
+    );
+  });
+
+  it.each([
+    [3, 1],
+    [5, 2],
+  ])('invitacionAbstraccionProcedimientos sustituye definidos=%i y maximo=%i (R22.8)', (definidos, maximo) => {
+    expect(crearError('invitacionAbstraccionProcedimientos', { definidos, maximo }).mensaje).toBe(
+      `Lo lograste, pero definiste ${definidos} procedimientos y para este reto basta con ${maximo}. Enséñame uno solo con parámetros y pídemelo varias veces con números distintos.`,
+    );
+  });
+
+  it('ninguna de las dos invitaciones dice «error», «fallo» ni «incorrecto»', () => {
+    const textos = [
+      crearError('invitacionAbstraccionParametros', {}).mensaje,
+      crearError('invitacionAbstraccionProcedimientos', { definidos: 3, maximo: 1 }).mensaje,
+    ];
+    for (const texto of textos) {
+      expect(texto.toLowerCase()).not.toMatch(/error|fallo|incorrecto/);
+    }
+  });
+});
+
+describe('Mundo 4: crearError con parámetros inválidos', () => {
+  it.each([
+    ['invitacionAbstraccionProcedimientos', { definidos: 1, maximo: 1 }],
+    ['invitacionAbstraccionProcedimientos', { definidos: 0, maximo: 1 }],
+    ['invitacionAbstraccionProcedimientos', { definidos: 3, maximo: 0 }],
+    ['invitacionAbstraccionProcedimientos', { definidos: 2.5, maximo: 1 }],
+    ['parentesisSinCerrar', { linea: 0 }],
+    ['parentesisDeMas', { linea: 1.5 }],
+    ['divisionPorCero', { linea: -1 }],
+    ['numeroFueraDeRango', { linea: Number.NaN }],
+    ['expresionIncompleta', { simbolo: '*', linea: 0 }],
+    ['expresionIncompleta', { simbolo: '', linea: 2 }],
+    ['vecesInvalidas', { linea: 3, valor: Number.POSITIVE_INFINITY }],
+    ['azarRangoInvalido', { linea: 0, valor: 0 }],
+    ['procedimientoArgumentosDeMas', { nombre: 'POLIGONO', esperados: [':lados'], linea: 0 }],
+    ['procedimientoArgumentosFaltantes', { nombre: '', esperados: [':lados'], recibidos: 0 }],
+    ['procedimientoArgumentosFaltantes', { nombre: 'POLIGONO', esperados: [':lados'], recibidos: -1 }],
+    ['variableNoDefinida', { nombre: '  ' }],
+    ['parametroDuplicado', { procedimiento: 'POLIGONO', parametro: '' }],
+    ['operadorSinUso', { nombre: 'SUMA', ejemplo: '' }],
+    ['aritmeticaBloqueada', { simbolo: '+', mundo: 0 }],
+    ['argumentoDeTipoEquivocado', { comando: 'POLIGONO', recibido: '"hola', procedimiento: 'POLIGONO', parametro: ' ' }],
+  ] as const)('%s con %o devuelve solicitudDeErrorInvalida', (id, parametros) => {
+    const error = crearError(id as IdError, parametros as never);
+    expect(error.id).toBe('solicitudDeErrorInvalida');
+    expect(error.severidad).toBe('programacion');
   });
 });

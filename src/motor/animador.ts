@@ -18,7 +18,7 @@ import {
   type EstiloPedido,
   type TramoDibujo,
 } from './tramos-dibujo.js';
-import type { CapaEstela } from './lienzo.js';
+import type { CapaEstela, RotuloDibujado } from './lienzo.js';
 
 // ============================================================================
 // Reloj inyectable
@@ -95,6 +95,16 @@ export interface LienzoAnimador {
    * que no dibuja rellenos (un doble de prueba, por ejemplo) puede omitirlo.
    */
   rellenar?(capa: CapaEstela, color: Color, punto: Punto): void;
+  /**
+   * Dibuja un rótulo (ROTULA). Opcional, como `rellenar`. El animador solo lo
+   * pide para el destino `jugador`: la demostración de Kiro no lleva texto.
+   */
+  rotular?(capa: CapaEstela, rotulo: RotuloDibujado): void;
+}
+
+/** `escribir` y `rotular` no mueven nada: no tienen nada que animar, así que no consumen turno. */
+function esInstantanea(op: Operacion): boolean {
+  return op.tipo === 'escribir' || op.tipo === 'rotular';
 }
 
 // ============================================================================
@@ -246,6 +256,14 @@ export function crearAnimador(
         // no (paso a paso, modo inmediato o reducido).
         aplicarRellenoAlEmpezar(op);
         break;
+      case 'escribir':
+        // La consola se alimenta por `alAplicar`; no hay nada que dibujar.
+        break;
+      case 'rotular':
+        if (destino === 'jugador') {
+          lienzo.rotular?.(destino, { texto: op.texto, posicion: op.posicion, color: op.color });
+        }
+        break;
       case 'girar':
       case 'reubicar':
       case 'lapiz':
@@ -324,7 +342,17 @@ export function crearAnimador(
    * si no, sigue esperando (el detalle de interpolación intermedia lo dibujaría un
    * lienzo real; sobre la estela, el segmento se aporta al completar la operación).
    */
+  function aplicarInstantaneasPendientes(): void {
+    while (indice < operaciones.length && esInstantanea(operaciones[indice]!)) {
+      aplicarCompleta(operaciones[indice]!);
+      indice += 1;
+    }
+  }
+
   function fotograma(): void {
+    // Una operación sin duración (texto) se aplica en el ciclo que cierra la anterior,
+    // o en el primero si abre la secuencia.
+    aplicarInstantaneasPendientes();
     if (indice >= operaciones.length) {
       idProgramado = null;
       const fin: FinDeSecuencia = {
@@ -341,6 +369,7 @@ export function crearAnimador(
       // Termina la operación en curso: aporta su tramo de estela completo.
       aplicarCompleta(operaciones[indice]!);
       indice += 1;
+      aplicarInstantaneasPendientes();
       if (indice >= operaciones.length) {
         idProgramado = null;
         const fin: FinDeSecuencia = {

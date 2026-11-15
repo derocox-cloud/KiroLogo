@@ -10,7 +10,7 @@
 // Vive en `juego/`: consume `niveles/` (el nivel), `lenguaje/` (AST e impresor)
 // y el `Reto` de `juego/`. No toca el DOM ni el globo; devuelve texto.
 
-import type { Programa, Instruccion, InvocacionComando } from '../lenguaje/ast.js';
+import type { Programa, Instruccion, InvocacionComando, InvocacionProcedimiento } from '../lenguaje/ast.js';
 import { imprimir } from '../lenguaje/impresor.js';
 import type { Nivel } from '../niveles/tipos.js';
 import type { Reto } from './reto.js';
@@ -99,15 +99,60 @@ export function rellenarPistas(nivel: Nivel, reto: Reto): readonly [string, stri
   const p = parametrosVisiblesDelReto(reto);
   const esqueleto = esqueletoParcial(reto.referencia);
 
+  const sustituciones: Array<readonly [string, string | undefined]> = [
+    ['{tramos}', String(p.tramos)],
+    ['{giro}', p.giro],
+    ['{cuadros}', String(p.cuadros)],
+    ['{esqueleto}', esqueleto],
+    ...placeholdersDelMundo4(reto.referencia),
+  ];
+
   const rellenar = (plantilla: string): string =>
-    plantilla
-      .replaceAll('{tramos}', String(p.tramos))
-      .replaceAll('{giro}', p.giro)
-      .replaceAll('{cuadros}', String(p.cuadros))
-      .replaceAll('{esqueleto}', esqueleto);
+    sustituciones.reduce(
+      (texto, [marca, valor]) => (valor === undefined ? texto : texto.replaceAll(marca, valor)),
+      plantilla,
+    );
 
   const [conceptual, matematica, esquema] = nivel.pistas;
   return [rellenar(conceptual), rellenar(matematica), rellenar(esquema)];
+}
+
+// ============================================================================
+// Placeholders del mundo 4 (D2)
+// ============================================================================
+
+/** Valor del argumento `indice` de una llamada si es un literal numérico; si no, `undefined`. */
+function argumentoLiteral(llamada: InvocacionProcedimiento | undefined, indice: number): string | undefined {
+  const arg = llamada?.argumentos[indice];
+  return arg && arg.tipo === 'numeroLiteral' ? String(arg.valor) : undefined;
+}
+
+/**
+ * Placeholders leídos de las llamadas a procedimiento del nivel superior de la
+ * referencia. Un valor ilegible (no hay tantas llamadas, o el argumento no es
+ * literal) queda `undefined`: el marcador se deja sin sustituir en vez de
+ * inventar un valor, y la prueba de pistas lo detecta.
+ */
+function placeholdersDelMundo4(
+  referencia: Programa,
+): ReadonlyArray<readonly [string, string | undefined]> {
+  const llamadas = referencia.instrucciones.filter(
+    (n): n is InvocacionProcedimiento => n.tipo === 'invocacionProcedimiento',
+  );
+  const primera = llamadas[0];
+  const primerArgumento = argumentoLiteral(primera, 0);
+  const esqueletoConHuecos = imprimir(referencia, { hueco: '___' });
+
+  return [
+    ['{lados1}', argumentoLiteral(llamadas[0], 0)],
+    ['{lados2}', argumentoLiteral(llamadas[1], 0)],
+    ['{lados3}', argumentoLiteral(llamadas[2], 0)],
+    ['{lados}', primerArgumento],
+    ['{largo}', argumentoLiteral(primera, 1)],
+    ['{copias}', primera ? String(llamadas.length) : undefined],
+    ['{puntas}', primerArgumento],
+    ['{esqueletoConHuecos}', esqueletoConHuecos.exito ? esqueletoConHuecos.texto.trimEnd() : undefined],
+  ];
 }
 
 // ============================================================================

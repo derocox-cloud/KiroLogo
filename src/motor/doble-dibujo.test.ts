@@ -82,6 +82,9 @@ export class DobleDibujo implements ContextoDibujo {
   lineJoin: CanvasLineJoin = 'miter';
   strokeStyle: string | CanvasGradient | CanvasPattern = '#000';
   fillStyle: string | CanvasGradient | CanvasPattern = '#000';
+  font = '10px sans-serif';
+  textAlign: CanvasTextAlign = 'start';
+  textBaseline: CanvasTextBaseline = 'alphabetic';
 
   /** Secuencia de todas las llamadas con sus argumentos, en orden. */
   readonly llamadas: Llamada[] = [];
@@ -324,6 +327,11 @@ export class DobleDibujo implements ContextoDibujo {
 
   setLineDash(segmentos: number[]): void {
     this.registrar('setLineDash', segmentos);
+  }
+
+  /** El texto solo se registra: no aporta al rasterizado de la estela. */
+  fillText(texto: string, x: number, y: number, anchoMaximo?: number): void {
+    this.registrar('fillText', texto, x, y, anchoMaximo);
   }
 
   // --- Rasterizado ---

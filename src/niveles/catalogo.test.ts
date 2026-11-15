@@ -13,6 +13,7 @@ import {
   REFERENCIA_2_1,
 } from './mundo-2-composicion.js';
 import { MUNDO_3, NIVEL_3_1, REFERENCIA_3_1 } from './mundo-3-rosetones.js';
+import { MUNDO_4 } from './mundo-4-parametros.js';
 import { MUNDOS } from './mundos.js';
 import type { Nivel, OrigenNivel, ExigenciaAbstraccion } from './tipos.js';
 import { contarInstrucciones } from '../lenguaje/conteo.js';
@@ -134,7 +135,7 @@ describe('nivel 0.1', () => {
 describe('catálogo', () => {
   it('incluye el mundo 0 con el nivel 0.1', () => {
     expect(CATALOGO.length).toBe(
-      MUNDO_0.length + MUNDO_1.length + MUNDO_2.length + MUNDO_3.length,
+      MUNDO_0.length + MUNDO_1.length + MUNDO_2.length + MUNDO_3.length + MUNDO_4.length,
     );
     expect(CATALOGO.some((n) => n.id === '0.1')).toBe(true);
   });
@@ -352,6 +353,31 @@ describe('mundo 3', () => {
     expect(NIVEL_3_1.origen.tipo).toBe('autorado');
     if (NIVEL_3_1.origen.tipo === 'autorado') {
       expect(NIVEL_3_1.origen.referencia).toBe(REFERENCIA_3_1);
+    }
+  });
+});
+
+// ============================================================================
+// El mundo 4 (11.9) — Parámetros
+// ============================================================================
+
+describe('mundo 4', () => {
+  it('tiene exactamente cuatro niveles', () => {
+    expect(MUNDO_4).toHaveLength(4);
+  });
+
+  it('registra los cuatro niveles (4.1–4.4) en el catálogo, tras el mundo 3', () => {
+    const ids = CATALOGO.map((n) => n.id);
+    for (const id of ['4.1', '4.2', '4.3', '4.4']) {
+      expect(buscarNivel(id).hallado).toBe(true);
+    }
+    expect(ids.indexOf('4.1')).toBeGreaterThan(ids.indexOf('3.4'));
+  });
+
+  it('todos sus niveles declaran mundo 4 y la insignia «Generalización»', () => {
+    for (const nivel of MUNDO_4) {
+      expect(nivel.mundo).toBe(4);
+      expect(MUNDOS[nivel.mundo].insignia).toBe('Generalización');
     }
   });
 });

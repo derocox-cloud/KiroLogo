@@ -10,6 +10,7 @@ import { contarInstrucciones } from '../lenguaje/conteo.js';
 import { ESTADO_INICIAL } from '../motor/tortuga.js';
 import { extraerSegmentos, type Segmento } from '../motor/segmentos.js';
 import { codificar } from '../azar/codigo-semilla.js';
+import { fabricaAzar } from '../azar/prng.js';
 import { buscarNivel } from '../niveles/catalogo.js';
 import { GENERADORES } from './generadores-mundo-1.js';
 import { GENERADORES_M2 } from './generadores-mundo-2.js';
@@ -124,6 +125,7 @@ export function resolverReto(idNivel: string, semilla: number): ResultadoReto {
     estadoInicial: ESTADO_INICIAL,
     comandosPermitidos: permitidos,
     semilla: semillaEfectiva,
+    fabricaAzar,
   });
   let paso = generador.next();
   while (!paso.done) {

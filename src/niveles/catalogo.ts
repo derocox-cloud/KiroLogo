@@ -1,12 +1,13 @@
 // Catálogo de niveles de KiroLogo
 // Reúne los mundos declarados y expone la búsqueda de un nivel por su id.
-// En esta spec existen los mundos 0, 1, 2 y 3.
+// En esta spec existen los mundos 0, 1, 2, 3 y 4.
 
 import type { Nivel } from './tipos.js';
 import { MUNDO_0 } from './mundo-0-primeros-pasos.js';
 import { MUNDO_1 } from './mundo-1-figuras.js';
 import { MUNDO_2 } from './mundo-2-composicion.js';
 import { MUNDO_3 } from './mundo-3-rosetones.js';
+import { MUNDO_4 } from './mundo-4-parametros.js';
 
 // ============================================================================
 // Catálogo completo
@@ -16,7 +17,7 @@ import { MUNDO_3 } from './mundo-3-rosetones.js';
  * Todos los niveles del juego, ordenados por mundo y, dentro de cada mundo, en
  * el orden en que el mundo los declara.
  */
-export const CATALOGO: readonly Nivel[] = [...MUNDO_0, ...MUNDO_1, ...MUNDO_2, ...MUNDO_3];
+export const CATALOGO: readonly Nivel[] = [...MUNDO_0, ...MUNDO_1, ...MUNDO_2, ...MUNDO_3, ...MUNDO_4];
 
 // ============================================================================
 // Búsqueda
