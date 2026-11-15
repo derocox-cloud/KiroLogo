@@ -10,6 +10,7 @@ import { validar } from '../motor/validador.js';
 import { extraerSegmentos } from '../motor/segmentos.js';
 import { contarInstrucciones } from '../lenguaje/conteo.js';
 import { CATALOGO } from '../niveles/catalogo.js';
+import { TIMEOUT_TRES_ESTRELLAS } from '../pruebas/tiempos.js';
 
 // ============================================================================
 // Ejemplos del nivel 0.1 (16.1)
@@ -208,7 +209,7 @@ describe('Property 25: regresión del catálogo', () => {
 
     // Informa todos los fallos antes de terminar.
     expect(fallos, fallos.join('\n')).toHaveLength(0);
-  }, 120_000);
+  }, TIMEOUT_TRES_ESTRELLAS);
 });
 
 // ============================================================================
@@ -299,5 +300,130 @@ describe('reto · cableado del mundo 2', () => {
         expect(a.reto.segmentos.length).toBe(b.reto.segmentos.length);
       }
     }
+  });
+});
+
+// ============================================================================
+// Tarea 12.2 · Regresión del catálogo del mundo 3 vía resolverReto (R4.7, R5.9)
+// ============================================================================
+//
+// La Property 7 de los generadores (roseton.test / flor.test) prueba el
+// generador AISLADO sobre un puñado de semillas. Property 25 recorre todo el
+// catálogo con UNA semilla por nivel generado. Esta regresión cierra lo que
+// falta: el camino COMPLETO de punta a punta —catálogo → generador → conteo →
+// validación → calificación— de los dos niveles generados del mundo 3, repetido
+// sobre 200 semillas CONSECUTIVAS a través de `resolverReto` (no del generador
+// directamente). Es lo que prueba que el cableado del nivel generado no se
+// degrada en ninguna de las 200, no solo en una.
+
+describe('Tarea 12.2: regresión del catálogo del mundo 3 sobre 200 semillas', () => {
+  // Validates: Requirements 4.7, 5.9
+  it('3.2 y 3.3 ganan las tres estrellas vía resolverReto en las 200 semillas consecutivas', () => {
+    const fallos: string[] = [];
+
+    for (const id of ['3.2', '3.3']) {
+      for (let semilla = 0; semilla < 200; semilla++) {
+        const resultado = resolverReto(id, semilla);
+        if (!resultado.exito) {
+          fallos.push(`${id} (semilla ${semilla}): no se pudo resolver (${resultado.error.id})`);
+          continue;
+        }
+        const reto = resultado.reto;
+
+        // El límite duro se activa desde el mundo 3 (R1.2), a diferencia de 0–2.
+        if (!reto.limiteDuroActivo) {
+          fallos.push(`${id} (semilla ${semilla}): límite duro inactivo en el mundo 3`);
+        }
+
+        // El "jugador" es el propio programa de referencia resuelto: debe aprobar
+        // con la normalización FIJA del nivel 3 (traslación/rotación fija).
+        const veredicto = validar(reto.segmentos, reto.segmentos, reto.nivel.normalizacion);
+        const analisis = analizarAbstraccion(reto.referencia, reto.nivel.abstraccion);
+        const calificacion = calificar(reto.referencia, veredicto, reto);
+
+        if (!calificacion.precision.otorgada) {
+          fallos.push(`${id} (semilla ${semilla}, efectiva ${reto.semillaEfectiva}): precisión negada — ${JSON.stringify(calificacion.precision)}`);
+        }
+        if (!calificacion.economia.otorgada) {
+          fallos.push(`${id} (semilla ${semilla}, efectiva ${reto.semillaEfectiva}): economía negada — ${JSON.stringify(calificacion.economia)}`);
+        }
+        if (!calificacion.abstraccion.otorgada) {
+          fallos.push(`${id} (semilla ${semilla}, efectiva ${reto.semillaEfectiva}): abstracción (usaRepiteAnidado) negada — ${JSON.stringify(calificacion.abstraccion)} · sinConfirmar ${JSON.stringify(analisis.sinConfirmar)}`);
+        }
+      }
+    }
+
+    // Informa todos los fallos antes de terminar.
+    expect(fallos, fallos.join('\n')).toHaveLength(0);
+  }, TIMEOUT_TRES_ESTRELLAS);
+
+  it('los niveles autorados 3.1 y 3.4 ganan las tres estrellas vía resolverReto (R4.7)', () => {
+    for (const id of ['3.1', '3.4']) {
+      const resultado = resolverReto(id, 0);
+      expect(resultado.exito, `${id} debería resolverse`).toBe(true);
+      if (!resultado.exito) continue;
+      const reto = resultado.reto;
+
+      // Autorado del mundo 3: límite duro activo.
+      expect(reto.limiteDuroActivo, `${id} límite duro activo`).toBe(true);
+
+      const veredicto = validar(reto.segmentos, reto.segmentos, reto.nivel.normalizacion);
+      const calificacion = calificar(reto.referencia, veredicto, reto);
+      expect(calificacion.precision.otorgada, `${id} precisión`).toBe(true);
+      expect(calificacion.economia.otorgada, `${id} economía`).toBe(true);
+      expect(calificacion.abstraccion.otorgada, `${id} abstracción`).toBe(true);
+    }
+  });
+
+  it('la referencia de 3.4 se resuelve sin activar la guarda de 200 000 pasos (R4.4)', () => {
+    // resolverReto convierte una guarda activada en el fallo de programación
+    // `referenciaNoEjecutable`; que resuelva con éxito prueba que el mandala
+    // completa su ejecución sin disparar ninguna de las guardas.
+    const resultado = resolverReto('3.4', 0);
+    expect(resultado.exito).toBe(true);
+    if (resultado.exito) {
+      expect(resultado.reto.operaciones.length).toBeGreaterThan(0);
+      expect(resultado.reto.operaciones.length).toBeLessThan(200_000);
+    }
+  });
+});
+
+// ============================================================================
+// Tarea 12.3 · No-regresión de los mundos 0 a 2 (R10.3)
+// ============================================================================
+//
+// R10.3 pide que agregar el mundo 3 no cambie el comportamiento de los mundos 0,
+// 1 y 2. El invariante estructural más fuerte y barato de afirmar es que el
+// límite duro —la única palanca de comportamiento que esta spec activa— sigue
+// INACTIVO en TODOS los niveles de los mundos 0, 1 y 2 del catálogo, resolviendo
+// cada uno de punta a punta. Property 25 ya prueba que cada nivel sigue ganando
+// sus tres estrellas; lo que faltaba era la aserción explícita y exhaustiva de
+// que ningún nivel de 0–2 quedó con el límite duro encendido por accidente.
+
+describe('Tarea 12.3: no-regresión de los mundos 0 a 2', () => {
+  // Validates: Requirements 10.3
+  it('ningún nivel de los mundos 0, 1 y 2 del catálogo tiene el límite duro activo', () => {
+    const fallos: string[] = [];
+    const nivelesM012 = CATALOGO.filter((n) => n.mundo <= 2);
+
+    // El catálogo declara 16 niveles en 0–2 (5 + 5 + 6): ancla que el filtro no
+    // quedó vacío si un refactor futuro moviera niveles de mundo.
+    expect(nivelesM012.length).toBe(16);
+
+    for (const nivel of nivelesM012) {
+      // Semilla fija para autorados, una cualquiera para generados: el valor de
+      // limiteDuroActivo no depende de la semilla, solo del mundo del nivel.
+      const semilla = nivel.origen.tipo === 'autorado' ? nivel.origen.semilla : 1;
+      const resultado = resolverReto(nivel.id, semilla);
+      if (!resultado.exito) {
+        fallos.push(`${nivel.id}: no se pudo resolver (${resultado.error.id})`);
+        continue;
+      }
+      if (resultado.reto.limiteDuroActivo) {
+        fallos.push(`${nivel.id} (mundo ${nivel.mundo}): límite duro activo — debería estar inactivo en los mundos 0–2`);
+      }
+    }
+
+    expect(fallos, fallos.join('\n')).toHaveLength(0);
   });
 });

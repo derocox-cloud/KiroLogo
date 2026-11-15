@@ -3,6 +3,8 @@
 
 import { describe, it, expect } from 'vitest';
 import { analizar } from './abstraccion.js';
+import { analizarLexico } from '../lenguaje/lexer.js';
+import { analizar as analizar_ } from '../lenguaje/parser.js';
 import type {
   Programa,
   Instruccion,
@@ -178,5 +180,64 @@ describe('abstraccion · defineProcedimiento (nivel 2.6)', () => {
 
     expect(analizar(conDefinicion, [exigenciaDefinir]).confirmadas).toContain('defineProcedimiento');
     expect(analizar(sinDefinicion, [exigenciaDefinir]).confirmadas).not.toContain('defineProcedimiento');
+  });
+});
+
+// ============================================================================
+// Property 12 · usaRepiteAnidado se otorga si y solo si hay REPITE anidado,
+// analizando el AST, no el texto (mundo 3, R6.2, R6.3, R6.4)
+// ============================================================================
+//
+// La estrella de abstracción del mundo 3 exige un REPITE entre los descendientes
+// de otro REPITE. Estos casos lo verifican sobre el AST: una lista plana de
+// repeticiones NO cumple, y dos textos distintos que producen el MISMO AST
+// obtienen el mismo veredicto, porque el verificador analiza el árbol y nunca la
+// cadena de origen (R6.4).
+
+describe('Property 12: usaRepiteAnidado analiza el AST, no el texto (mundo 3)', () => {
+  // Validates: Requirements 6.2, 6.3, 6.4
+  const exigencia: ExigenciaAbstraccion = { clave: 'usaRepiteAnidado' };
+
+  /** Parsea texto KiroLogo del mundo 3 a su AST. Lanza si el texto es inválido. */
+  function astDe(texto: string): Programa {
+    const { tokens } = analizarLexico(texto);
+    const { programa, errores } = analizar_(tokens, { mundo: 3 });
+    if (programa === null || errores.length > 0) {
+      throw new Error(`texto inválido: "${texto}" — ${errores.map((e) => e.mensaje).join('; ')}`);
+    }
+    return programa;
+  }
+
+  it('un REPITE dentro de otro REPITE cumple usaRepiteAnidado (R6.2)', () => {
+    // Construido a mano: una repetición con otra en su cuerpo.
+    const anidado = prog([repite([av(100), repite([av(50)])])]);
+    expect(analizar(anidado, [exigencia]).confirmadas).toContain('usaRepiteAnidado');
+  });
+
+  it('una lista plana de REPITE consecutivos NO cumple usaRepiteAnidado (R6.3)', () => {
+    // Dos repeticiones hermanas, ninguna contiene a la otra.
+    const plano = prog([repite([av(100)]), repite([av(50)]), repite([av(25)])]);
+    expect(analizar(plano, [exigencia]).confirmadas).not.toContain('usaRepiteAnidado');
+    expect(analizar(plano, [exigencia]).sinConfirmar).toContain('usaRepiteAnidado');
+  });
+
+  it('dos textos distintos con el mismo AST obtienen el mismo veredicto (R6.4)', () => {
+    // Nombres largos y abreviaturas producen el mismo AST: el veredicto no puede
+    // depender del texto. Ambos tienen REPITE anidado → ambos cumplen.
+    const largo = astDe('REPITE 36 [REPITE 4 [AVANZA 100 GIRADERECHA 90] GIRADERECHA 10]');
+    const abreviado = astDe('RP 36 [RP 4 [AV 100 GD 90] GD 10]');
+    const vLargo = analizar(largo, [exigencia]);
+    const vAbreviado = analizar(abreviado, [exigencia]);
+    expect(vLargo).toEqual(vAbreviado);
+    expect(vLargo.confirmadas).toContain('usaRepiteAnidado');
+  });
+
+  it('dos textos con el mismo AST plano obtienen el mismo veredicto negativo (R6.4)', () => {
+    const largo = astDe('REPITE 4 [AVANZA 100] REPITE 3 [AVANZA 50]');
+    const abreviado = astDe('RP 4 [AV 100] RP 3 [AV 50]');
+    const vLargo = analizar(largo, [exigencia]);
+    const vAbreviado = analizar(abreviado, [exigencia]);
+    expect(vLargo).toEqual(vAbreviado);
+    expect(vLargo.confirmadas).not.toContain('usaRepiteAnidado');
   });
 });

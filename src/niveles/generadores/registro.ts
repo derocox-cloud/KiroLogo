@@ -11,6 +11,8 @@
 import type { Generador } from '../tipos.js';
 import { generarCamino } from './camino.js';
 import { generarZigzag } from './zigzag.js';
+import { generarRoseton } from './roseton.js';
+import { generarFlor } from './flor.js';
 
 // ============================================================================
 // Tabla de generadores
@@ -23,6 +25,8 @@ import { generarZigzag } from './zigzag.js';
 const GENERADORES: Readonly<Record<string, Generador>> = {
   camino: generarCamino,
   zigzag: generarZigzag,
+  'roseton-m3': generarRoseton,
+  'flor-m3': generarFlor,
 };
 
 // ============================================================================

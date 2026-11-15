@@ -7,6 +7,10 @@ transversales (08 y 09) que cambian la presentación y no son un mundo. Cada arc
 Para entender **por qué** el proyecto es como es, y qué se descartó en el camino, está la
 [bitácora](bitacora.md). El steering dice qué hacer; la bitácora dice de dónde salió cada regla.
 
+Para saber qué guarda `Progreso` en las señales de las insignias transversales (*Sin pistas*,
+*Buen ojo* y *Depurador*), quién las escribe y quién las lee, está el documento de
+[señales de progreso](senales-de-progreso.md).
+
 ## Cómo usar estos prompts
 
 1. Abrir una sesión de tipo **Spec**.

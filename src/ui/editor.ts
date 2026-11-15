@@ -63,6 +63,10 @@ export interface DependenciasEditor {
   readonly mundo: Mundo;
   /** `presupuestoEstrella` del reto en curso. */
   readonly presupuestoEstrella: number;
+  /** `limiteDuro` del reto en curso: conteo máximo para ejecutar. */
+  readonly limiteDuro: number;
+  /** `limiteDuroActivo` del reto en curso: si falso, el bloqueo no se señala. */
+  readonly limiteDuroActivo: boolean;
   /**
    * Pide al globo el mensaje del límite alcanzado. El editor no compone texto de
    * jugador: nombra cuál límite y su valor y deja al globo mostrarlo.
@@ -179,8 +183,11 @@ export interface Editor {
   estadoContador(): EstadoContador;
   /** Línea del cursor (desde 1) según la posición de selección del área. */
   lineaDelCursor(): number;
-  /** Presenta un reto: vacía el área, pone el presupuesto y limpia marcas. */
-  presentarReto(presupuestoEstrella: number): void;
+  /**
+   * Presenta un reto: vacía el área, pone el presupuesto y el límite duro del
+   * reto en curso, y limpia marcas.
+   */
+  presentarReto(presupuestoEstrella: number, limiteDuro: number, limiteDuroActivo: boolean): void;
   /**
    * Fija el mundo del análisis al del nivel en curso y reanaliza el texto, para
    * que marcas y contador reflejen el mundo nuevo sin esperar al próximo tecleo.
@@ -207,6 +214,10 @@ export function crearEditor(deps: DependenciasEditor): Editor {
   const doc = deps.contenedor.ownerDocument;
   const reloj = deps.reloj ?? RELOJ_REBOTE_INMEDIATO;
   let presupuesto = deps.presupuestoEstrella;
+  // Límite duro del reto en curso: mutable para que presentarReto lo cambie al
+  // navegar de nivel sin recrear el editor, igual que el presupuesto.
+  let limiteDuro = deps.limiteDuro;
+  let limiteDuroActivo = deps.limiteDuroActivo;
   // Mutable para que al cambiar de nivel el análisis use el mundo del nivel en
   // curso sin recrear el editor (ver fijarMundo).
   let mundoActual = deps.mundo;
@@ -308,24 +319,35 @@ export function crearEditor(deps: DependenciasEditor): Editor {
     presTxt.textContent = `Presupuesto: ${presupuesto}`;
 
     const excede = estado.conteo > presupuesto;
+    // Bloqueo por límite duro: independiente del exceso de presupuesto. Solo con
+    // el límite activo y un conteo estrictamente mayor que el límite (R2.5, R2.6).
+    const bloqueado = limiteDuroActivo && estado.conteo > limiteDuro;
+
+    contador.appendChild(conteoTxt);
+    contador.appendChild(presTxt);
     if (excede) {
       // Señala el exceso con texto en español además del color.
       presTxt.classList.add('kl-contador-exceso');
       const aviso = doc.createElement('span');
       aviso.className = 'kl-contador-aviso';
       aviso.textContent = 'Te pasaste del presupuesto';
-      contador.appendChild(conteoTxt);
-      contador.appendChild(presTxt);
       contador.appendChild(aviso);
-    } else {
-      contador.appendChild(conteoTxt);
-      contador.appendChild(presTxt);
+    }
+    if (bloqueado) {
+      // Anticipa que el programa no se ejecutará, por texto además del color.
+      const bloqueo = doc.createElement('span');
+      bloqueo.className = 'kl-contador-bloqueo';
+      bloqueo.textContent = 'Este programa no se podrá ejecutar: pasa del límite';
+      contador.appendChild(bloqueo);
     }
 
-    // Nombre accesible que nombra los dos números por separado.
+    // Nombre accesible que nombra los dos números por separado, y el bloqueo con
+    // la misma frase para que no dependa solo del color.
     const nombre = `Instrucciones ${estado.conteo}${
       estado.provisional ? ' provisional' : ''
-    }; presupuesto de estrella ${presupuesto}${excede ? '; te pasaste del presupuesto' : ''}`;
+    }; presupuesto de estrella ${presupuesto}${excede ? '; te pasaste del presupuesto' : ''}${
+      bloqueado ? '; Este programa no se podrá ejecutar: pasa del límite' : ''
+    }`;
     contador.setAttribute('aria-label', nombre);
   }
 
@@ -475,8 +497,10 @@ export function crearEditor(deps: DependenciasEditor): Editor {
       return lineaEnPosicion(area.selectionStart ?? area.value.length);
     },
 
-    presentarReto(presupuestoEstrella: number): void {
+    presentarReto(presupuestoEstrella: number, limiteDuroReto: number, limiteDuroActivoReto: boolean): void {
       presupuesto = presupuestoEstrella;
+      limiteDuro = limiteDuroReto;
+      limiteDuroActivo = limiteDuroActivoReto;
       ultimoConteoBueno = 0;
       obtuvoConteoBueno = false;
       lineaResaltada = 0;

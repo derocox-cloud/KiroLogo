@@ -176,3 +176,55 @@ describe('globo-kiro · aria-live y botón de pista', () => {
     expect(globo.texto()).toContain(PISTAS[0]);
   });
 });
+
+describe('globo-kiro · callback alAbrirPista (R11.1)', () => {
+  function montarConCallback(): { globo: GloboKiro; contar(): number } {
+    const cont = document.createElement('div');
+    document.body.appendChild(cont);
+    let aperturas = 0;
+    const globo = crearGloboKiro({
+      contenedor: cont,
+      anunciar: () => {},
+      alAbrirPista: () => {
+        aperturas += 1;
+      },
+    });
+    globo.presentarReto(IDENTIDAD_0_1);
+    return { globo, contar: () => aperturas };
+  }
+
+  it('se invoca una vez por cada escalón que se muestra', () => {
+    const { globo, contar } = montarConCallback();
+    globo.pedirPista();
+    expect(contar()).toBe(1);
+    globo.pedirPista();
+    expect(contar()).toBe(2);
+    globo.pedirPista();
+    expect(contar()).toBe(3);
+  });
+
+  it('no se invoca con el aviso «Ya te di todas las pistas de este reto»', () => {
+    const { globo, contar } = montarConCallback();
+    globo.pedirPista();
+    globo.pedirPista();
+    globo.pedirPista();
+    globo.pedirPista();
+    expect(globo.texto()).toContain('Ya te di todas las pistas de este reto.');
+    expect(contar()).toBe(3);
+  });
+
+  it('no se invoca si todavía no hay un reto presentado', () => {
+    const cont = document.createElement('div');
+    document.body.appendChild(cont);
+    let n = 0;
+    const globo = crearGloboKiro({ contenedor: cont, anunciar: () => {}, alAbrirPista: () => (n += 1) });
+    globo.pedirPista();
+    expect(n).toBe(0);
+  });
+
+  it('el callback es opcional: sin él, pedir pista funciona igual', () => {
+    const { globo } = montar();
+    expect(() => globo.pedirPista()).not.toThrow();
+    expect(globo.escalonesAbiertos()).toBe(1);
+  });
+});

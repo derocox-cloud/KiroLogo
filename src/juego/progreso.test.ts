@@ -107,8 +107,9 @@ describe('progreso · escritura', () => {
     const almacen = crearAlmacen();
     cargarProgreso(almacen).guardar('0.1', 42, calif(true, true, true), 1);
     const obj = JSON.parse(almacen.getItem(CLAVE)!);
-    // Solo version, niveles, ultimoReto y guiaVista.
-    expect(Object.keys(obj).sort()).toEqual(['guiaVista', 'niveles', 'ultimoReto', 'version']);
+    // Solo claves anónimas: version, niveles, ultimoReto, guiaVista y la señal
+    // anónima de reproducción en paralelo (spec 04). Ningún dato personal.
+    expect(Object.keys(obj).sort()).toEqual(['guiaVista', 'niveles', 'reproduccionParalelaUsada', 'ultimoReto', 'version']);
   });
 });
 
@@ -328,5 +329,171 @@ describe('Property 20: persistencia', () => {
         expect(progreso.estrellasDe('0.1')).toEqual({ precision: acumP, economia: acumE, abstraccion: acumA });
       }
     }
+  });
+});
+
+// ============================================================================
+// Señales anónimas para las insignias transversales (spec 04, requisito 9)
+// ============================================================================
+// Reproducción en paralelo usada (global), pista abierta por nivel y vistas de
+// demostración por nivel. Son datos anónimos (banderas y contadores), encajan en
+// el formato versión 2 sin romper progresos guardados y conservan la lectura
+// tolerante y la migración v1.
+
+describe('progreso · señal de reproducción en paralelo (Depurador)', () => {
+  it('arranca sin usar y se marca una sola vez, persistiendo', () => {
+    const almacen = crearAlmacen();
+    const progreso = cargarProgreso(almacen);
+    expect(progreso.reproduccionParalelaUsada()).toBe(false);
+    progreso.marcarReproduccionParalelaUsada();
+    expect(progreso.reproduccionParalelaUsada()).toBe(true);
+    // Persistió: una recarga lo recuerda.
+    expect(cargarProgreso(almacen).reproduccionParalelaUsada()).toBe(true);
+    // Marcar de nuevo no vuelve a escribir.
+    const antes = almacen.escrituras.length;
+    progreso.marcarReproduccionParalelaUsada();
+    expect(almacen.escrituras.length).toBe(antes);
+  });
+
+  it('un nivel aprobado tras marcar la reproducción queda señalado como posterior', () => {
+    const progreso = cargarProgreso(null);
+    // Aprobado ANTES de usar la reproducción: no cuenta como posterior.
+    progreso.guardar('0.1', 1, calif(true, false, false), 3);
+    expect(progreso.aprobadoTrasReproduccionParalelaEn('0.1')).toBe(false);
+    progreso.marcarReproduccionParalelaUsada();
+    // Aprobado DESPUÉS de usar la reproducción: cuenta como posterior.
+    progreso.guardar('0.2', 1, calif(true, false, false), 3);
+    expect(progreso.aprobadoTrasReproduccionParalelaEn('0.2')).toBe(true);
+    // Reaprobar el 0.1 después tampoco lo convierte en falso: una vez marcado nunca retrocede.
+    progreso.guardar('0.1', 1, calif(true, false, false), 3);
+    expect(progreso.aprobadoTrasReproduccionParalelaEn('0.1')).toBe(true);
+  });
+
+  it('aprobar sin precisión no cuenta como aprobación posterior', () => {
+    const progreso = cargarProgreso(null);
+    progreso.marcarReproduccionParalelaUsada();
+    progreso.guardar('0.1', 1, calif(false, true, true), 3); // sin precisión
+    expect(progreso.aprobadoTrasReproduccionParalelaEn('0.1')).toBe(false);
+  });
+});
+
+describe('progreso · señal de pista abierta (Sin pistas)', () => {
+  it('arranca en falso por nivel y se marca persistiendo', () => {
+    const almacen = crearAlmacen();
+    const progreso = cargarProgreso(almacen);
+    expect(progreso.pistaAbiertaEn('0.1')).toBe(false);
+    progreso.marcarPistaAbierta('0.1');
+    expect(progreso.pistaAbiertaEn('0.1')).toBe(true);
+    // Otro nivel no se ve afectado.
+    expect(progreso.pistaAbiertaEn('0.2')).toBe(false);
+    // Persiste la marca aunque el nivel no tenga estrellas aún.
+    expect(cargarProgreso(almacen).pistaAbiertaEn('0.1')).toBe(true);
+  });
+
+  it('marcar una pista no retrocede las estrellas ni el mejor conteo del nivel', () => {
+    const progreso = cargarProgreso(null);
+    progreso.guardar('0.1', 1, calif(true, true, true), 4);
+    progreso.marcarPistaAbierta('0.1');
+    expect(progreso.estrellasDe('0.1')).toEqual({ precision: true, economia: true, abstraccion: true });
+    expect(progreso.mejorConteoDe('0.1')).toBe(4);
+    expect(progreso.pistaAbiertaEn('0.1')).toBe(true);
+  });
+});
+
+describe('progreso · señal de vistas de demostración (Buen ojo)', () => {
+  it('arranca en cero por nivel y cuenta cada vista, persistiendo', () => {
+    const almacen = crearAlmacen();
+    const progreso = cargarProgreso(almacen);
+    expect(progreso.vistasDemostracionDe('0.1')).toBe(0);
+    progreso.registrarVistaDemostracion('0.1');
+    expect(progreso.vistasDemostracionDe('0.1')).toBe(1);
+    progreso.registrarVistaDemostracion('0.1');
+    expect(progreso.vistasDemostracionDe('0.1')).toBe(2);
+    // Otro nivel cuenta aparte.
+    expect(progreso.vistasDemostracionDe('0.2')).toBe(0);
+    // Persiste.
+    expect(cargarProgreso(almacen).vistasDemostracionDe('0.1')).toBe(2);
+  });
+});
+
+describe('progreso · tolerancia de las señales nuevas', () => {
+  it('un progreso v2 SIN las señales nuevas se lee con los valores por defecto', () => {
+    const almacen = crearAlmacen({
+      [CLAVE]: JSON.stringify({
+        version: VERSION_FORMATO,
+        niveles: {
+          '0.1': { estrellas: { precision: true, economia: true, abstraccion: true }, mejorConteo: 1, ultimaSemilla: 42 },
+        },
+        ultimoReto: null,
+        guiaVista: false,
+      }),
+    });
+    const progreso = cargarProgreso(almacen);
+    // El registro válido se conserva íntegro.
+    expect(progreso.estrellasDe('0.1')).toEqual({ precision: true, economia: true, abstraccion: true });
+    // Y las señales ausentes caen en su valor por defecto, sin error.
+    expect(progreso.reproduccionParalelaUsada()).toBe(false);
+    expect(progreso.pistaAbiertaEn('0.1')).toBe(false);
+    expect(progreso.vistasDemostracionDe('0.1')).toBe(0);
+    expect(progreso.aprobadoTrasReproduccionParalelaEn('0.1')).toBe(false);
+  });
+
+  it('un registro con señales nuevas inválidas se tolera: el resto del registro se conserva con señales por defecto', () => {
+    const almacen = crearAlmacen({
+      [CLAVE]: JSON.stringify({
+        version: VERSION_FORMATO,
+        reproduccionParalela: 'sí', // tipo inválido → default false
+        niveles: {
+          '0.1': {
+            estrellas: { precision: true, economia: true, abstraccion: true },
+            mejorConteo: 1,
+            ultimaSemilla: 42,
+            pistaAbierta: 'no', // tipo inválido → default false
+            vistasDemostracion: -3, // inválido → default 0
+            aprobadoTrasReproduccionParalela: 7, // inválido → default false
+          },
+        },
+        ultimoReto: null,
+        guiaVista: false,
+      }),
+    });
+    const progreso = cargarProgreso(almacen);
+    expect(progreso.estrellasDe('0.1')).toEqual({ precision: true, economia: true, abstraccion: true });
+    expect(progreso.reproduccionParalelaUsada()).toBe(false);
+    expect(progreso.pistaAbiertaEn('0.1')).toBe(false);
+    expect(progreso.vistasDemostracionDe('0.1')).toBe(0);
+    expect(progreso.aprobadoTrasReproduccionParalelaEn('0.1')).toBe(false);
+  });
+
+  it('las señales nuevas van y vuelven por el almacén', () => {
+    const almacen = crearAlmacen();
+    const p1 = cargarProgreso(almacen);
+    p1.marcarReproduccionParalelaUsada();
+    p1.guardar('0.1', 1, calif(true, false, false), 3); // posterior
+    p1.marcarPistaAbierta('0.1');
+    p1.registrarVistaDemostracion('0.1');
+    p1.registrarVistaDemostracion('0.1');
+
+    const p2 = cargarProgreso(almacen);
+    expect(p2.reproduccionParalelaUsada()).toBe(true);
+    expect(p2.aprobadoTrasReproduccionParalelaEn('0.1')).toBe(true);
+    expect(p2.pistaAbiertaEn('0.1')).toBe(true);
+    expect(p2.vistasDemostracionDe('0.1')).toBe(2);
+  });
+
+  it('la migración v1 produce un contenido válido con las señales en su valor por defecto', () => {
+    const almacen = crearAlmacen({
+      [CLAVE_V1]: JSON.stringify({
+        version: 1,
+        niveles: { '0.1': { semilla: 1, estrellas: { precision: true, economia: true, abstraccion: true } } },
+        ultimoReto: null,
+      }),
+    });
+    const progreso = cargarProgreso(almacen);
+    expect(progreso.estrellasDe('0.1')).toEqual({ precision: true, economia: true, abstraccion: true });
+    expect(progreso.reproduccionParalelaUsada()).toBe(false);
+    expect(progreso.pistaAbiertaEn('0.1')).toBe(false);
+    expect(progreso.vistasDemostracionDe('0.1')).toBe(0);
+    expect(progreso.aprobadoTrasReproduccionParalelaEn('0.1')).toBe(false);
   });
 });

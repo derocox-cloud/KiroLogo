@@ -26,6 +26,8 @@ function montar(mundo: Mundo = 0): Montaje {
     contenedor: cont,
     mundo,
     presupuestoEstrella: 1,
+    limiteDuro: Number.MAX_SAFE_INTEGER,
+    limiteDuroActivo: false,
     pedirMensajeLimite: () => {},
     reloj: RELOJ_INMEDIATO,
   });

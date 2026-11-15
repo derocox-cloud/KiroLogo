@@ -1,5 +1,5 @@
 // Controles de ejecución de KiroLogo: seis acciones —ejecutar, detener, dar un
-// paso, cambiar la velocidad, reiniciar y volver a ver la demostración—, cada una
+// paso, reiniciar, volver a ver la demostración y ver en paralelo—, cada una
 // en un único elemento interactivo, más las cuatro velocidades del animador.
 //
 // Los controles no conocen el intérprete: piden a `main.ts` la ejecución por un
@@ -23,6 +23,8 @@ export interface CallbacksControles {
   readonly reiniciar: () => void;
   /** Pide volver a ver la demostración (repetición). */
   readonly verDemostracion: () => void;
+  /** Pide ver el recorrido del jugador y el de Kiro en paralelo. */
+  readonly verEnParalelo: () => void;
   /** Notifica un cambio de velocidad seleccionada. */
   readonly cambiarVelocidad: (v: Velocidad) => void;
 }
@@ -42,6 +44,8 @@ const NOMBRE_ACCION: Readonly<Record<AccionId, string>> = {
   paso: 'Dar un paso',
   reiniciar: 'Reiniciar',
   demostracion: 'Volver a ver la demostración',
+  // Contiene el texto visible «Ver en paralelo» (etiqueta contenida en el nombre).
+  paralelo: 'Ver en paralelo mi recorrido y el de Kiro',
 };
 
 const NOMBRE_VELOCIDAD: Readonly<Record<Velocidad, string>> = {
@@ -63,6 +67,7 @@ const TEXTO_ACCION: Readonly<Record<AccionId, { readonly icono: string; readonly
   paso: { icono: '⏭', texto: 'Paso' },
   reiniciar: { icono: '↺', texto: 'Reiniciar' },
   demostracion: { icono: '👁', texto: 'Ver la demostración' },
+  paralelo: { icono: '⇉', texto: 'Ver en paralelo' },
 };
 
 const TEXTO_VELOCIDAD: Readonly<Record<Velocidad, string>> = {
@@ -79,10 +84,10 @@ const VELOCIDADES: readonly Velocidad[] = ['lenta', 'normal', 'rapida', 'inmedia
 // Acciones
 // ============================================================================
 
-export type AccionId = 'ejecutar' | 'detener' | 'paso' | 'reiniciar' | 'demostracion';
+export type AccionId = 'ejecutar' | 'detener' | 'paso' | 'reiniciar' | 'demostracion' | 'paralelo';
 
-/** Orden visual de las cinco acciones de botón (la velocidad es un grupo aparte). */
-const ORDEN_ACCIONES: readonly AccionId[] = ['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion'];
+/** Orden visual de las seis acciones de botón (la velocidad es un grupo aparte). */
+const ORDEN_ACCIONES: readonly AccionId[] = ['ejecutar', 'detener', 'paso', 'reiniciar', 'demostracion', 'paralelo'];
 
 // ============================================================================
 // Interfaz pública
@@ -98,6 +103,11 @@ export interface Controles {
   velocidadSeleccionada(): Velocidad;
   /** true si una acción está habilitada. */
   habilitada(accion: AccionId): boolean;
+  /**
+   * Avisa si existe un intento ejecutado del reto en curso. «Ver en paralelo» solo se
+   * habilita con un intento y sin ejecución en curso; al cambiar de reto se descarta.
+   */
+  marcarIntentoEjecutado(hay: boolean): void;
   /** Pone los controles en modo «ejecución en curso». */
   marcarEjecucionEnCurso(): void;
   /** Pone los controles en modo «detenido por el jugador». */
@@ -149,6 +159,9 @@ export function crearControles(deps: DependenciasControles): Controles {
         break;
       case 'demostracion':
         cb.verDemostracion();
+        break;
+      case 'paralelo':
+        cb.verEnParalelo();
         break;
     }
   }
@@ -240,6 +253,13 @@ export function crearControles(deps: DependenciasControles): Controles {
     if (!bd.disabled) bd.focus();
   }
 
+  // «Ver en paralelo» necesita un intento que comparar y que nada se esté ejecutando.
+  let hayIntento = false;
+  let enEjecucion = false;
+  function actualizarParalelo(): void {
+    fijarHabilitada('paralelo', hayIntento && !enEjecucion);
+  }
+
   // Estado inicial: al entrar al nivel.
   function estadoInicial(): void {
     fijarHabilitada('ejecutar', true);
@@ -247,6 +267,7 @@ export function crearControles(deps: DependenciasControles): Controles {
     fijarHabilitada('paso', true);
     fijarHabilitada('reiniciar', true);
     fijarHabilitada('demostracion', true);
+    actualizarParalelo();
     fijarVelocidadesHabilitadas(true);
     velocidad = 'normal';
     pintarVelocidad();
@@ -272,7 +293,14 @@ export function crearControles(deps: DependenciasControles): Controles {
       return !botones.get(accion)!.disabled;
     },
 
+    marcarIntentoEjecutado(hay: boolean): void {
+      hayIntento = hay;
+      actualizarParalelo();
+    },
+
     marcarEjecucionEnCurso(): void {
+      enEjecucion = true;
+      actualizarParalelo();
       // Deshabilita ejecutar y demostración; habilita detener/paso/velocidad/reiniciar.
       fijarHabilitada('ejecutar', false);
       fijarHabilitada('demostracion', false);
@@ -285,6 +313,8 @@ export function crearControles(deps: DependenciasControles): Controles {
     },
 
     marcarDetenido(): void {
+      enEjecucion = false;
+      actualizarParalelo();
       // Detención pedida por el jugador: invierte los habilitados.
       fijarHabilitada('detener', false);
       fijarHabilitada('ejecutar', true);
@@ -296,6 +326,8 @@ export function crearControles(deps: DependenciasControles): Controles {
     },
 
     marcarFinDeSecuencia(): void {
+      enEjecucion = false;
+      actualizarParalelo();
       // Fin de secuencia: habilita ejecutar y demostración, deshabilita detener.
       fijarHabilitada('ejecutar', true);
       fijarHabilitada('demostracion', true);
