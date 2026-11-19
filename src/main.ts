@@ -84,6 +84,7 @@ import { crearPanelComandos } from './ui/panel-comandos.js';
 import { crearGloboKiro, type GloboKiro } from './ui/globo-kiro.js';
 import { crearControles, type Controles } from './ui/controles.js';
 import { crearConsola, type Consola } from './ui/consola.js';
+import { crearIndicadorProfundidad, textoProfundidad, type IndicadorProfundidad } from './ui/indicador-profundidad.js';
 import { crearDemostracion, type Demostracion, type RelojEspera } from './ui/demostracion.js';
 import { crearReproduccionParalelo, type ReproduccionParalelo } from './ui/reproduccion-paralelo.js';
 import { crearPanelSemilla, type PanelSemilla } from './ui/panel-semilla.js';
@@ -195,6 +196,7 @@ export interface Aplicacion {
   readonly globo: GloboKiro;
   /** Consola del mundo 4, para inspección en pruebas. */
   readonly consola: Consola;
+  readonly indicadorProfundidad: IndicadorProfundidad;
   /** Menú de mundos, para inspección en pruebas. */
   readonly menuMundos: MenuMundos;
   /** Panel de semilla, para inspección en pruebas. */
@@ -803,19 +805,24 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     rotulosEjecucion = [];
   }
 
+  // La profundidad solo se muestra en el paso a paso del mundo 5: es ahí donde el jugador mira una
+  // llamada tras otra. En la ejecución continua cambia demasiado rápido para leerse.
   animador.alAplicar((op) => {
     resaltarLinea(op.linea, op.lineaLlamada ?? null);
+    const dePaso = modoPaso && reto.nivel.mundo >= 5;
+    if (dePaso) indicadorProfundidad.mostrar(op.profundidad);
+    const prefijo = dePaso ? ` (${textoProfundidad(op.profundidad)})` : '';
     if (op.tipo === 'escribir') {
       consola.agregar(op.texto);
-      if (modoPaso) anunciar(`Línea ${op.linea}: escribiste «${op.texto}» en la consola.`);
+      if (modoPaso) anunciar(`Línea ${op.linea}${prefijo}: escribiste «${op.texto}» en la consola.`);
       return;
     }
     if (op.tipo === 'rotular') {
       rotulosEjecucion.push(op.texto);
-      if (modoPaso) anunciar(`Línea ${op.linea}: rotulaste «${op.texto}».`);
+      if (modoPaso) anunciar(`Línea ${op.linea}${prefijo}: rotulaste «${op.texto}».`);
       return;
     }
-    if (modoPaso) anunciar(`Línea ${op.linea}: ${textoEstadoTortuga(op.estadoDespues)}.`);
+    if (modoPaso) anunciar(`Línea ${op.linea}${prefijo}: ${textoEstadoTortuga(op.estadoDespues)}.`);
   });
 
   // Globo de Kiro.
@@ -889,6 +896,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   // La consola va después de los controles: es el orden de Tab (R10). Su registro no
   // anuncia nada por sí mismo; el resumen sale por `anunciar` (D17).
   const consola: Consola = crearConsola({ contenedor: centro });
+  const indicadorProfundidad: IndicadorProfundidad = crearIndicadorProfundidad({ contenedor: centro });
 
   // ---- Comparación con Kiro: superposición y diff (requisitos 23 y 27.5) ----
   // «Lado a lado» es la propia pantalla (la figura de Kiro y la tuya). La otra vista pone las
@@ -1193,6 +1201,8 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     // al cambiar de nivel se recalculan con el texto vigente, sin esperar otra tecla.
     panel.fijarFirmas(firmasDeProcedimientos(analizarLexico(editor.texto()).tokens, reto.nivel.mundo));
     consola.fijarMundo(reto.nivel.mundo);
+    indicadorProfundidad.fijarMundo(reto.nivel.mundo);
+    indicadorProfundidad.ocultar();
     vaciarSalida();
 
     // Panel de semilla: el código y si el nivel admite otro reto.
@@ -1602,6 +1612,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     vaciarSalida();
     resaltarLinea(0);
     dibujarPersonajesEnInicial();
+    indicadorProfundidad.ocultar();
     modoPaso = false;
     ejecutando = false;
     controles.marcarFinDeSecuencia();
@@ -1637,6 +1648,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     estado: () => estadoApp,
     ejecutar: ejecutarPrograma,
     consola,
+    indicadorProfundidad,
     darPaso,
     reiniciar,
     verDemostracion,

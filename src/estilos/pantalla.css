@@ -1525,3 +1525,48 @@ textarea {
     grid-column: 1 / -1;
   }
 }
+
+/* ========== PROFUNDIDAD DE LA LLAMADA (kl-profundidad) ========== */
+/* La ranura no ocupa espacio mientras está vacía (antes del mundo 5 o fuera del paso a paso). */
+.kl-profundidad-ranura {
+  grid-column: 1 / -1;
+}
+
+.kl-profundidad-ranura:empty {
+  display: none;
+}
+
+.kl-profundidad {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--color-consola-borde);
+  border-radius: var(--radio-control);
+  background-color: var(--color-consola-fondo);
+  color: var(--color-consola-texto);
+  font-size: 0.875rem;
+}
+
+.kl-profundidad-numero {
+  min-width: 1.5ch;
+  color: var(--color-consola-titulo);
+  font-size: 1rem;
+}
+
+.kl-profundidad-casillas {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: var(--color-consola-titulo);
+  font-weight: 800;
+}
+
+.kl-profundidad-casilla {
+  width: 0.6rem;
+  height: 0.9rem;
+  border: var(--borde-grueso) solid var(--color-consola-titulo);
+  border-radius: 2px;
+  background-color: var(--color-consola-titulo);
+}
