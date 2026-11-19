@@ -95,8 +95,8 @@ describe('desafio-infinito · niveles generados del mundo', () => {
     }
   });
 
-  it('el mundo 5 no tiene niveles generados hoy', () => {
-    expect(nivelesGeneradosDelMundo(5)).toEqual([]);
+  it('el mundo 5 tiene dos niveles generados: la espiral y el árbol', () => {
+    expect(nivelesGeneradosDelMundo(5)).toEqual(['5.2', '5.5']);
   });
 });
 
@@ -211,10 +211,10 @@ describe('desafio-infinito · Property 15: disponible sii mundo completo y con g
     }
   });
 
-  it('mundo sin niveles generados (5) ⇒ nunca disponible, aun completo', () => {
-    // Sin generados no hay desafío, sin importar el progreso.
+  it('mundo 5: como el 4, se liga a la insignia, así que solo precisión no basta y con tres estrellas sí', () => {
+    expect(desafioDisponible(5, cargarProgreso(null))).toBe(false);
     expect(desafioDisponible(5, conMundoCompleto(5))).toBe(false);
-    expect(desafioDisponible(5, conMundoCompleto(5, califTresEstrellas))).toBe(false);
+    expect(desafioDisponible(5, conMundoCompleto(5, califTresEstrellas))).toBe(true);
   });
 
   it('mundo completo con generados ⇒ disponible; retroactivo a 0, 1, 2 y 3', () => {

@@ -10,7 +10,7 @@
 // Vive en `juego/`: consume `niveles/` (el nivel), `lenguaje/` (AST e impresor)
 // y el `Reto` de `juego/`. No toca el DOM ni el globo; devuelve texto.
 
-import type { Programa, Instruccion, InvocacionComando, InvocacionProcedimiento } from '../lenguaje/ast.js';
+import type { Programa, Instruccion, Expresion, InvocacionComando, InvocacionProcedimiento } from '../lenguaje/ast.js';
 import { imprimir } from '../lenguaje/impresor.js';
 import type { Nivel } from '../niveles/tipos.js';
 import type { Reto } from './reto.js';
@@ -105,6 +105,7 @@ export function rellenarPistas(nivel: Nivel, reto: Reto): readonly [string, stri
     ['{cuadros}', String(p.cuadros)],
     ['{esqueleto}', esqueleto],
     ...placeholdersDelMundo4(reto.referencia),
+    ...placeholdersDelMundo5(reto.referencia),
   ];
 
   const rellenar = (plantilla: string): string =>
@@ -152,6 +153,84 @@ function placeholdersDelMundo4(
     ['{copias}', primera ? String(llamadas.length) : undefined],
     ['{puntas}', primerArgumento],
     ['{esqueletoConHuecos}', esqueletoConHuecos.exito ? esqueletoConHuecos.texto.trimEnd() : undefined],
+  ];
+}
+
+// ============================================================================
+// Placeholders del mundo 5
+// ============================================================================
+
+/** Valor de un literal numérico como texto, o `undefined` si la expresión no es un literal. */
+function literal(expresion: Expresion | undefined): string | undefined {
+  return expresion !== undefined && expresion.tipo === 'numeroLiteral' ? String(expresion.valor) : undefined;
+}
+
+/** Primera instrucción, a cualquier profundidad de las listas, que cumple el predicado. */
+function buscarInstruccion(
+  instrucciones: readonly Instruccion[],
+  predicado: (n: Instruccion) => boolean,
+): Instruccion | undefined {
+  for (const n of instrucciones) {
+    if (predicado(n)) return n;
+    const hijos =
+      n.tipo === 'definicionProcedimiento' ? n.cuerpo
+      : n.tipo === 'repeticion' ? n.cuerpo
+      : n.tipo === 'condicionalUnaRama' ? n.entonces
+      : n.tipo === 'condicionalDosRamas' ? [...n.entonces, ...n.siNo]
+      : [];
+    const hallada = buscarInstruccion(hijos, predicado);
+    if (hallada !== undefined) return hallada;
+  }
+  return undefined;
+}
+
+/**
+ * Valores que las pistas de los niveles 5.2 y 5.5 mencionan, leídos de la referencia: el límite y el
+ * incremento de la espiral, los lados por vuelta, el ángulo y el factor de las ramas del árbol. Lo que
+ * no se puede leer queda `undefined` y el marcador no se sustituye.
+ */
+function placeholdersDelMundo5(
+  referencia: Programa,
+): ReadonlyArray<readonly [string, string | undefined]> {
+  const raiz = referencia.instrucciones;
+  const condicional = buscarInstruccion(raiz, (n) => n.tipo === 'condicionalUnaRama');
+  const condicion = condicional?.tipo === 'condicionalUnaRama' ? condicional.condicion : undefined;
+  const limite = condicion?.tipo === 'expresionAritmetica' && condicion.operador === '>' ? literal(condicion.derecha) : undefined;
+
+  // La llamada recursiva está dentro de la definición; la inicial, en el nivel superior.
+  const definicion = raiz.find((n) => n.tipo === 'definicionProcedimiento');
+  const recursiva = definicion?.tipo === 'definicionProcedimiento'
+    ? buscarInstruccion(definicion.cuerpo, (n) => n.tipo === 'invocacionProcedimiento')
+    : undefined;
+  const primerArgumentoRecursivo = recursiva?.tipo === 'invocacionProcedimiento' ? recursiva.argumentos[0] : undefined;
+  const incremento = primerArgumentoRecursivo?.tipo === 'expresionAritmetica' && primerArgumentoRecursivo.operador === '+'
+    ? literal(primerArgumentoRecursivo.derecha)
+    : undefined;
+  const factor = primerArgumentoRecursivo?.tipo === 'expresionAritmetica' && primerArgumentoRecursivo.operador === '*'
+    ? literal(primerArgumentoRecursivo.derecha)
+    : undefined;
+
+  const giroDeEspiral = definicion?.tipo === 'definicionProcedimiento'
+    ? buscarInstruccion(definicion.cuerpo, (n) => n.tipo === 'invocacionComando' && n.nombre === 'GIRADERECHA')
+    : undefined;
+  const argumentoGiro = giroDeEspiral?.tipo === 'invocacionComando' ? giroDeEspiral.argumentos[0] : undefined;
+  const ladosEspiral = argumentoGiro?.tipo === 'expresionAritmetica' && argumentoGiro.operador === '/'
+    ? literal(argumentoGiro.derecha)
+    : undefined;
+
+  const giroDeArbol = definicion?.tipo === 'definicionProcedimiento'
+    ? buscarInstruccion(definicion.cuerpo, (n) => n.tipo === 'invocacionComando' && n.nombre === 'GIRAIZQUIERDA')
+    : undefined;
+  const llamadaInicial = raiz.find((n): n is InvocacionProcedimiento => n.tipo === 'invocacionProcedimiento');
+
+  return [
+    ['{limite}', limite],
+    ['{incremento}', incremento],
+    ['{factor}', factor],
+    ['{ladosEspiral}', ladosEspiral],
+    ['{inicio}', literal(llamadaInicial?.argumentos[0])],
+    ['{profundidad}', literal(llamadaInicial?.argumentos[1])],
+    ['{anguloRama}', giroDeArbol?.tipo === 'invocacionComando' ? literal(giroDeArbol.argumentos[0]) : undefined],
   ];
 }
 

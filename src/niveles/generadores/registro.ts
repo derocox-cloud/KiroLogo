@@ -16,6 +16,8 @@ import { generarFlor } from './flor.js';
 import { generarTresPoligonos } from './tres-poligonos.js';
 import { generarPoligonosEncajados } from './poligonos-encajados.js';
 import { generarEstrellaParametrica } from './estrella-parametrica.js';
+import { generarEspiral } from './espiral.js';
+import { generarArbol } from './arbol.js';
 
 // ============================================================================
 // Tabla de generadores
@@ -33,6 +35,8 @@ const GENERADORES: Readonly<Record<string, Generador>> = {
   'tres-poligonos-m4': generarTresPoligonos,
   'poligonos-encajados-m4': generarPoligonosEncajados,
   'estrella-parametrica-m4': generarEstrellaParametrica,
+  'espiral-m5': generarEspiral,
+  'arbol-m5': generarArbol,
 };
 
 // ============================================================================

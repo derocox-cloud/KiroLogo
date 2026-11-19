@@ -1,8 +1,8 @@
 // Insignias de KiroLogo.
 //
 // Las insignias de concepto se otorgan al dominar un mundo entero: las tres
-// estrellas en todos sus niveles. Aquí se reconocen cinco: *Secuencia* (mundo 0),
-// *Iteración* (mundo 1), *Descomposición* (mundo 2), *Simetría* (mundo 3) y *Generalización* (mundo 4). El
+// estrellas en todos sus niveles. Aquí se reconocen seis: *Secuencia* (mundo 0),
+// *Iteración* (mundo 1), *Descomposición* (mundo 2), *Simetría* (mundo 3), *Generalización* (mundo 4) y *Recursión* (mundo 5). El
 // otorgamiento se deriva
 // **solo** del progreso y el catálogo, sin estado propio persistido, de modo que
 // es reproducible a partir de las estrellas guardadas y, por lo mismo, se
@@ -21,7 +21,7 @@ import type { Progreso } from './progreso.js';
  * Las insignias de esta spec: cuatro por concepto (una por mundo) y cuatro
  * transversales, que premian formas de jugar en lugar de completar un mundo.
  */
-export type IdInsigniaDeConcepto = 'secuencia' | 'iteracion' | 'descomposicion' | 'simetria' | 'generalizacion';
+export type IdInsigniaDeConcepto = 'secuencia' | 'iteracion' | 'descomposicion' | 'simetria' | 'generalizacion' | 'recursion';
 export type IdInsigniaTransversal = 'depurador' | 'minimalista' | 'sinPistas' | 'buenOjo';
 export type IdInsignia = IdInsigniaDeConcepto | IdInsigniaTransversal;
 
@@ -36,6 +36,7 @@ export const MUNDO_DE_INSIGNIA: Readonly<Record<IdInsigniaDeConcepto, number>> =
   descomposicion: 2,
   simetria: 3,
   generalizacion: 4,
+  recursion: 5,
 };
 
 /** Recorrido tipado de las insignias de concepto, sin aserciones de tipo (R14.4). */
@@ -45,6 +46,7 @@ export const INSIGNIAS_DE_CONCEPTO: readonly IdInsigniaDeConcepto[] = [
   'descomposicion',
   'simetria',
   'generalizacion',
+  'recursion',
 ];
 
 // ============================================================================
@@ -126,6 +128,16 @@ export function insigniaSimetriaOtorgada(progreso: Progreso): boolean {
  */
 export function insigniaGeneralizacionOtorgada(progreso: Progreso): boolean {
   return mundoCompletoConTresEstrellas(4, progreso);
+}
+
+/**
+ * ¿Se otorga la insignia *Recursión*? Verdadero solo si los cinco niveles del
+ * mundo 5 tienen las tres estrellas cada uno. El nombre visible sale de `MUNDOS[5]`.
+ *
+ * @param progreso Progreso del jugador
+ */
+export function insigniaRecursionOtorgada(progreso: Progreso): boolean {
+  return mundoCompletoConTresEstrellas(5, progreso);
 }
 
 // ============================================================================
@@ -212,12 +224,13 @@ const OTORGADA_DE_CONCEPTO: Readonly<Record<IdInsigniaDeConcepto, (progreso: Pro
   descomposicion: insigniaDescomposicionOtorgada,
   simetria: insigniaSimetriaOtorgada,
   generalizacion: insigniaGeneralizacionOtorgada,
+  recursion: insigniaRecursionOtorgada,
 };
 
 /**
  * Las insignias otorgadas de un mundo. Hoy el mundo 0 tiene *Secuencia*, el
  * mundo 1 tiene *Iteración*, el mundo 2 tiene *Descomposición* y el mundo 3
- * tiene *Simetría* y el mundo 4 tiene *Generalización*; cualquier otro mundo devuelve una lista vacía.
+ * tiene *Simetría*, el mundo 4 tiene *Generalización* y el mundo 5 tiene *Recursión*; cualquier otro mundo devuelve una lista vacía.
  *
  * @param mundo Número de mundo (0 a 5)
  * @param progreso Progreso del jugador
