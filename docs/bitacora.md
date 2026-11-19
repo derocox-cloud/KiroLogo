@@ -1085,3 +1085,9 @@ Decisiones que se tomaron al cerrar los puntos que el prompt dejó abiertos.
 - **Deuda conocida.** Un procedimiento con valor se evalúa de forma sincrónica y recursiva dentro del
   intérprete, no como pasos del generador. Es correcto porque no emite operaciones, pero el paso a paso no
   muestra esas llamadas.
+- **Auditoría de la spec 06.** Dos revisiones independientes (`docs/auditoria-spec-06-revision.md` y
+  `docs/auditoria-spec-06-bugs.md`) sin hallazgos altos. Se corrigió: el desbordamiento de pila del parser con
+  miles de listas anidadas (tope de 64 y un único error), `usaRecursion` sin invocación externa, el indicador
+  de profundidad que sobrevivía a una ejecución continua, `SI (:n = 3)`, `<=`/`>=`/`<>`/`==` y la cascada de
+  `paraSinFin`. Quedan para otra spec: la tolerancia absoluta de la igualdad con magnitudes enormes, la guarda
+  de 5 s cuando el llamador no pasa `ahora` y varios mensajes de guarda.

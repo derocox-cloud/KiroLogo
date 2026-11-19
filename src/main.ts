@@ -1385,8 +1385,14 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     if (lexico.errores.length > 0) {
       return { programa: null, errores: lexico.errores };
     }
-    const sintactico = analizar(lexico.tokens, { mundo: reto.nivel.mundo });
-    return { programa: sintactico.programa, errores: sintactico.errores };
+    try {
+      const sintactico = analizar(lexico.tokens, { mundo: reto.nivel.mundo });
+      return { programa: sintactico.programa, errores: sintactico.errores };
+    } catch (e) {
+      // Red de seguridad: una entrada que desborde la pila del analizador no puede dejar al jugador sin mensaje.
+      if (!(e instanceof RangeError)) throw e;
+      return { programa: null, errores: [crearError('anidamientoDemasiadoProfundo', { maximo: 64 })] };
+    }
   }
 
   /**
@@ -1432,6 +1438,8 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
     if (demostracion && demostracion.enCurso()) demostracion.cederAEjecucion();
 
     animador.reiniciar(ESTADO_INICIAL); // borra solo la capa del jugador
+    indicadorProfundidad.ocultar();
+    modoPaso = false;
     vaciarSalida();
     resaltarLinea(0);
     marcador.restablecer();

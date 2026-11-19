@@ -147,6 +147,8 @@ como nivel de llamada; los de procedimiento sí, y el que ya no dibuja porque ll
 un nivel. La espiral del 5.1 usa 38 niveles; el copo de Koch de nivel 3, 4; un árbol de profundidad 6, 7.
 Los 100 niveles alcanzan con margen y no hace falta ajustarlos con argumentos.
 
+`usaRecursion` exige que el procedimiento se llame a sí mismo **y** que alguien lo invoque desde fuera de su cuerpo (otro `PARA` o el programa principal): una recursión que nadie arranca no abstrae nada.
+
 ## Colisiones de abreviaturas
 
 Revisadas y libres. `RE` (retrocede) y `RL` (rellena) se distinguen. `RESTA` y `RESTO` existen solo
@@ -286,12 +288,13 @@ Ejemplo: `PARA POLIGONO :lados :largo REPITE :lados [AV :largo GD 360 / :lados] 
 
 Ejemplo: `REPITE 36 [REPITE 4 [AV 100 GD 90] GD 10]` cuenta 5 — dos `REPITE`, un `AV` y dos `GD`.
 
-### Ids del mundo 5 (9 nuevos; el catálogo pasa de 64 a 73)
+### Ids del mundo 5 (10 nuevos; el catálogo pasa de 64 a 74)
 
 | Id | Causa |
 |---|---|
 | `comparadorBloqueado` | `=`, `<` o `>` antes del mundo 5; un solo aviso por programa |
-| `condicionMalFormada` | condición sin comparador, con dos comparadores, o comparación fuera de `SI`/`SINO` |
+| `condicionMalFormada` | condición sin comparador, encadenada, fuera de `SI`/`SINO`, entre paréntesis, o con `<=`, `>=`, `<>`, `==` (que no existen) |
+| `anidamientoDemasiadoProfundo` | más de 64 listas de `REPITE`, `SI`, `SINO` o `PARA` metidas una dentro de otra; el análisis se corta con este único error |
 | `altoFueraDeProcedimiento` | `ALTO` fuera de un `PARA` |
 | `devuelveFueraDeProcedimiento` | `DEVUELVE` fuera de un `PARA` |
 | `devuelveSinUso` | llamada como instrucción a un procedimiento con `DEVUELVE` |

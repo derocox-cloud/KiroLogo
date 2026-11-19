@@ -211,16 +211,25 @@ function nuncaExpresion(expresion: never): never {
 }
 
 /**
- * ¿El cuerpo de alguna definición contiene una invocación de su propio nombre?
+ * ¿Alguna definición se invoca a sí misma **y** se invoca desde fuera de su propio cuerpo? Igual que
+ * `usaParametros` (D19): una recursión que nadie arranca no abstrae nada ni dibuja nada, y sin esta
+ * condición se ganaba la abstracción (y la insignia) con un `PARA` recursivo sin llamar.
  */
-function hayRecursion(instrucciones: readonly Instruccion[]): boolean {
-  for (const nodo of instrucciones) {
-    if (nodo.tipo === 'definicionProcedimiento') {
-      if (invocaNombre(nodo.cuerpo, nodo.nombre)) return true;
+function hayRecursion(raiz: readonly Instruccion[]): boolean {
+  const recorrer = (instrucciones: readonly Instruccion[]): boolean => {
+    for (const nodo of instrucciones) {
+      if (
+        nodo.tipo === 'definicionProcedimiento' &&
+        invocaNombre(nodo.cuerpo, nodo.nombre) &&
+        invocadoFuera(raiz, nodo)
+      ) {
+        return true;
+      }
+      if (recorrer(hijos(nodo))) return true;
     }
-    if (hayRecursion(hijos(nodo))) return true;
-  }
-  return false;
+    return false;
+  };
+  return recorrer(raiz);
 }
 
 /** ¿Las instrucciones (recursivamente) invocan un procedimiento con ese nombre? */

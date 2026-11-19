@@ -106,8 +106,10 @@ describe('abstraccion · las seis claves', () => {
     expect(analizarClave(dos, 'maximoProcedimientos', 1)).toBe(false);
   });
 
-  it('usaRecursion: confirma solo si el cuerpo se invoca a sí mismo', () => {
-    expect(analizarClave(prog([definir('ESPIRAL', [], [av(10), llamar('ESPIRAL')])]), 'usaRecursion')).toBe(true);
+  it('usaRecursion: confirma solo si el cuerpo se invoca a sí mismo y alguien lo arranca desde fuera', () => {
+    expect(analizarClave(prog([definir('ESPIRAL', [], [av(10), llamar('ESPIRAL')]), llamar('ESPIRAL')]), 'usaRecursion')).toBe(true);
+    // Recursivo pero nunca invocado: no abstrae nada (auditoría spec 06, H2).
+    expect(analizarClave(prog([definir('ESPIRAL', [], [av(10), llamar('ESPIRAL')])]), 'usaRecursion')).toBe(false);
     expect(analizarClave(prog([definir('CUADRADO', [], [av(100)]), llamar('CUADRADO')]), 'usaRecursion')).toBe(false);
   });
 

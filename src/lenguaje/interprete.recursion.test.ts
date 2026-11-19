@@ -261,3 +261,40 @@ describe('impresor, conteo y abstracción', () => {
     expect(confirma('REPITE 3 [AV 1]')).toBe(false);
   });
 });
+
+describe('correcciones de la auditoría de la spec 06', () => {
+  it('usaRecursion no se otorga con un PARA recursivo que nadie invoca', () => {
+    const exigencia = [{ clave: 'usaRecursion' as const }];
+    const confirma = (t: string) => analizarAbstraccion(programaDe(t), exigencia).sinConfirmar.length === 0;
+    expect(confirma('PARA E :l SI :l > 9 [ALTO] AV :l E :l + 1 FIN AV 100')).toBe(false);
+    expect(confirma('PARA E :l SI :l > 9 [ALTO] AV :l E :l + 1 FIN E 1')).toBe(true);
+    // Arrancada desde otro procedimiento también cuenta.
+    expect(confirma('PARA E :l SI :l > 9 [ALTO] AV :l E :l + 1 FIN PARA G E 1 FIN G')).toBe(true);
+  });
+
+  it('una comparación entre paréntesis dice que va sin ellos, no que falta cerrar', () => {
+    const { errores } = leer('PARA P :n SI (:n = 3) [AV 1] FIN P 1');
+    expect(errores.map((e) => e.id)).toEqual(['condicionMalFormada']);
+    expect(errores[0]!.mensaje).toContain('sin paréntesis');
+  });
+
+  it.each(['<=', '>=', '<>', '=='])('%s no existe en KiroLogo y el mensaje lo dice', (simbolo) => {
+    const { errores } = leer(`PARA P :n SI :n ${simbolo} 3 [AV 1] FIN P 1`);
+    expect(errores.map((e) => e.id)).toEqual(['condicionMalFormada']);
+    expect(errores[0]!.mensaje).toContain('solo tiene =, < y >');
+  });
+
+  it('una condición rota en la misma línea que FIN no inventa un paraSinFin', () => {
+    expect(leer('PARA P :n SI :n FIN').errores.map((e) => e.id)).toEqual(['condicionMalFormada']);
+  });
+
+  it('listas anidadas hasta 64 niveles se leen; con más se corta con un solo mensaje y sin desbordar la pila', () => {
+    const anidado = (n: number) => 'REPITE 1 ['.repeat(n) + 'AV 1' + ']'.repeat(n);
+    expect(leer(anidado(30)).errores).toEqual([]);
+    for (const n of [65, 3000]) {
+      expect(leer(anidado(n)).errores.map((e) => e.id), `${n} niveles`).toEqual(['anidamientoDemasiadoProfundo']);
+    }
+    expect(leer('SI 1 = 1 ['.repeat(3000)).errores.map((e) => e.id)).toEqual(['anidamientoDemasiadoProfundo']);
+    expect(leer('PARA P ' + 'SI 1 = 1 ['.repeat(3000) + ' FIN').errores.map((e) => e.id)).toEqual(['anidamientoDemasiadoProfundo']);
+  });
+});

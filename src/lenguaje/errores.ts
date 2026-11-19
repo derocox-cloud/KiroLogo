@@ -50,7 +50,7 @@ export type IdError =
   | 'divisionPorCero' | 'numeroFueraDeRango' | 'vecesInvalidas' | 'azarRangoInvalido'
   | 'guardaEscrituras'
   // condicionales, recursión y DEVUELVE del mundo 5
-  | 'comparadorBloqueado' | 'condicionMalFormada'
+  | 'comparadorBloqueado' | 'condicionMalFormada' | 'anidamientoDemasiadoProfundo'
   | 'altoFueraDeProcedimiento' | 'devuelveFueraDeProcedimiento'
   | 'devuelveSinUso' | 'procedimientoSinValor' | 'procedimientoSinResultado' | 'operadorConEfectos'
   | 'invitacionAbstraccionRecursion'
@@ -97,7 +97,8 @@ const MUNDO_DE_SUGERENCIA_POR_OMISION = 3;
  * Por qué una condición de `SI` o `SINO` no sirve: no compara nada, compara más de una vez
  * (`a < b < c`) o se usó una comparación donde se espera un número.
  */
-export type MotivoCondicion = 'sinComparador' | 'encadenada' | 'fueraDeCondicion';
+export type MotivoCondicion =
+  | 'sinComparador' | 'encadenada' | 'fueraDeCondicion' | 'comparacionEntreParentesis' | 'operadorNoExiste';
 
 export interface ParametrosPorError {
   // léxicos (sin parámetros)
@@ -215,6 +216,7 @@ export interface ParametrosPorError {
   // condicionales, recursión y DEVUELVE del mundo 5
   readonly comparadorBloqueado: { readonly simbolo: string; readonly mundo: number };
   readonly condicionMalFormada: { readonly comando: string; readonly motivo: MotivoCondicion };
+  readonly anidamientoDemasiadoProfundo: { readonly maximo: number };
   readonly altoFueraDeProcedimiento: Record<string, never>;
   readonly devuelveFueraDeProcedimiento: Record<string, never>;
   readonly devuelveSinUso: { readonly nombre: string; readonly ejemplo: string };
@@ -366,6 +368,11 @@ export function crearError<K extends IdError>(
       }
       break;
     }
+    case 'anidamientoDemasiadoProfundo':
+      if (!enteroDesdeUno((parametros as ParametrosPorError['anidamientoDemasiadoProfundo']).maximo)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
     case 'comparadorBloqueado': {
       const p = parametros as ParametrosPorError['comparadorBloqueado'];
       if (!textoValido(p.simbolo) || !enteroDesdeUno(p.mundo)) {
@@ -375,7 +382,7 @@ export function crearError<K extends IdError>(
     }
     case 'condicionMalFormada': {
       const p = parametros as ParametrosPorError['condicionMalFormada'];
-      if (!textoValido(p.comando) || !['sinComparador', 'encadenada', 'fueraDeCondicion'].includes(p.motivo)) {
+      if (!textoValido(p.comando) || !['sinComparador', 'encadenada', 'fueraDeCondicion', 'comparacionEntreParentesis', 'operadorNoExiste'].includes(p.motivo)) {
         return crearError('solicitudDeErrorInvalida', {}, posicion);
       }
       break;
@@ -910,10 +917,18 @@ function construirMensaje<K extends IdError>(
           return `La condición de ${p.comando} tiene que comparar dos valores con =, < o >. Por ejemplo: ${p.comando === 'SI' ? 'SI :n > 0 [AVANZA 10]' : 'SINO :n > 0 [AVANZA 10] [AVANZA 20]'}`;
         case 'encadenada':
           return `La condición de ${p.comando} compara solo dos valores a la vez. Si necesitas dos comparaciones, usa un SI dentro de otro.`;
+        case 'comparacionEntreParentesis':
+          return `La comparación de ${p.comando} va sin paréntesis alrededor. Por ejemplo: ${p.comando === 'SI' ? 'SI :n = 3 [AVANZA 10]' : 'SINO :n = 3 [AVANZA 10] [AVANZA 20]'}`;
+        case 'operadorNoExiste':
+          return `KiroLogo solo tiene =, < y > para comparar. Para «menor o igual» o «distinto» usa un SI dentro de otro, o un SINO. Por ejemplo: ${p.comando === 'SI' ? 'SI :n > 3 [AVANZA 10]' : 'SINO :n > 3 [AVANZA 10] [AVANZA 20]'}`;
         case 'fueraDeCondicion':
           return 'Los símbolos =, < y > solo comparan dentro de la condición de SI o SINO. Para dar un número, escribe un valor o una cuenta.';
       }
       return `La condición de ${p.comando} no está bien formada.`;
+    }
+    case 'anidamientoDemasiadoProfundo': {
+      const p = parametros as ParametrosPorError['anidamientoDemasiadoProfundo'];
+      return `Tienes más de ${p.maximo} listas metidas una dentro de otra. Saca parte del programa a un procedimiento con PARA para que se lea mejor.`;
     }
     case 'altoFueraDeProcedimiento':
       return 'ALTO termina un procedimiento, pero aquí no hay ninguno que terminar. Escríbelo dentro de un PARA, normalmente en un SI.';

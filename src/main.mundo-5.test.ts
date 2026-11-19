@@ -254,3 +254,27 @@ describe('main · profundidad de la llamada en el paso a paso', () => {
     expect(anuncio()).not.toContain('profundidad');
   });
 });
+
+describe('main · correcciones de la auditoría', () => {
+  it('ejecutar tras un paso a paso oculta el indicador y deja de anunciar profundidad', () => {
+    const { reloj, avanzar } = relojManual();
+    const app = crearApp(almacenConMundo5Abierto(), reloj, movimientoNormal);
+    escribir(app, 'PARA P :n\n  SI :n = 0 [ALTO]\n  AV 10\n  P :n - 1\nFIN\nP 2');
+    app.ejecutar();
+    avanzar(60000);
+    app.reiniciar();
+    app.darPaso();
+    app.darPaso();
+    expect(indicador()).not.toBeNull();
+    app.ejecutar();
+    expect(indicador()).toBeNull();
+    expect(app.indicadorProfundidad.profundidad()).toBeNull();
+  });
+
+  it('un texto con miles de listas anidadas muestra un mensaje en español en lugar de fallar en silencio', () => {
+    const app = crearApp(almacenConMundo5Abierto());
+    escribir(app, 'SI 1 = 1 ['.repeat(5000));
+    expect(() => app.ejecutar()).not.toThrow();
+    expect(app.textoGlobo()).toContain('listas metidas una dentro de otra');
+  });
+});

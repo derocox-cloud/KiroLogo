@@ -20,6 +20,11 @@ import { crearError, resolverPalabraNoEjecutable, type ErrorKiroLogo } from './e
 const MUNDO_ARITMETICA = 4;
 /** Mundo en que se desbloquean los comparadores, `SI`, `SINO`, `ALTO`, `DEVUELVE` y la recursión. */
 const MUNDO_RECURSION = 5;
+/**
+ * Listas de `REPITE`, `SI`, `SINO` y cuerpos de `PARA` metidas unas en otras. El analizador es recursivo:
+ * sin tope, miles de niveles desbordan la pila de JS y el jugador no ve ningún mensaje.
+ */
+const MAXIMO_ANIDAMIENTO_LISTAS = 64;
 
 export interface OpcionesAnalisis {
   readonly mundo: Mundo;                     // el del Nivel en curso
@@ -102,6 +107,7 @@ interface Estado {
   profundidadParentesis: number;   // paréntesis abiertos en este punto (tope 32)
   nivelExpresion: number;          // anidamiento de unarios/operandos en curso (defensa de pila, tope 128)
   readonly alturas: WeakMap<object, number>; // altura de cada nodo de expresión construido
+  anidamientoExcedido: boolean;  // se pasó MAXIMO_ANIDAMIENTO_LISTAS y se descartó el resto del texto
   anidamiento: number;   // listas de REPITE y cuerpos de PARA abiertos en este punto
   readonly definidos: Set<string>;  // nombres ya definidos en ESTA 2ª pasada (para detectar redefinición)
   // Parámetros visibles: los del PARA en curso, o null en el programa principal. Un procedimiento no hereda los de quien lo llama.
@@ -171,6 +177,7 @@ export function analizar(
     nivelExpresion: 0,
     alturas: new WeakMap<object, number>(),
     anidamiento: 0,
+    anidamientoExcedido: false,
     definidos: new Set<string>(),
     ambito: null,
   };
@@ -822,6 +829,11 @@ function analizarPrimario(estado: Estado): Expresion | null {
     }
     if (interior === null) return null;
     const cierre = actual(estado);
+    if (cierre !== undefined && cierre.tipo === 'comparador') {
+      // `SI (:n = 3) [...]`: la comparación no es una expresión, así que no puede ir entre paréntesis.
+      reportar(estado, crearError('condicionMalFormada', { comando: 'SI', motivo: 'comparacionEntreParentesis' }, posicion(cierre)));
+      return null;
+    }
     if (cierre === undefined || cierre.tipo !== 'parentesis_cierra') {
       reportar(estado, crearError('parentesisSinCerrar', { linea: token.linea }, posicion(token)));
       return null;
@@ -909,6 +921,9 @@ function analizarCondicional(estado: Estado, token: Token, entrada: EntradaVocab
  */
 function descartarListas(estado: Estado, linea: number, cantidad: number): void {
   while (!finalizado(estado) && actual(estado)!.linea === linea && actual(estado)!.tipo !== 'corchete_abre') {
+    const t = actual(estado)!;
+    // `FIN` y `PARA` cierran o abren una definición: llevárselos inventaría un `paraSinFin`.
+    if (t.tipo === 'comando' && (t.valor === 'FIN' || t.valor === 'PARA')) return;
     estado.indice += 1;
   }
   for (let k = 0; k < cantidad; k++) {
@@ -944,6 +959,14 @@ function analizarCondicion(estado: Estado, comando: string, tokenComando: Token)
   estado.indice += 1;
 
   const siguiente = actual(estado);
+  // `<=`, `>=`, `<>` y `==` llegan como dos comparadores pegados: no existen en KiroLogo.
+  if (
+    siguiente !== undefined && siguiente.tipo === 'comparador' &&
+    siguiente.linea === comparador.linea && siguiente.columna === comparador.columna + 1
+  ) {
+    reportar(estado, crearError('condicionMalFormada', { comando, motivo: 'operadorNoExiste' }, posicion(comparador)));
+    return null;
+  }
   if (!puedeEmpezarExpresion(siguiente, estado) || siguiente!.linea !== comparador.linea) {
     return reportarExpresionIncompleta(estado, comparador);
   }
@@ -1233,11 +1256,25 @@ function analizarRepite(
 }
 
 /**
+ * ¿Una lista más superaría el tope de anidamiento? Si sí, reporta una sola vez y descarta lo que queda
+ * del texto: seguir analizando por debajo de un árbol que ya no se va a ejecutar solo sumaría errores.
+ */
+function excedeAnidamiento(estado: Estado): boolean {
+  if (estado.anidamiento < MAXIMO_ANIDAMIENTO_LISTAS) return false;
+  const token = actual(estado) ?? estado.tokens[estado.indice - 1];
+  reportar(estado, crearError('anidamientoDemasiadoProfundo', { maximo: MAXIMO_ANIDAMIENTO_LISTAS }, token ? posicion(token) : undefined));
+  estado.anidamientoExcedido = true;
+  estado.indice = estado.tokens.length;
+  return true;
+}
+
+/**
  * Analiza instrucciones hasta encontrar `corchete_cierra` o fin de entrada.
  * Devuelve la lista de instrucciones, o `null` si llegó al final sin corchete de cierre
  * (en cuyo caso ya reportó el error correspondiente).
  */
 function analizarListaInstrucciones(estado: Estado): readonly Instruccion[] | null {
+  if (excedeAnidamiento(estado)) return null;
   estado.anidamiento += 1;
   try {
     return analizarListaInstruccionesAbierta(estado);
@@ -1568,6 +1605,7 @@ function reportarParaAnidado(estado: Estado, tokenPara: Token): null {
  * sin consumir, para que `analizarDefinicion` decida) en vez de en un corchete.
  */
 function analizarCuerpoDefinicion(estado: Estado): readonly Instruccion[] {
+  if (excedeAnidamiento(estado)) return [];
   estado.anidamiento += 1;
   try {
     return analizarCuerpoDefinicionAbierto(estado);
@@ -1657,6 +1695,9 @@ function esOperadorBloqueado(estado: Estado, token: Token): boolean {
 
 /** Añade un error a la lista acumulada. */
 function reportar(estado: Estado, error: ErrorKiroLogo): void {
+  // Tras pasar el tope de anidamiento se descartó el resto del texto: los corchetes que «faltan
+  // cerrar» son consecuencia de eso y taparían el error que importa.
+  if (estado.anidamientoExcedido && error.id !== 'anidamientoDemasiadoProfundo') return;
   estado.errores.push(error);
 }
 
