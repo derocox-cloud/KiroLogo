@@ -8,7 +8,7 @@ import { VOCABULARIO, buscarComando, normalizarPalabra, EntradaVocabulario, Mund
 // ============================================================================
 
 /**
- * Identificadores de los 64 errores del catálogo.
+ * Identificadores de los errores del catálogo (64 hasta el mundo 4, 73 con el mundo 5).
  * Cada id corresponde a un mensaje en español con parámetros específicos.
  */
 export type IdError =
@@ -49,6 +49,11 @@ export type IdError =
   | 'parentesisSinCerrar' | 'parentesisDeMas' | 'expresionIncompleta' | 'expresionDemasiadoProfunda'
   | 'divisionPorCero' | 'numeroFueraDeRango' | 'vecesInvalidas' | 'azarRangoInvalido'
   | 'guardaEscrituras'
+  // condicionales, recursión y DEVUELVE del mundo 5
+  | 'comparadorBloqueado' | 'condicionMalFormada'
+  | 'altoFueraDeProcedimiento' | 'devuelveFueraDeProcedimiento'
+  | 'devuelveSinUso' | 'procedimientoSinValor' | 'procedimientoSinResultado' | 'operadorConEfectos'
+  | 'invitacionAbstraccionRecursion'
   // reproducción en paralelo (no son fallos: explican dónde se separaron los recorridos)
   | 'divergenciaGiro' | 'divergenciaAvance' | 'divergenciaJugadorCorto' | 'divergenciaExcesoFinal';
 
@@ -87,6 +92,12 @@ const SUGERENCIA_DE_BLOQUEO_POR_MUNDO: Readonly<Record<number, string>> = {
 };
 // Todo mundo sin entrada (los 0 a 2 no llegan aquí, y los futuros aún no la tienen) cae en esta.
 const MUNDO_DE_SUGERENCIA_POR_OMISION = 3;
+
+/**
+ * Por qué una condición de `SI` o `SINO` no sirve: no compara nada, compara más de una vez
+ * (`a < b < c`) o se usó una comparación donde se espera un número.
+ */
+export type MotivoCondicion = 'sinComparador' | 'encadenada' | 'fueraDeCondicion';
 
 export interface ParametrosPorError {
   // léxicos (sin parámetros)
@@ -200,6 +211,17 @@ export interface ParametrosPorError {
   readonly vecesInvalidas: { readonly linea: number; readonly valor: number };
   readonly azarRangoInvalido: { readonly linea: number; readonly valor: number };
   readonly guardaEscrituras: Record<string, never>;
+
+  // condicionales, recursión y DEVUELVE del mundo 5
+  readonly comparadorBloqueado: { readonly simbolo: string; readonly mundo: number };
+  readonly condicionMalFormada: { readonly comando: string; readonly motivo: MotivoCondicion };
+  readonly altoFueraDeProcedimiento: Record<string, never>;
+  readonly devuelveFueraDeProcedimiento: Record<string, never>;
+  readonly devuelveSinUso: { readonly nombre: string; readonly ejemplo: string };
+  readonly procedimientoSinValor: { readonly nombre: string };
+  readonly procedimientoSinResultado: { readonly nombre: string; readonly linea: number };
+  readonly operadorConEfectos: { readonly nombre: string; readonly linea: number };
+  readonly invitacionAbstraccionRecursion: Record<string, never>;
 
   // reproducción en paralelo
   readonly divergenciaGiro: { readonly gradosKiro: number; readonly gradosJugador: number };
@@ -344,6 +366,40 @@ export function crearError<K extends IdError>(
       }
       break;
     }
+    case 'comparadorBloqueado': {
+      const p = parametros as ParametrosPorError['comparadorBloqueado'];
+      if (!textoValido(p.simbolo) || !enteroDesdeUno(p.mundo)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
+    case 'condicionMalFormada': {
+      const p = parametros as ParametrosPorError['condicionMalFormada'];
+      if (!textoValido(p.comando) || !['sinComparador', 'encadenada', 'fueraDeCondicion'].includes(p.motivo)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
+    case 'devuelveSinUso': {
+      const p = parametros as ParametrosPorError['devuelveSinUso'];
+      if (!textoValido(p.nombre) || !textoValido(p.ejemplo)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
+    case 'procedimientoSinValor':
+      if (!textoValido((parametros as ParametrosPorError['procedimientoSinValor']).nombre)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    case 'procedimientoSinResultado':
+    case 'operadorConEfectos': {
+      const p = parametros as ParametrosPorError['procedimientoSinResultado'];
+      if (!textoValido(p.nombre) || !enteroDesdeUno(p.linea)) {
+        return crearError('solicitudDeErrorInvalida', {}, posicion);
+      }
+      break;
+    }
     case 'parentesisSinCerrar':
     case 'parentesisDeMas':
     case 'divisionPorCero':
@@ -457,9 +513,9 @@ export function crearError<K extends IdError>(
 
 /**
  * Parte del argumento a la que se refiere el error cuando el comando tiene un
- * componente con forma propia. Hoy solo la terna RGB de `PONCOLOR`.
+ * componente con forma propia: la terna RGB de `PONCOLOR` y la lista de `SI` y `SINO`.
  */
-export type ParteArgumento = 'terna';
+export type ParteArgumento = 'terna' | 'lista';
 
 /**
  * Plantilla de los mensajes de argumento de un tipo. `sustantivo` es lo que el
@@ -518,6 +574,9 @@ function tipoDelComando(comando: string): { readonly tipo: TipoArgumento; readon
 function mensajeArgumentoFaltante(comando: string, parte: ParteArgumento | undefined): string {
   if (parte === 'terna') {
     return `La terna de ${comando} necesita tres números entre corchetes. Por ejemplo: ${ejemploTerna(comando)}`;
+  }
+  if (parte === 'lista') {
+    return `${comando} necesita ${PLANTILLAS_ARGUMENTO.lista.sustantivo}. Por ejemplo: ${ejemploDe(comando)}`;
   }
   const { tipo, ejemplo } = tipoDelComando(comando);
   if (tipo === 'numero' || ejemplo === null) {
@@ -673,9 +732,9 @@ function construirMensaje<K extends IdError>(
     case 'guardaRecursion': {
       const p = parametros as ParametrosPorError['guardaRecursion'];
       if ('nombre' in p) {
-        return `Detuve la ejecución: ${p.nombre} se llama a sí mismo sin parar. ¿Le falta el caso que lo detiene?`;
+        return `Detuve la ejecución: ${p.nombre} se llama a sí mismo sin parar. Revisa su condición de corte: ¿hay un SI con ALTO, y lo que cambia en cada llamada llega a él?`;
       } else {
-        return `Detuve la ejecución: el procedimiento de la línea ${p.linea} se llama a sí mismo sin parar. ¿Le falta el caso que lo detiene?`;
+        return `Detuve la ejecución: el procedimiento de la línea ${p.linea} se llama a sí mismo sin parar. Revisa su condición de corte: ¿hay un SI con ALTO que lo detenga?`;
       }
     }
     case 'guardaTiempo':
@@ -838,6 +897,46 @@ function construirMensaje<K extends IdError>(
     }
     case 'guardaEscrituras':
       return 'Detuve la ejecución: escribiste demasiadas veces en la consola y en el lienzo. ¿Hay una repetición que nunca termina?';
+
+    // condicionales, recursión y DEVUELVE del mundo 5
+    case 'comparadorBloqueado': {
+      const p = parametros as ParametrosPorError['comparadorBloqueado'];
+      return `El símbolo ${p.simbolo} todavía no está disponible. Se desbloquea en el mundo ${p.mundo}.`;
+    }
+    case 'condicionMalFormada': {
+      const p = parametros as ParametrosPorError['condicionMalFormada'];
+      switch (p.motivo) {
+        case 'sinComparador':
+          return `La condición de ${p.comando} tiene que comparar dos valores con =, < o >. Por ejemplo: ${p.comando === 'SI' ? 'SI :n > 0 [AVANZA 10]' : 'SINO :n > 0 [AVANZA 10] [AVANZA 20]'}`;
+        case 'encadenada':
+          return `La condición de ${p.comando} compara solo dos valores a la vez. Si necesitas dos comparaciones, usa un SI dentro de otro.`;
+        case 'fueraDeCondicion':
+          return 'Los símbolos =, < y > solo comparan dentro de la condición de SI o SINO. Para dar un número, escribe un valor o una cuenta.';
+      }
+      return `La condición de ${p.comando} no está bien formada.`;
+    }
+    case 'altoFueraDeProcedimiento':
+      return 'ALTO termina un procedimiento, pero aquí no hay ninguno que terminar. Escríbelo dentro de un PARA, normalmente en un SI.';
+    case 'devuelveFueraDeProcedimiento':
+      return 'DEVUELVE entrega el valor de un procedimiento, pero aquí no hay ninguno. Escríbelo dentro de un PARA.';
+    case 'devuelveSinUso': {
+      const p = parametros as ParametrosPorError['devuelveSinUso'];
+      return `${p.nombre} devuelve un valor con DEVUELVE, pero no dijiste qué hacer con él. Por ejemplo: ${p.ejemplo}`;
+    }
+    case 'procedimientoSinValor': {
+      const p = parametros as ParametrosPorError['procedimientoSinValor'];
+      return `${p.nombre} no devuelve ningún valor, así que no se puede usar como número. Agrega un DEVUELVE a su PARA o llámalo como comando.`;
+    }
+    case 'procedimientoSinResultado': {
+      const p = parametros as ParametrosPorError['procedimientoSinResultado'];
+      return `Detuve la ejecución: ${p.nombre} terminó en la línea ${p.linea} sin devolver un valor. ¿Falta un DEVUELVE en algún camino?`;
+    }
+    case 'operadorConEfectos': {
+      const p = parametros as ParametrosPorError['operadorConEfectos'];
+      return `Detuve la ejecución: ${p.nombre} se usó como operador, así que solo puede calcular. En la línea ${p.linea} intentó mover la tortuga o escribir.`;
+    }
+    case 'invitacionAbstraccionRecursion':
+      return 'Lo lograste, pero sin recursión. Intenta enseñarme un procedimiento que se llame a sí mismo, con un SI que lo detenga cuando ya no haga falta seguir.';
 
     // reproducción en paralelo (explican el punto de divergencia; nunca bloquean)
     case 'divergenciaGiro': {

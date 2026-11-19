@@ -23,6 +23,8 @@ import { arbPrograma } from '../pruebas/arbitrarios.js';
 // un cambio en el catálogo no pase sin que esta prueba lo note.
 const TEXTO_REPITE =
   'Lo conseguiste. Pero dibujaste los cuatro lados uno a uno: yo los vi llegar de la misma forma, cuatro veces. ¿Puedes enseñarme a repetir con REPITE?';
+const TEXTO_RECURSION =
+  'Lo lograste, pero sin recursión. Intenta enseñarme un procedimiento que se llame a sí mismo, con un SI que lo detenga cuando ya no haga falta seguir.';
 const TEXTO_PARAMETROS =
   'Lo lograste, pero dibujaste con números fijos. Intenta enseñarme un PARA con parámetros, como :lados, y luego pídemelo cambiando los números.';
 const textoProcedimientos = (definidos: number, maximo: number): string =>
@@ -75,6 +77,7 @@ function lineaEsperada(exigencia: ExigenciaAbstraccion, definidos: number): stri
   switch (exigencia.clave) {
     case 'usaRepite': return TEXTO_REPITE;
     case 'usaParametros': return TEXTO_PARAMETROS;
+    case 'usaRecursion': return TEXTO_RECURSION;
     case 'maximoProcedimientos': return textoProcedimientos(definidos, exigencia.maximo);
     default: return null;
   }

@@ -123,6 +123,7 @@ function contarExpresion(nodo: Expresion): number {
     case 'menosUnario':
       return contarExpresion(nodo.operando);
     case 'comandoOperador':
+    case 'llamadaConValor':
       return contarExpresiones(nodo.argumentos);
     default:
       lanzarNodoDesconocido(nodo);

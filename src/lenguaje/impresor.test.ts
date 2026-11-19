@@ -97,10 +97,10 @@ describe('impresor', () => {
   // ==========================================================================
 
   describe('nodo no imprimible', () => {
-    it('un nodo reservado produce nodoNoImprimible sin texto parcial', () => {
+    it('un nodo con un número negativo literal produce nodoNoImprimible sin texto parcial', () => {
       const reservado: Instruccion = {
         tipo: 'condicionalUnaRama',
-        condicion: { tipo: 'numeroLiteral', valor: 1, linea: 1, columna: 1 },
+        condicion: { tipo: 'numeroLiteral', valor: -1, linea: 1, columna: 1 },
         entonces: [],
         linea: 1,
         columna: 1,

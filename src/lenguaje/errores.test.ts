@@ -331,7 +331,7 @@ describe('errores.ts', () => {
         });
         expect(error.id).toBe('guardaRecursion');
         expect(error.severidad).toBe('jugador');
-        expect(error.mensaje).toBe('Detuve la ejecución: ESPIRAL se llama a sí mismo sin parar. ¿Le falta el caso que lo detiene?');
+        expect(error.mensaje).toBe('Detuve la ejecución: ESPIRAL se llama a sí mismo sin parar. Revisa su condición de corte: ¿hay un SI con ALTO, y lo que cambia en cada llamada llega a él?');
       });
       
       it('guardaRecursion con línea', () => {
@@ -340,7 +340,7 @@ describe('errores.ts', () => {
         });
         expect(error.id).toBe('guardaRecursion');
         expect(error.severidad).toBe('jugador');
-        expect(error.mensaje).toBe('Detuve la ejecución: el procedimiento de la línea 10 se llama a sí mismo sin parar. ¿Le falta el caso que lo detiene?');
+        expect(error.mensaje).toBe('Detuve la ejecución: el procedimiento de la línea 10 se llama a sí mismo sin parar. Revisa su condición de corte: ¿hay un SI con ALTO que lo detenga?');
       });
       
       it('guardaTiempo', () => {
@@ -877,10 +877,10 @@ describe('errores.ts', () => {
     
     it('guardaRecursion tiene variante con nombre y con línea', () => {
       const errorConNombre = crearError('guardaRecursion', { nombre: 'ESPIRAL' });
-      expect(errorConNombre.mensaje).toBe('Detuve la ejecución: ESPIRAL se llama a sí mismo sin parar. ¿Le falta el caso que lo detiene?');
+      expect(errorConNombre.mensaje).toBe('Detuve la ejecución: ESPIRAL se llama a sí mismo sin parar. Revisa su condición de corte: ¿hay un SI con ALTO, y lo que cambia en cada llamada llega a él?');
       
       const errorConLinea = crearError('guardaRecursion', { linea: 10 });
-      expect(errorConLinea.mensaje).toBe('Detuve la ejecución: el procedimiento de la línea 10 se llama a sí mismo sin parar. ¿Le falta el caso que lo detiene?');
+      expect(errorConLinea.mensaje).toBe('Detuve la ejecución: el procedimiento de la línea 10 se llama a sí mismo sin parar. Revisa su condición de corte: ¿hay un SI con ALTO que lo detenga?');
     });
   });
 });

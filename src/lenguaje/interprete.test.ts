@@ -164,17 +164,15 @@ describe('interprete', () => {
       expect(r.error!.linea).not.toBeNull();
     });
 
-    it('un nodo reservado (no repeticion) reporta nodoNoImplementado', () => {
-      // condicionalUnaRama es un nodo reservado aun no ejecutable en mundo 0.
-      const cond: Instruccion = {
+    it('un condicional ejecuta su rama cuando la condición es cierta y la omite cuando no', () => {
+      const cond = (valor: number): Instruccion => ({
         tipo: 'condicionalUnaRama',
-        condicion: numero(1),
+        condicion: numero(valor),
         entonces: [inv('AVANZA', numero(100))],
         ...pos(),
-      };
-      const r = correr(prog([cond]));
-      expect(r.error).not.toBeNull();
-      expect(r.error!.id).toBe('nodoNoImplementado');
+      });
+      expect(correr(prog([cond(1)])).operaciones).toHaveLength(1);
+      expect(correr(prog([cond(0)])).operaciones).toHaveLength(0);
     });
   });
 
@@ -304,7 +302,7 @@ describe('interprete', () => {
       expect(rBajo.error!.id).toBe('guardaRecursion');
       // Nombra el procedimiento culpable.
       expect(rBajo.error!.mensaje).toBe(
-        'Detuve la ejecución: ESPIRAL se llama a sí mismo sin parar. ¿Le falta el caso que lo detiene?',
+        'Detuve la ejecución: ESPIRAL se llama a sí mismo sin parar. Revisa su condición de corte: ¿hay un SI con ALTO, y lo que cambia en cada llamada llega a él?',
       );
     });
 

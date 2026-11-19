@@ -148,6 +148,7 @@ function invocadoFuera(instrucciones: readonly Instruccion[], definicion: Defini
   for (const nodo of instrucciones) {
     if (nodo === definicion) continue;
     if (nodo.tipo === 'invocacionProcedimiento' && nodo.nombre === definicion.nombre) return true;
+    if (expresionesDe(nodo).some((e) => llamaEnExpresion(e, definicion.nombre))) return true;
     if (invocadoFuera(hijos(nodo), definicion)) return true;
   }
   return false;
@@ -194,6 +195,7 @@ function expresionReferenciaParametro(expresion: Expresion, parametros: Readonly
     case 'menosUnario':
       return expresionReferenciaParametro(expresion.operando, parametros);
     case 'comandoOperador':
+    case 'llamadaConValor':
       return expresion.argumentos.some((e) => expresionReferenciaParametro(e, parametros));
     case 'numeroLiteral':
     case 'palabraLiteral':
@@ -225,7 +227,42 @@ function hayRecursion(instrucciones: readonly Instruccion[]): boolean {
 function invocaNombre(instrucciones: readonly Instruccion[], nombre: string): boolean {
   for (const nodo of instrucciones) {
     if (nodo.tipo === 'invocacionProcedimiento' && nodo.nombre === nombre) return true;
+    if (expresionesDe(nodo).some((e) => llamaEnExpresion(e, nombre))) return true;
     if (invocaNombre(hijos(nodo), nombre)) return true;
   }
   return false;
+}
+
+/** Las expresiones que cuelgan directamente de una instrucción (no las de sus listas hijas). */
+function expresionesDe(nodo: Instruccion): readonly Expresion[] {
+  switch (nodo.tipo) {
+    case 'invocacionComando':
+    case 'invocacionProcedimiento':
+      return nodo.argumentos;
+    case 'repeticion':
+      return [nodo.veces];
+    case 'condicionalUnaRama':
+    case 'condicionalDosRamas':
+      return [nodo.condicion];
+    case 'devolucionValor':
+      return [nodo.valor];
+    default:
+      return [];
+  }
+}
+
+/** ¿La expresión llama, a cualquier profundidad, al procedimiento con ese nombre como valor? */
+function llamaEnExpresion(expresion: Expresion, nombre: string): boolean {
+  switch (expresion.tipo) {
+    case 'llamadaConValor':
+      return expresion.nombre === nombre || expresion.argumentos.some((e) => llamaEnExpresion(e, nombre));
+    case 'expresionAritmetica':
+      return llamaEnExpresion(expresion.izquierda, nombre) || llamaEnExpresion(expresion.derecha, nombre);
+    case 'menosUnario':
+      return llamaEnExpresion(expresion.operando, nombre);
+    case 'comandoOperador':
+      return expresion.argumentos.some((e) => llamaEnExpresion(e, nombre));
+    default:
+      return false;
+  }
 }

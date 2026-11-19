@@ -89,13 +89,44 @@ function imprimirInstruccion(
       salida.push(`${sangria}FIN`);
       return;
     }
-    // Nodos reservados para el mundo 5: no imprimibles todavía.
-    case 'condicionalUnaRama':
-    case 'condicionalDosRamas':
+    case 'condicionalUnaRama': {
+      const condicion = imprimirExpresion(instruccion.condicion, opciones);
+      imprimirListaEntreCorchetes(`${sangria}SI ${condicion} `, instruccion.entonces, nivel, salida, opciones, sangria);
+      return;
+    }
+    case 'condicionalDosRamas': {
+      const condicion = imprimirExpresion(instruccion.condicion, opciones);
+      const primera: string[] = [];
+      imprimirListaEntreCorchetes(`${sangria}SINO ${condicion} `, instruccion.entonces, nivel, primera, opciones, sangria);
+      // La segunda lista continúa en la línea del `]` de la primera.
+      const ultima = primera.pop()!;
+      const segunda: string[] = [];
+      imprimirListaEntreCorchetes('', instruccion.siNo, nivel, segunda, opciones, sangria);
+      salida.push(...primera);
+      salida.push(`${ultima} ${segunda[0]!}`, ...segunda.slice(1));
+      return;
+    }
     case 'interrupcion':
+      salida.push(`${sangria}ALTO`);
+      return;
     case 'devolucionValor':
-      lanzarNoImprimible();
+      salida.push(`${sangria}DEVUELVE ${imprimirExpresion(instruccion.valor, opciones)}`);
+      return;
   }
+}
+
+/** `<prefijo>[`, el cuerpo sangrado y `]`; una lista vacía va en una sola línea: `<prefijo>[]`. */
+function imprimirListaEntreCorchetes(
+  prefijo: string, cuerpo: readonly Instruccion[], nivel: number, salida: string[],
+  opciones: OpcionesImpresion, sangria: string,
+): void {
+  if (cuerpo.length === 0) {
+    salida.push(`${prefijo}[]`);
+    return;
+  }
+  salida.push(`${prefijo}[`);
+  imprimirLista(cuerpo, nivel + 1, salida, opciones);
+  salida.push(`${sangria}]`);
 }
 
 function imprimirComando(instruccion: InvocacionComando, opciones: OpcionesImpresion): string {
@@ -137,6 +168,7 @@ function argumentosDeInstruccion(argumentos: readonly Expresion[], opciones: Opc
 function precedencia(expresion: Expresion): number {
   switch (expresion.tipo) {
     case 'expresionAritmetica':
+      if (expresion.operador === '=' || expresion.operador === '<' || expresion.operador === '>') return 0;
       return expresion.operador === '+' || expresion.operador === '-' ? 1 : 2;
     case 'menosUnario':
       return 3;
@@ -153,6 +185,7 @@ function precedencia(expresion: Expresion): number {
 function terminaEnComandoAbierto(expresion: Expresion): boolean {
   switch (expresion.tipo) {
     case 'comandoOperador':
+    case 'llamadaConValor':
       return true;
     case 'expresionAritmetica':
       return terminaEnComandoAbierto(expresion.derecha);
@@ -192,11 +225,18 @@ function imprimirExpresion(expresion: Expresion, opciones: OpcionesImpresion): s
       }
       return [busqueda.entrada.nombre, ...argumentosDeInstruccion(expresion.argumentos, opciones)].join(' ');
     }
+    case 'llamadaConValor':
+      return [expresion.nombre, ...argumentosDeInstruccion(expresion.argumentos, opciones)].join(' ');
     case 'expresionAritmetica': {
-      if (expresion.operador !== '+' && expresion.operador !== '-' && expresion.operador !== '*' && expresion.operador !== '/') {
-        lanzarNoImprimible();
-      }
       const propia = precedencia(expresion);
+      if (propia === 0) {
+        // Comparación: sus lados son expresiones aritméticas; cualquier otra cosa lleva paréntesis.
+        const lado = (e: Expresion): string => {
+          const texto = imprimirExpresion(e, opciones);
+          return precedencia(e) === 0 ? entreParentesis(texto) : texto;
+        };
+        return `${lado(expresion.izquierda)} ${expresion.operador} ${lado(expresion.derecha)}`;
+      }
       let izquierda = imprimirExpresion(expresion.izquierda, opciones);
       if (precedencia(expresion.izquierda) < propia || terminaEnComandoAbierto(expresion.izquierda)) {
         izquierda = entreParentesis(izquierda);
