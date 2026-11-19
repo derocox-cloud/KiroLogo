@@ -88,8 +88,8 @@ redondeo intermedio, de izquierda a derecha.
 | 3 | `+` `-` | izquierda |
 
 `360 / 2 + 1` es 181; `360 / (2 + 1)` es 120. Los argumentos de los comandos de operador son
-**maximales**: `SUMA 1 2 * 3` es `SUMA 1 (2 * 3)`. Máximo 32 niveles de paréntesis anidados. `= < >` siguen
-reservados para el mundo 5.
+**maximales**: `SUMA 1 2 * 3` es `SUMA 1 (2 * 3)`. Máximo 32 niveles de paréntesis anidados. `= < >` se
+desbloquean en el mundo 5 y solo comparan dentro de la condición de `SI` y `SINO`.
 
 ### Procedimientos con parámetros: tres reglas
 
@@ -119,10 +119,33 @@ con parámetros no define el procedimiento (`paraConParametros`).
 
 | Comando | Abrev. | Qué hace | Ejemplo |
 |---|---|---|---|
-| `SI` | — | Ejecuta una lista si la condición es cierta | `SI :n = 0 [ALTO]` |
-| `SINO` | — | Condicional con dos ramas | `SINO :n = 0 [AV 10] [AV 20]` |
-| `ALTO` | — | Termina el procedimiento actual | `ALTO` |
-| `DEVUELVE` | `DV` | Termina y devuelve un valor | `DEVUELVE :n * 2` |
+| `SI` | — | Condición y una lista: la ejecuta si es cierta | `SI :n = 0 [ALTO]` |
+| `SINO` | — | Condición y dos listas: la primera si es cierta, la segunda si no | `SINO :n = 0 [AV 10] [AV 20]` |
+| `ALTO` | — | Termina el procedimiento actual (solo dentro de un `PARA`) | `ALTO` |
+| `DEVUELVE` | `DV` | Termina el procedimiento y devuelve un valor | `DEVUELVE :n * 2` |
+| `=` `<` `>` | — | Comparadores de la condición | `SI :largo > 200 [ALTO]` |
+
+**Comparadores.** Solo hay tres: no existen `<=`, `>=` ni `<>`, porque con ellos y un `SI` dentro de otro se
+expresa todo. La condición compara exactamente dos expresiones aritméticas en la misma línea: `SI :n [ALTO]`
+(sin comparador) y `SI 1 < :n < 3` (encadenada) son `condicionMalFormada`, igual que una comparación fuera
+de un `SI` (`AVANZA :n > 3`). La igualdad tiene tolerancia de 1e-9, así `0.1 + 0.2 = 0.3` es cierto, y
+`<` y `>` son estrictos y excluyen lo igual.
+
+**`ALTO`** sale del procedimiento en curso aunque esté dentro de un `REPITE` o de un `SI`; quien lo llamó
+sigue con la instrucción siguiente. Fuera de un `PARA` es `altoFueraDeProcedimiento`.
+
+**`DEVUELVE` y los procedimientos con valor.** Un `PARA` que contiene `DEVUELVE` es un *operador del
+jugador*: se usa donde va un número (`AVANZA DOBLE 50`), con sus argumentos maximales como `SUMA`, y llamarlo
+como instrucción es `devuelveSinUso`. Usar como número uno que no devuelve nada es `procedimientoSinValor`, y
+si ningún camino devuelve, `procedimientoSinResultado`. Como operador **solo calcula**: ejecuta `SI`, `SINO`,
+`REPITE`, `ALTO` y `DEVUELVE`; un comando de dibujo o `ESCRIBE` dentro es `operadorConEfectos`. Puede ser
+recursivo (`FACT :n - 1`). Ningún nivel del mundo 5 lo exige: está para que la recursión de valor no sea un
+callejón sin salida.
+
+**Recursión.** Un procedimiento puede llamarse a sí mismo. Los marcos de condicional y de `REPITE` no cuentan
+como nivel de llamada; los de procedimiento sí, y el que ya no dibuja porque llegó a su caso base también ocupa
+un nivel. La espiral del 5.1 usa 38 niveles; el copo de Koch de nivel 3, 4; un árbol de profundidad 6, 7.
+Los 100 niveles alcanzan con margen y no hace falta ajustarlos con argumentos.
 
 ## Colisiones de abreviaturas
 
@@ -196,7 +219,7 @@ Todos viven en `src/lenguaje/errores.ts`.
 | Variable no definida | `No sé qué vale :largo aquí. ¿La declaraste como parámetro en PARA?` |
 | Comando bloqueado | `REPITE todavía no está disponible. Se desbloquea en el mundo 1.` |
 | Guarda de pasos | `Detuve la ejecución: la tortuga llevaba demasiados pasos. ¿Hay una repetición que nunca termina?` |
-| Guarda de recursión | `Detuve la ejecución: ESPIRAL se llama a sí mismo sin parar. ¿Le falta el caso que lo detiene?` |
+| Guarda de recursión | `Detuve la ejecución: ESPIRAL se llama a sí mismo sin parar. Revisa su condición de corte: ¿hay un SI con ALTO, y lo que cambia en cada llamada llega a él?` |
 
 ### Ids del mundo 4 (17 nuevos; el catálogo pasa de 47 a 64)
 
@@ -262,3 +285,20 @@ Ejemplo: `PARA POLIGONO :lados :largo REPITE :lados [AV :largo GD 360 / :lados] 
 `POLIGONO 6 80` cuenta 4: `REPITE`, `AV`, `GD` y la llamada.
 
 Ejemplo: `REPITE 36 [REPITE 4 [AV 100 GD 90] GD 10]` cuenta 5 — dos `REPITE`, un `AV` y dos `GD`.
+
+### Ids del mundo 5 (9 nuevos; el catálogo pasa de 64 a 73)
+
+| Id | Causa |
+|---|---|
+| `comparadorBloqueado` | `=`, `<` o `>` antes del mundo 5; un solo aviso por programa |
+| `condicionMalFormada` | condición sin comparador, con dos comparadores, o comparación fuera de `SI`/`SINO` |
+| `altoFueraDeProcedimiento` | `ALTO` fuera de un `PARA` |
+| `devuelveFueraDeProcedimiento` | `DEVUELVE` fuera de un `PARA` |
+| `devuelveSinUso` | llamada como instrucción a un procedimiento con `DEVUELVE` |
+| `procedimientoSinValor` | un procedimiento sin `DEVUELVE` usado donde va un número |
+| `procedimientoSinResultado` | un procedimiento con valor terminó sin devolverlo; detiene la ejecución |
+| `operadorConEfectos` | un procedimiento con valor intentó dibujar o escribir; detiene la ejecución |
+| `invitacionAbstraccionRecursion` | no es fallo: invita a la recursión tras ganar precisión |
+
+`argumentoFaltante` gana `parte: 'lista'` para el `SI` o el `SINO` sin lista entre corchetes. Una condición rota
+descarta las listas del condicional para no reportar sus corchetes como un segundo error.

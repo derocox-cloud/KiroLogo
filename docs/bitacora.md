@@ -1055,3 +1055,33 @@ decisiones resultó inviable. Estas son las resoluciones, resumidas:
 
 Las resoluciones D6, D7, D9, D11, D13 y D17 alteran la letra de algún criterio y se marcaron «a confirmar»
 en el diseño.
+
+
+## Spec 06 · Mundo 5 · Fractales
+
+Decisiones que se tomaron al cerrar los puntos que el prompt dejó abiertos.
+
+- **El trazo repetido del árbol.** Se verificó con una prueba y no por deducción: el validador compara
+  máscaras rasterizadas, así que ir, volver e ir otra vez sobre la misma rama no suma píxeles. El árbol con
+  ese rodeo aprueba la precisión y solo pierde la economía.
+- **Tiempo del validador con fractales.** Cada generador (espiral y árbol) pasa sus 200 semillas con las tres
+  estrellas en unos 19 s. El copo de Koch completo tiene 192 tramos y valida en unos 100 ms.
+- **`DEVUELVE` entra, pero ningún nivel lo usa.** Se implementó como operador puro: un `PARA` con `DEVUELVE`
+  se usa donde va un número y solo calcula. Se decidió dejarlo porque el vocabulario ya lo declaraba y sin él
+  la recursión de valor (`FACT`) no tiene salida. La spec no le exige nada a ningún nivel.
+- **Profundidad.** Los 100 niveles alcanzan: 38 para la espiral del 5.1, 53 como máximo en las espirales
+  generadas, 4 para Koch de nivel 3 y 7 para un árbol de profundidad 6. No se ajusta el número con argumentos.
+- **Ángulos del árbol.** Quedan como excepción documentada, igual que las aproximaciones de curva: los pasos
+  de 5° no son derivables, pero la lección es la estructura recursiva. El rango del límite de la espiral sí se
+  ajustó (de 200 a 140–280) porque con 200 las espirales de 3 y 4 lados nunca llenaban la caja de 200 px.
+- **Comparadores.** Solo `=`, `<` y `>`, con tolerancia 1e-9 en la igualdad. Una comparación no es una
+  expresión más: existe solo como condición, para que `AVANZA :n > 3` falle con un mensaje propio.
+- **Profundidad en el paso a paso.** Una ranura bajo la consola con el número y una casilla por nivel (hasta
+  12 y «+»), y el mismo dato en el anuncio `aria-live` de cada paso. En la ejecución continua no se muestra:
+  cambia demasiado rápido para leerse.
+- **Pruebas que cambiaron de sentido.** `=`, `<` y `>` dejaron de ser caracteres inválidos; la guarda de
+  recursión cambió de texto para nombrar la condición de corte; el mundo 5 dejó de ser «próximamente» y su
+  desafío se liga a las tres estrellas como el del mundo 4.
+- **Deuda conocida.** Un procedimiento con valor se evalúa de forma sincrónica y recursiva dentro del
+  intérprete, no como pasos del generador. Es correcto porque no emite operaciones, pero el paso a paso no
+  muestra esas llamadas.

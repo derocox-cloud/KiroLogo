@@ -58,7 +58,7 @@ KiroLogo/
     ├── niveles/
     │   ├── tipos.ts             la forma de un Nivel y de un Generador
     │   ├── generadores/         un archivo por arquetipo: camino.ts, zigzag.ts, roseton.ts, flor.ts,
-    │   │                        tres-poligonos.ts, poligonos-encajados.ts, estrella-parametrica.ts…;
+    │   │                        tres-poligonos.ts, poligonos-encajados.ts, estrella-parametrica.ts, espiral.ts, arbol.ts…;
     │   │                        comun.ts y poligono-comun.ts son piezas compartidas y registro.ts
     │   │                        asocia cada id de generador con su función
     │   ├── mundo-0-primeros-pasos.ts
@@ -66,6 +66,7 @@ KiroLogo/
     │   ├── mundo-2-composicion.ts
     │   ├── mundo-3-rosetones.ts
     │   ├── mundo-4-parametros.ts
+    │   ├── mundo-5-fractales.ts
     │   ├── mundo-5-fractales.ts
     │   ├── mundo-bonus-arquitectura.ts
     │   ├── mundos.ts            nombre e insignia de cada mundo, para mostrarlos al jugador
@@ -77,6 +78,7 @@ KiroLogo/
     │   ├── comparacion.ts       lado a lado, superposición y reproducción en paralelo
     │   ├── globo-kiro.ts        diálogos, pistas y celebración
     │   ├── consola.ts           salida de ESCRIBE; ranura vacía antes del mundo 4
+    │   ├── indicador-profundidad.ts  profundidad de la llamada en el paso a paso; ranura vacía antes del mundo 5
     │   ├── control-desafio.ts   iniciar y avanzar el desafío infinito
     │   ├── reproduccion-paralelo.ts  dibujo de las dos tortugas, cuadro a cuadro
     │   ├── controles.ts         ejecutar, paso a paso, velocidad, reiniciar, otro reto
