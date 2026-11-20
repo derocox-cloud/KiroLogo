@@ -110,7 +110,7 @@ módulo, para que el número que ve el jugador mientras escribe sea exactamente 
   cuenta.
 - `maximoProcedimientos: 1` — no se permite resolverlo duplicando procedimientos; cuenta todas las
   definiciones, con o sin parámetros e invocadas o no
-- `usaRecursion` — un procedimiento se invoca a sí mismo
+- `usaRecursion` — un procedimiento se invoca a sí mismo y se invoca al menos una vez desde fuera de su propio cuerpo
 
 **La abstracción exige precisión.** La estrella de abstracción solo se otorga si la de precisión se
 otorgó: un programa que usa `REPITE` o parámetros pero dibuja otra cosa no demostró haber abstraído el

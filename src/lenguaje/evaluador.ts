@@ -8,6 +8,12 @@ export interface ContextoEvaluacion {
   readonly valores: ReadonlyMap<string, number>;
   readonly linea: number;
   readonly azar: (n: number) => number;
+  /**
+   * Ejecuta un procedimiento propio que devuelve un valor (`DEVUELVE`). El evaluador no sabe
+   * ejecutar instrucciones: quien lo invoca (el intérprete) resuelve la llamada y devuelve el valor
+   * o el error que cortó la ejecución. Sin esta función, una llamada con valor no se puede evaluar.
+   */
+  readonly llamar?: (nombre: string, argumentos: readonly number[], linea: number) => ResultadoEvaluacion;
 }
 
 export type ResultadoEvaluacion =
@@ -29,6 +35,16 @@ const INFIJOS: Readonly<Record<string, (a: number, b: number) => number>> = {
   '*': (a, b) => a * b,
   '/': (a, b) => a / b,
 };
+
+// Dos valores que difieren menos que esto son iguales: `0.1 + 0.2 = 0.3` tiene que ser cierto.
+const TOLERANCIA_COMPARACION = 1e-9;
+
+/** Comparaciones de las condiciones (mundo 5). Valen 1 si son ciertas y 0 si no. */
+export function comparar(operador: '=' | '<' | '>', a: number, b: number): boolean {
+  const iguales = Math.abs(a - b) < TOLERANCIA_COMPARACION;
+  if (operador === '=') return iguales;
+  return operador === '<' ? a < b && !iguales : a > b && !iguales;
+}
 
 // Divisores que exigen comprobar el cero antes de operar.
 const DIVISORES = new Set(['/', 'COCIENTE', 'RESTO']);
@@ -92,6 +108,13 @@ export function evaluar(expresion: Expresion, contexto: ContextoEvaluacion): Res
       return r.exito ? ok(-r.valor) : r;
     }
     case 'expresionAritmetica': {
+      if (expresion.operador === '=' || expresion.operador === '<' || expresion.operador === '>') {
+        const a = evaluar(expresion.izquierda, contexto);
+        if (!a.exito) return a;
+        const b = evaluar(expresion.derecha, contexto);
+        if (!b.exito) return b;
+        return ok(comparar(expresion.operador, a.valor, b.valor) ? 1 : 0);
+      }
       const operacion = INFIJOS[expresion.operador];
       if (operacion === undefined) return noImplementado(contexto, expresion.columna);
       return aplicarBinario(expresion.operador, operacion, expresion.izquierda, expresion.derecha, contexto, expresion.columna);
@@ -123,6 +146,16 @@ export function evaluar(expresion: Expresion, contexto: ContextoEvaluacion): Res
         contexto,
         expresion.columna,
       );
+    }
+    case 'llamadaConValor': {
+      if (contexto.llamar === undefined) return noImplementado(contexto, expresion.columna);
+      const valores: number[] = [];
+      for (const argumento of expresion.argumentos) {
+        const r = evaluar(argumento, contexto);
+        if (!r.exito) return r;
+        valores.push(r.valor);
+      }
+      return contexto.llamar(expresion.nombre, valores, expresion.linea);
     }
     case 'palabraLiteral':
       return noImplementado(contexto, expresion.columna);

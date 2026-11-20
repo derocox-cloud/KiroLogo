@@ -40,7 +40,7 @@ type Umbral = 'precision' | 'tresEstrellas';
 
 /**
  * Qué se exige en cada nivel para dar el mundo por completo. El desafío del mundo
- * 4 se liga a la insignia de Generalización, que pide las tres estrellas (R24.5);
+ * 4 y el del 5 se ligan a las insignias de Generalización y Recursión, que piden las tres estrellas;
  * en los demás basta la precisión.
  */
 const UMBRAL_DESAFIO_POR_MUNDO: Readonly<Record<Mundo, Umbral>> = {
@@ -49,7 +49,7 @@ const UMBRAL_DESAFIO_POR_MUNDO: Readonly<Record<Mundo, Umbral>> = {
   2: 'precision',
   3: 'precision',
   4: 'tresEstrellas',
-  5: 'precision',
+  5: 'tresEstrellas',
 };
 
 /**

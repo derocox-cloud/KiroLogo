@@ -1086,8 +1086,10 @@ describe('main · con el index.html real', () => {
     expect(ejecutar).toBe(primerComando + 1);
     // Y visualmente (el CSS no reordena nada) el DOM es ese mismo.
     const hijos = [...document.querySelectorAll('#programa > *')].map((e) => e.className.split(' ')[0]);
-    // La ranura de la consola va al final: vacía (y oculta) antes del mundo 4.
-    expect(hijos).toEqual(['kl-globo', 'kl-editor', 'kl-panel-comandos', 'kl-controles', 'kl-consola-ranura']);
+    // Las ranuras de la consola (mundo 4) y de la profundidad de llamada (mundo 5) van al final: vacías y ocultas antes.
+    expect(hijos).toEqual([
+      'kl-globo', 'kl-editor', 'kl-panel-comandos', 'kl-controles', 'kl-consola-ranura', 'kl-profundidad-ranura',
+    ]);
   });
 
   it('los seis atajos son una sola parada de Tab: no suman seis Tabs antes de Ejecutar', () => {

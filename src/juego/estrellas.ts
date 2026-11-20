@@ -127,6 +127,8 @@ export function calificar(
           lineas.push(crearError('invitacionAbstraccionRepite', {}).mensaje);
         } else if (exigencia.clave === 'usaParametros') {
           lineas.push(crearError('invitacionAbstraccionParametros', {}).mensaje);
+        } else if (exigencia.clave === 'usaRecursion') {
+          lineas.push(crearError('invitacionAbstraccionRecursion', {}).mensaje);
         } else if (exigencia.clave === 'maximoProcedimientos') {
           lineas.push(
             crearError('invitacionAbstraccionProcedimientos', {

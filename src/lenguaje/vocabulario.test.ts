@@ -152,9 +152,9 @@ describe('vocabulario.ts', () => {
         expect(producen).toEqual(['SUMA', 'RESTA', 'PRODUCTO', 'COCIENTE', 'RESTO', 'AZAR']);
       });
 
-      it('ejecutable es false solo en SI, SINO, ALTO y DEVUELVE', () => {
+      it('todo el vocabulario es ejecutable desde el mundo 5', () => {
         const noEjecutables = VOCABULARIO.filter(e => !e.ejecutable).map(e => e.nombre);
-        expect(noEjecutables).toEqual(['SI', 'SINO', 'ALTO', 'DEVUELVE']);
+        expect(noEjecutables).toEqual([]);
       });
 
       it('Mundo 5 tiene 4 comandos bloqueados', () => {

@@ -187,18 +187,41 @@ margen es un dato del nivel, dentro del rango de 0 a 10 que admite `tipos.ts`.
 
 ## Mundo 5 · Fractales — insignia *Recursión*
 
-Concepto: caso base, autosimilitud, un procedimiento que se llama a sí mismo.
+Concepto: caso base, autosimilitud, un procedimiento que se llama a sí mismo. Los cinco niveles exigen
+`usaRecursion` y tienen normalización fija.
 
 | Nivel | Tipo | Reto | Referencia / rangos |
 |---|---|---|---|
-| 5.1 | autorado | Espiral cuadrada | `PARA ESPIRAL :largo` `SI :largo > 200 [ALTO]` `AV :largo GD 90` `ESPIRAL :largo + 5` `FIN` |
-| 5.2 | generado | Espiral de n lados | ángulo `360/n` con n 3–6, incremento 5–20 |
-| 5.3 | autorado | Copo de Koch, un lado | `PARA KOCH :largo :nivel` con cuatro llamadas recursivas |
-| 5.4 | autorado | Copo de Koch completo | `REPITE 3 [KOCH 300 3 GD 120]` |
-| 5.5 | generado | Árbol binario | ángulo de rama 20–40 en pasos de 5, factor 0.6–0.8, profundidad 4–6 |
+| 5.1 | autorado | Espiral cuadrada | `PARA ESPIRAL :largo` `SI :largo > 200 [ALTO]` `AV :largo GD 90` `ESPIRAL :largo + 5` `FIN` `ESPIRAL 20` (conteo 6) |
+| 5.2 | generado | Espiral de n lados | ángulo `360/n` con n 3–6, incremento 5, 10, 15 o 20, inicio 20–60, límite 140–280 |
+| 5.3 | autorado | Copo de Koch, un lado | `PARA KOCH :largo :nivel` con cuatro llamadas recursivas; `KOCH 300 3` (conteo 10) |
+| 5.4 | autorado | Copo de Koch completo | `REPITE 3 [KOCH 300 3 GD 120]` (conteo 12) |
+| 5.5 | generado | Árbol binario | ángulo de rama 20–40 en pasos de 5, factor 0.6–0.8 en pasos de 0.05, profundidad 4–6, largo 80–160 |
 
 Los niveles de Koch son autorados: la estructura de las cuatro llamadas recursivas es la lección, y
 generarla al azar solo agregaría ruido.
+
+> **Rangos verificados (spec 06).** El límite de la espiral pasó de 200 a **140–280**: con límite ≤ 200 las
+> espirales de 3 y 4 lados no llenaban la caja de 200 px y el lazo las descartaba todas, así que solo salían
+> las de 5 y 6 lados. Con el rango nuevo salen los cuatro, y la profundidad máxima medida sobre 200 semillas
+> es 53. El 5.1 queda con una caja de 195 × 200 y el lado de Koch mide unos 87 × 300: son autorados y la regla
+> de la caja de 200 px es de los generadores.
+>
+> **Excepciones a la regla de ángulos y longitudes.** Los pasos de 5° del árbol no son múltiplos de 15 ni
+> `360/n`: es la excepción de las aproximaciones de curva, porque la lección es la estructura y no deducir el
+> ángulo, y se documenta aquí igual que los incrementos de espiral. El largo inicial del árbol sí cae en la
+> cuadrícula; los de sus ramas no, porque cada nivel multiplica por el factor.
+>
+> **El trazo repetido del árbol no cuesta nada.** `AV` seguido de `RE` pasa dos veces por la misma línea, y
+> el validador compara máscaras rasterizadas: no suma píxeles nuevos. Una prueba lo confirma con un árbol que
+> dibuja cada rama tres veces: sigue aprobando la precisión (pierde la economía por las instrucciones de más).
+> Con ángulos 15° de más, o sin `RETROCEDE`, no aprueba.
+>
+> **Sensibilidad de la espiral.** Con dilatación de 8 px, un incremento de 10 o de 20 en lugar de 5 no aprueba
+> el 5.1 (IoU 0.76 y 0.42); uno de 2 sí (0.92). Es la tolerancia de trazo, no un defecto.
+>
+> **Desafío infinito.** Los niveles 5.2 y 5.5 lo forman, y se liga a la insignia *Recursión*: pide las tres
+> estrellas en los cinco niveles, igual que el del mundo 4.
 
 ## Mundo bonus · Arquitectura — insignia *Arquitecto*
 

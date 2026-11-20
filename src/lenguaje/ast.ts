@@ -73,7 +73,11 @@ export interface ReferenciaParametro extends NodoBase {
   readonly nombre: string;
 }
 
-/** Generalización. `360 / :lados`, y también `:n = 0`. Implementa: spec 05 · mundo 4 · parámetros. */
+/**
+ * Generalización. `360 / :lados`, y también las comparaciones `:n = 0`, `:n < 1` y `:n > 200`
+ * (spec 06), que valen 1 si son ciertas y 0 si no. Las comparaciones solo aparecen como
+ * condición de `SI` y `SINO`.
+ */
 export interface ExpresionAritmetica extends NodoBase {
   readonly tipo: 'expresionAritmetica';
   readonly operador: '+' | '-' | '*' | '/' | '=' | '<' | '>';
@@ -118,6 +122,16 @@ export interface MenosUnario extends NodoBase {
 }
 
 /**
+ * Llamada a un procedimiento propio usada como valor: `AVANZA DOBLE 50`. Solo es válida
+ * para un `PARA` que contiene `DEVUELVE`. Implementa: spec 06 · mundo 5 · fractales.
+ */
+export interface LlamadaConValor extends NodoBase {
+  readonly tipo: 'llamadaConValor';
+  readonly nombre: string;
+  readonly argumentos: readonly Expresion[];
+}
+
+/**
  * Comando que produce valor (`SUMA`, `RESTA`, `PRODUCTO`, `COCIENTE`, `RESTO`, `AZAR`).
  * `nombre` es `string` a propósito: ninguna lista de nombres vive fuera de `vocabulario.ts`.
  */
@@ -133,7 +147,7 @@ export interface ComandoOperador extends NodoBase {
 
 export type Expresion =
   | NumeroLiteral | PalabraLiteral | ReferenciaParametro
-  | ExpresionAritmetica | MenosUnario | ComandoOperador;
+  | ExpresionAritmetica | MenosUnario | ComandoOperador | LlamadaConValor;
 export type Instruccion =
   | InvocacionComando | Repeticion | DefinicionProcedimiento | InvocacionProcedimiento
   | CondicionalUnaRama | CondicionalDosRamas | Interrupcion | DevolucionValor;

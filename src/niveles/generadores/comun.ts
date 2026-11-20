@@ -20,6 +20,8 @@ import type {
   Expresion,
   ReferenciaParametro,
   ExpresionAritmetica,
+  CondicionalUnaRama,
+  Interrupcion,
   DefinicionProcedimiento,
   InvocacionProcedimiento,
 } from '../../lenguaje/ast.js';
@@ -61,12 +63,27 @@ export function parametro(nombre: string, linea: number): ReferenciaParametro {
 
 /** Operación infija, p. ej. `360 / :lados`. */
 export function operacion(
-  op: '+' | '-' | '*' | '/',
+  op: '+' | '-' | '*' | '/' | '=' | '<' | '>',
   izquierda: Expresion,
   derecha: Expresion,
   linea: number,
 ): ExpresionAritmetica {
   return { tipo: 'expresionAritmetica', operador: op, izquierda, derecha, linea, columna: 1 };
+}
+
+/** `SI condicion [ entonces ]`. */
+export function si(condicion: Expresion, entonces: readonly Instruccion[], linea: number): CondicionalUnaRama {
+  return { tipo: 'condicionalUnaRama', condicion, entonces, linea, columna: 1 };
+}
+
+/** `ALTO`. */
+export function alto(linea: number): Interrupcion {
+  return { tipo: 'interrupcion', linea, columna: 1 };
+}
+
+/** Retrocede `n`, como `AVANZA` pero hacia atrás (el árbol vuelve sobre la rama). */
+export function retrocede(n: ValorOExpresion, linea: number): InvocacionComando {
+  return invocacion('RETROCEDE', n, linea);
 }
 
 /** `PARA NOMBRE :p1 :p2 … FIN`. */
@@ -188,7 +205,7 @@ export function cajaDeReferencia(programa: Programa): Caja | null {
     }
   }
 
-  const completo = recorrer(programa.instrucciones, estado, new Map(), 0);
+  const completo = recorrer(programa.instrucciones, estado, new Map(), 0) !== 'fallo';
 
   if (!completo || !estado.hayTramo) return null;
   return {
@@ -220,50 +237,65 @@ function valorDe(expresion: Expresion, entorno: Entorno): number | null {
   return r.exito ? r.valor : null;
 }
 
+/** Cómo terminó un recorrido: sin novedad, con `ALTO` (sale del procedimiento) o con un fallo. */
+type Salida = 'fin' | 'alto' | 'fallo';
+
 /**
  * Recorre una lista de instrucciones mutando el estado de la tortuga.
- * @returns `false` si hay que descartar el candidato (error, tope o procedimiento inexistente)
+ * @returns `'fallo'` si hay que descartar el candidato (error, tope o procedimiento inexistente)
  */
 function recorrer(
   instrucciones: readonly Instruccion[],
   estado: EstadoCaja,
   entorno: Entorno,
   profundidad: number,
-): boolean {
+): Salida {
   for (const instruccion of instrucciones) {
-    if (++estado.pasos > MAXIMO_PASOS_CAJA) return false;
+    if (++estado.pasos > MAXIMO_PASOS_CAJA) return 'fallo';
 
     if (instruccion.tipo === 'repeticion') {
       const valor = valorDe(instruccion.veces, entorno);
-      if (valor === null) return false;
+      if (valor === null) return 'fallo';
       const veces = cantidadDeRepeticiones(valor);
-      if (veces === null) return false;
+      if (veces === null) return 'fallo';
       for (let i = 0; i < veces; i++) {
-        if (++estado.pasos > MAXIMO_PASOS_CAJA) return false;
-        if (!recorrer(instruccion.cuerpo, estado, entorno, profundidad)) return false;
+        if (++estado.pasos > MAXIMO_PASOS_CAJA) return 'fallo';
+        const salida = recorrer(instruccion.cuerpo, estado, entorno, profundidad);
+        if (salida !== 'fin') return salida;
       }
       continue;
     }
+    if (instruccion.tipo === 'condicionalUnaRama' || instruccion.tipo === 'condicionalDosRamas') {
+      const condicion = valorDe(instruccion.condicion, entorno);
+      if (condicion === null) return 'fallo';
+      const lista =
+        condicion !== 0 ? instruccion.entonces : instruccion.tipo === 'condicionalDosRamas' ? instruccion.siNo : [];
+      const salida = recorrer(lista, estado, entorno, profundidad);
+      if (salida !== 'fin') return salida;
+      continue;
+    }
+    if (instruccion.tipo === 'interrupcion') return 'alto';
     if (instruccion.tipo === 'invocacionProcedimiento') {
       const definida = estado.definiciones.get(instruccion.nombre.toLowerCase());
-      if (definida === undefined) return false;
-      if (profundidad >= MAXIMA_PROFUNDIDAD_CAJA) return false;
-      if (instruccion.argumentos.length !== definida.parametros.length) return false;
+      if (definida === undefined) return 'fallo';
+      if (profundidad >= MAXIMA_PROFUNDIDAD_CAJA) return 'fallo';
+      if (instruccion.argumentos.length !== definida.parametros.length) return 'fallo';
       const nuevo = new Map<string, number>();
       for (let i = 0; i < definida.parametros.length; i++) {
         const valor = valorDe(instruccion.argumentos[i]!, entorno);
-        if (valor === null) return false;
+        if (valor === null) return 'fallo';
         nuevo.set(definida.parametros[i]!.toLowerCase(), valor);
       }
-      if (!recorrer(definida.cuerpo, estado, nuevo, profundidad + 1)) return false;
+      // `ALTO` termina solo el procedimiento llamado: quien lo llamó sigue.
+      if (recorrer(definida.cuerpo, estado, nuevo, profundidad + 1) === 'fallo') return 'fallo';
       continue;
     }
     if (instruccion.tipo === 'invocacionComando') {
-      if (!aplicarComando(instruccion, estado, entorno)) return false;
+      if (!aplicarComando(instruccion, estado, entorno)) return 'fallo';
     }
     // Las definiciones ya se registraron; otros nodos no aparecen en los candidatos.
   }
-  return true;
+  return 'fin';
 }
 
 /**

@@ -360,13 +360,11 @@ describe('lexer', () => {
     });
 
     for (const simbolo of ['=', '<', '>']) {
-      it(`${simbolo} sigue siendo caracterNoValido`, () => {
+      it(`${simbolo} es un comparador del mundo 5`, () => {
         const { tokens, errores } = analizarLexico(`1 ${simbolo} 2`);
-        expect(tokens.map(clave)).toEqual(['numero:1', 'numero:2']);
-        expect(errores).toHaveLength(1);
-        expect(errores[0]!.id).toBe('caracterNoValido');
-        expect(errores[0]!.linea).toBe(1);
-        expect(errores[0]!.columna).toBe(3);
+        expect(errores).toHaveLength(0);
+        expect(tokens.map(clave)).toEqual(['numero:1', `comparador:${simbolo}`, 'numero:2']);
+        expect(tokens[1]!.columna).toBe(3);
       });
     }
 

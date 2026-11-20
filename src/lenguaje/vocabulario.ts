@@ -12,7 +12,7 @@ export interface EntradaVocabulario {
   readonly ejemplo: string;
   readonly insercion: string;                           // texto que inserta el panel: nombre+' ', nombre, o ejemplo
   readonly produceValor: boolean;                       // true solo en los operadores que devuelven un valor
-  readonly ejecutable: boolean;                         // false en SI, SINO, ALTO y DEVUELVE
+  readonly ejecutable: boolean;                         // true en todo el vocabulario desde el mundo 5
 }
 
 // Tabla completa del vocabulario
@@ -314,30 +314,30 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     produceValor: false,
     ejecutable: true,
   },
-  // Mundo 5: control de flujo (bloqueado)
+  // Mundo 5: condicionales y recursión (bloqueados)
   {
     nombre: 'SI',
     abreviatura: null,
     aridad: 2,
     tiposArgumento: ['expresion', 'lista'],
     mundo: 5,
-    descripcion: 'Ejecuta comandos solo si una condición es verdadera.',
+    descripcion: 'Ejecuta una lista de comandos solo si la condición es cierta.',
     ejemplo: 'SI 5 > 3 [AVANZA 100]',
     insercion: 'SI 5 > 3 [AVANZA 100]',
     produceValor: false,
-    ejecutable: false,
+    ejecutable: true,
   },
   {
     nombre: 'SINO',
     abreviatura: null,
-    aridad: 2,
-    tiposArgumento: ['lista', 'lista'],
+    aridad: 3,
+    tiposArgumento: ['expresion', 'lista', 'lista'],
     mundo: 5,
-    descripcion: 'Ejecuta unos comandos si es verdadero, otros si es falso.',
-    ejemplo: 'SINO [AVANZA 100] [RETROCEDE 50]',
-    insercion: 'SINO [AVANZA 100] [RETROCEDE 50]',
+    descripcion: 'Con una condición, ejecuta una lista si es cierta y otra si no lo es.',
+    ejemplo: 'SINO 5 > 3 [AVANZA 100] [RETROCEDE 50]',
+    insercion: 'SINO 5 > 3 [AVANZA 100] [RETROCEDE 50]',
     produceValor: false,
-    ejecutable: false,
+    ejecutable: true,
   },
   {
     nombre: 'ALTO',
@@ -345,11 +345,11 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     aridad: 0,
     tiposArgumento: [],
     mundo: 5,
-    descripcion: 'Detiene la ejecución del programa.',
-    ejemplo: 'ALTO',
+    descripcion: 'Termina el procedimiento en curso. Es el caso base de una recursión.',
+    ejemplo: 'SI :n = 0 [ALTO]',
     insercion: 'ALTO',
     produceValor: false,
-    ejecutable: false,
+    ejecutable: true,
   },
   {
     nombre: 'DEVUELVE',
@@ -357,11 +357,11 @@ export const VOCABULARIO: readonly EntradaVocabulario[] = [
     aridad: 1,
     tiposArgumento: ['numero'],
     mundo: 5,
-    descripcion: 'Devuelve un valor desde un procedimiento.',
-    ejemplo: 'DEVUELVE 10',
+    descripcion: 'Termina el procedimiento y devuelve un valor, para usarlo como operador.',
+    ejemplo: 'DEVUELVE :n * 2',
     insercion: 'DEVUELVE ',
     produceValor: false,
-    ejecutable: false,
+    ejecutable: true,
   },
 ] as const;
 

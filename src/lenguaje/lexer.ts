@@ -12,7 +12,7 @@ import { crearError, type ErrorKiroLogo } from './errores.js';
 export type TipoToken =
   | 'comando' | 'identificador' | 'numero' | 'palabra'
   | 'parametro' | 'corchete_abre' | 'corchete_cierra'
-  | 'operador' | 'parentesis_abre' | 'parentesis_cierra';
+  | 'operador' | 'comparador' | 'parentesis_abre' | 'parentesis_cierra';
 
 interface TokenBase {
   readonly textoOriginal: string;   // tal como se escribió
@@ -119,6 +119,12 @@ export function analizarLexico(texto: string): ResultadoLexico {
     // No hay lexado especial de signos: `-5` son dos tokens.
     if (c === '+' || c === '-' || c === '*' || c === '/') {
       tokens.push({ tipo: 'operador', valor: c, textoOriginal: c, linea: cursor.linea, columna: cursor.columna });
+      avanzar(cursor);
+      continue;
+    }
+    // Comparadores del mundo 5: `=`, `<` y `>`. Solo estos tres; no hay `<=`, `>=` ni `<>`.
+    if (c === '=' || c === '<' || c === '>') {
+      tokens.push({ tipo: 'comparador', valor: c, textoOriginal: c, linea: cursor.linea, columna: cursor.columna });
       avanzar(cursor);
       continue;
     }

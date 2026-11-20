@@ -14,6 +14,7 @@ import {
 } from './mundo-2-composicion.js';
 import { MUNDO_3, NIVEL_3_1, REFERENCIA_3_1 } from './mundo-3-rosetones.js';
 import { MUNDO_4 } from './mundo-4-parametros.js';
+import { MUNDO_5 } from './mundo-5-fractales.js';
 import { MUNDOS } from './mundos.js';
 import type { Nivel, OrigenNivel, ExigenciaAbstraccion } from './tipos.js';
 import { contarInstrucciones } from '../lenguaje/conteo.js';
@@ -135,7 +136,7 @@ describe('nivel 0.1', () => {
 describe('catálogo', () => {
   it('incluye el mundo 0 con el nivel 0.1', () => {
     expect(CATALOGO.length).toBe(
-      MUNDO_0.length + MUNDO_1.length + MUNDO_2.length + MUNDO_3.length + MUNDO_4.length,
+      MUNDO_0.length + MUNDO_1.length + MUNDO_2.length + MUNDO_3.length + MUNDO_4.length + MUNDO_5.length,
     );
     expect(CATALOGO.some((n) => n.id === '0.1')).toBe(true);
   });

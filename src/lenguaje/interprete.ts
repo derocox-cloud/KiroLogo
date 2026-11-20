@@ -6,7 +6,13 @@
 import type { Programa, Instruccion } from './ast.js';
 import { buscarComando, type EntradaVocabulario } from './vocabulario.js';
 import { crearError, type ErrorKiroLogo } from './errores.js';
-import { evaluar, cantidadDeRepeticiones, formatearNumero, type ContextoEvaluacion } from './evaluador.js';
+import {
+  evaluar,
+  cantidadDeRepeticiones,
+  formatearNumero,
+  type ContextoEvaluacion,
+  type ResultadoEvaluacion,
+} from './evaluador.js';
 import {
   resolverColorPorNombre,
   resolverColorRGB,
@@ -315,11 +321,114 @@ export function* ejecutar(
 
   /** Profundidad = marcos de procedimiento en curso (0 en el cuerpo principal). */
   function profundidadActual(): number {
-    return nivelProcedimientos;
+    return nivelProcedimientos + nivelOperadores;
   }
 
   function contextoDe(marco: Marco, linea: number): ContextoEvaluacion {
-    return { valores: marco.entorno, linea, azar: azarDeEjecucion };
+    return { valores: marco.entorno, linea, azar: azarDeEjecucion, llamar: llamarComoOperador };
+  }
+
+  // ---- Procedimientos que devuelven un valor (DEVUELVE) ---------------------
+  //
+  // Una llamada dentro de una expresión no puede suspender el generador: se resuelve
+  // aquí, de forma sincrónica y recursiva, ejecutando solo las instrucciones que calculan
+  // (SI, SINO, REPITE, ALTO, DEVUELVE). Un operador no mueve la tortuga ni escribe, así que
+  // nunca emite operaciones y el flujo del generador sigue siendo el único camino de dibujo.
+  // La profundidad cuenta contra la misma guarda de 100 niveles que los procedimientos.
+
+  type ResultadoCuerpo =
+    | { readonly clase: 'valor'; readonly valor: number }
+    | { readonly clase: 'alto' }
+    | { readonly clase: 'fin' }
+    | { readonly clase: 'error'; readonly error: ErrorKiroLogo };
+
+  let nivelOperadores = 0;
+
+  function llamarComoOperador(nombre: string, valores: readonly number[], linea: number): ResultadoEvaluacion {
+    const definicion = definiciones.get(nombre);
+    if (definicion === undefined) {
+      return { exito: false, error: crearError('comandoNoPermitido', { nombre, linea }, { linea }) };
+    }
+    const entrada = { nombre, linea };
+    const guarda = comprobarGuardas(entrada);
+    if (guarda !== null) return { exito: false, error: errorDeGuarda(guarda, entrada) };
+
+    const entorno = new Map<string, number>();
+    definicion.parametros.forEach((parametro, i) => entorno.set(parametro, valores[i] ?? 0));
+
+    nivelOperadores += 1;
+    try {
+      const r = correrCuerpoDeOperador(definicion.cuerpo, entorno, nombre);
+      if (r.clase === 'error') return { exito: false, error: r.error };
+      if (r.clase === 'valor') return { exito: true, valor: r.valor };
+      return { exito: false, error: crearError('procedimientoSinResultado', { nombre, linea }, { linea }) };
+    } finally {
+      nivelOperadores -= 1;
+    }
+  }
+
+  function correrCuerpoDeOperador(
+    instrucciones: readonly Instruccion[],
+    entorno: Entorno,
+    nombre: string,
+  ): ResultadoCuerpo {
+    const contexto = (linea: number): ContextoEvaluacion => ({
+      valores: entorno,
+      linea,
+      azar: azarDeEjecucion,
+      llamar: llamarComoOperador,
+    });
+    for (const instruccion of instrucciones) {
+      const guardaCiclo = contarCiclo();
+      if (guardaCiclo !== null) return { clase: 'error', error: errorDeGuarda(guardaCiclo, null) };
+
+      switch (instruccion.tipo) {
+        case 'devolucionValor': {
+          const r = evaluar(instruccion.valor, contexto(instruccion.linea));
+          return r.exito ? { clase: 'valor', valor: r.valor } : { clase: 'error', error: r.error };
+        }
+        case 'interrupcion':
+          return { clase: 'alto' };
+        case 'condicionalUnaRama':
+        case 'condicionalDosRamas': {
+          const c = evaluar(instruccion.condicion, contexto(instruccion.linea));
+          if (!c.exito) return { clase: 'error', error: c.error };
+          const lista =
+            c.valor !== 0 ? instruccion.entonces : instruccion.tipo === 'condicionalDosRamas' ? instruccion.siNo : [];
+          const r = correrCuerpoDeOperador(lista, entorno, nombre);
+          if (r.clase !== 'fin') return r;
+          break;
+        }
+        case 'repeticion': {
+          const v = evaluar(instruccion.veces, contexto(instruccion.linea));
+          if (!v.exito) return { clase: 'error', error: v.error };
+          const veces = cantidadDeRepeticiones(v.valor);
+          if (veces === null) {
+            const error = crearError('vecesInvalidas', { linea: instruccion.linea, valor: v.valor }, { linea: instruccion.linea });
+            return { clase: 'error', error };
+          }
+          for (let i = 0; i < veces; i++) {
+            const guardaIteracion = contarCiclo();
+            if (guardaIteracion !== null) return { clase: 'error', error: errorDeGuarda(guardaIteracion, null) };
+            const r = correrCuerpoDeOperador(instruccion.cuerpo, entorno, nombre);
+            if (r.clase !== 'fin') return r;
+          }
+          break;
+        }
+        default: {
+          const error = crearError('operadorConEfectos', { nombre, linea: instruccion.linea }, { linea: instruccion.linea });
+          return { clase: 'error', error };
+        }
+      }
+    }
+    return { clase: 'fin' };
+  }
+
+  /** Un error de evaluación que viene de una guarda (recursión, pasos o tiempo) se informa como guarda. */
+  function fallo(error: ErrorKiroLogo): ResultadoEjecucion {
+    const guarda: TipoGuarda | null =
+      error.id === 'guardaRecursion' ? 'recursion' : error.id === 'guardaPasos' ? 'pasos' : error.id === 'guardaTiempo' ? 'tiempo' : null;
+    return { operaciones, guardaActivada: guarda, error };
   }
 
   /** Comprueba las tres guardas en orden fijo y devuelve la primera que aplica. */
@@ -436,7 +545,7 @@ export function* ejecutar(
         const expresion = instruccion.argumentos[i];
         if (expresion === undefined) break;
         const r = evaluar(expresion, contextoLlamada);
-        if (!r.exito) return { operaciones, guardaActivada: null, error: r.error };
+        if (!r.exito) return fallo(r.error);
         entornoNuevo.set(definicion.parametros[i]!, r.valor);
       }
       // Entrar a un marco nuevo: comprobar la guarda de recursión (y tiempo).
@@ -460,7 +569,7 @@ export function* ejecutar(
     // --- Repeticion: un solo marco con contador de iteraciones ---
     if (instruccion.tipo === 'repeticion') {
       const r = evaluar(instruccion.veces, contextoDe(marco, instruccion.linea));
-      if (!r.exito) return { operaciones, guardaActivada: null, error: r.error };
+      if (!r.exito) return fallo(r.error);
       const veces = cantidadDeRepeticiones(r.valor);
       if (veces === null) {
         const error = crearError('vecesInvalidas', { linea: instruccion.linea, valor: r.valor }, { linea: instruccion.linea });
@@ -479,10 +588,43 @@ export function* ejecutar(
       continue;
     }
 
-    // --- Nodos reservados que esta spec no ejecuta ---
-    if (instruccion.tipo !== 'invocacionComando') {
-      const error = crearError('nodoNoImplementado', { linea: instruccion.linea }, { linea: instruccion.linea });
-      return { operaciones, guardaActivada: null, error };
+    // --- Mundo 5: condicionales ---
+    // La rama elegida se apila como un marco más del mismo procedimiento: hereda el entorno y
+    // `ALTO` la atraviesa hasta el marco del procedimiento.
+    if (instruccion.tipo === 'condicionalUnaRama' || instruccion.tipo === 'condicionalDosRamas') {
+      const c = evaluar(instruccion.condicion, contextoDe(marco, instruccion.linea));
+      if (!c.exito) return fallo(c.error);
+      const rama =
+        c.valor !== 0 ? instruccion.entonces : instruccion.tipo === 'condicionalDosRamas' ? instruccion.siNo : [];
+      if (rama.length > 0) {
+        pila.push({
+          instrucciones: rama,
+          indice: 0,
+          restantes: 0,
+          entorno: marco.entorno,
+          procedimiento: null,
+          lineaLlamada: marco.lineaLlamada,
+        });
+      }
+      continue;
+    }
+
+    // --- Mundo 5: ALTO y DEVUELVE terminan el procedimiento en curso ---
+    // Se desapilan los marcos de REPITE y de condicionales hasta el del procedimiento, que también sale.
+    // Fuera de un procedimiento (solo posible con un AST armado a mano) termina el programa.
+    if (instruccion.tipo === 'interrupcion' || instruccion.tipo === 'devolucionValor') {
+      if (instruccion.tipo === 'devolucionValor') {
+        const v = evaluar(instruccion.valor, contextoDe(marco, instruccion.linea));
+        if (!v.exito) return fallo(v.error);
+      }
+      while (pila.length > 0) {
+        const salido = pila.pop()!;
+        if (salido.procedimiento !== null) {
+          nivelProcedimientos -= 1;
+          break;
+        }
+      }
+      continue;
     }
 
     // --- Invocación de comando ---
@@ -516,7 +658,7 @@ export function* ejecutar(
     // Evaluar el argumento en el entorno del marco antes de ejecutar (R4.1, R9.2, R9.3).
     const argumentoEvaluado = evaluarArgumento(busqueda.hallada ? busqueda.entrada : null, instruccion, contextoDe(marco, instruccion.linea));
     if (!argumentoEvaluado.exito) {
-      return { operaciones, guardaActivada: null, error: argumentoEvaluado.error };
+      return fallo(argumentoEvaluado.error);
     }
 
     // Producir la operación según la semántica del comando (por nombre canónico).
