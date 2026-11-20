@@ -756,13 +756,13 @@ describe('main · el paso a paso anuncia cada operación (requisito 28.2)', () =
 });
 
 // ============================================================================
-// El index.html real: ranuras y orden de foco (requisitos 24.5 y 28.1)
+// El juego.html real: ranuras y orden de foco (requisitos 24.5 y 28.1)
 // ============================================================================
 
-describe('main · con el index.html real', () => {
-  /** Monta el cuerpo de index.html (sin su script) tal como lo ve el navegador. */
+describe('main · con el juego.html real', () => {
+  /** Monta el cuerpo de juego.html (sin su script) tal como lo ve el navegador. */
   function montarIndexReal(): void {
-    const html = readFileSync(join(DIR_ESTE_ARCHIVO, '..', 'index.html'), 'utf8');
+    const html = readFileSync(join(DIR_ESTE_ARCHIVO, '..', 'juego.html'), 'utf8');
     const cuerpo = /<body>([\s\S]*)<\/body>/.exec(html)![1]!.replace(/<script[\s\S]*?<\/script>/g, '');
     document.documentElement.lang = 'es';
     document.body.innerHTML = cuerpo;
@@ -776,7 +776,7 @@ describe('main · con el index.html real', () => {
     montarIndexReal();
   });
 
-  it('cada pieza de la interfaz cae en su ranura de index.html', () => {
+  it('cada pieza de la interfaz cae en su ranura de juego.html', () => {
     crearAplicacion({
       documento: document,
       almacen: null,
@@ -2197,14 +2197,14 @@ describe('21.4 · contraste de cada par de colores de la paleta Kiro', () => {
     }
   });
 
-  it('el color de la barra del navegador (theme-color de index.html) es el fondo de la página', () => {
-    const html = readFileSync(join(RAIZ_SRC, '..', 'index.html'), 'utf8');
+  it('el color de la barra del navegador (theme-color de juego.html) es el fondo de la página', () => {
+    const html = readFileSync(join(RAIZ_SRC, '..', 'juego.html'), 'utf8');
     const meta = /<meta name="theme-color" content="(#[0-9a-f]{6})">/i.exec(html)![1]!;
     expect(meta.toLowerCase()).toBe(color('--color-fondo-primario'));
   });
 
   it('el selector de colores y la paleta Océano están retirados: ni script, ni hoja de estilos, ni archivo', () => {
-    const html = readFileSync(join(RAIZ_SRC, '..', 'index.html'), 'utf8');
+    const html = readFileSync(join(RAIZ_SRC, '..', 'juego.html'), 'utf8');
     expect(html).not.toContain('paletas.css');
     expect(html).not.toContain('kirologo.paleta');
     expect(readdirSync(join(RAIZ_SRC, 'estilos'))).not.toContain('paletas.css');
@@ -2520,10 +2520,10 @@ describe('21.4 · accesibilidad del DOM y recorrido por teclado', () => {
 //
 // El requisito 6.4 cierra el desvío 00·27.8: si el documento servido declara
 // enlaces o preconexiones a un origen de fuentes distinto del propio, una revisión
-// del documento DEBE fallar. Estas pruebas leen el index.html real y lo revisan.
+// del documento DEBE fallar. Estas pruebas leen el juego.html real y lo revisan.
 //
 // NOTA (tarea 8.1): con el estado actual estas pruebas FALLAN a propósito, porque
-// index.html todavía trae dos `preconnect` y un `stylesheet` a Google Fonts
+// juego.html todavía trae dos `preconnect` y un `stylesheet` a Google Fonts
 // (fonts.googleapis.com y fonts.gstatic.com). El fallo confirma que la verificación
 // detecta el incumplimiento de 00·27.8. El reemplazo por fuentes autoalojadas es la
 // tarea 8.3 y requiere aprobación del usuario; esta tarea solo escribe la prueba.
@@ -2560,7 +2560,7 @@ function hostDeRecurso(url: string): string | null {
 }
 
 describe('6.4 · el documento servido no pide fuentes a otro origen', () => {
-  const HTML = readFileSync(join(RAIZ_SRC, '..', 'index.html'), 'utf8');
+  const HTML = readFileSync(join(RAIZ_SRC, '..', 'juego.html'), 'utf8');
   const LINKS = etiquetasLink(HTML);
 
   it('ningún <link> declara una preconexión a un origen externo', () => {
@@ -2595,7 +2595,7 @@ describe('6.4 · el documento servido no pide fuentes a otro origen', () => {
     const encontrados = HOSTS_FUENTES_EXTERNOS.filter((host) => HTML.includes(host));
     expect(
       encontrados,
-      `referencias a servicios de fuentes externos en index.html:\n${encontrados.join('\n')}`,
+      `referencias a servicios de fuentes externos en juego.html:\n${encontrados.join('\n')}`,
     ).toEqual([]);
   });
 });
@@ -2689,7 +2689,7 @@ describe('6.1 / 6.2 · la fuente autoalojada se aplica y no cae a la reserva', (
 // ============================================================================
 //
 // Dato real del código (confirmado al escribir esta prueba):
-//   - El LOGO es un <img ... alt="KiroLogo"> dentro del <h1> de index.html, con
+//   - El LOGO es un <img ... alt="KiroLogo"> dentro del <h1> de juego.html, con
 //     src en /marca/ (public/marca/). Su nombre accesible sale del `alt`, que es
 //     texto: queda disponible aunque la imagen no cargue (sin red, bloqueada o con
 //     la carpeta `public/marca/` ausente del repositorio).
@@ -2703,11 +2703,11 @@ describe('6.1 / 6.2 · la fuente autoalojada se aplica y no cae a la reserva', (
 // activos de public/marca/ se hace en la tarea 11 (bitácora), no aquí.
 
 describe('7.7 / 7.8 · marca: logo <img> accesible y mascota de fondo CSS', () => {
-  const HTML = readFileSync(join(RAIZ_SRC, '..', 'index.html'), 'utf8');
+  const HTML = readFileSync(join(RAIZ_SRC, '..', 'juego.html'), 'utf8');
   const CSS_PANTALLA = readFileSync(join(RAIZ_SRC, 'estilos', 'pantalla.css'), 'utf8');
 
   describe('el logo es un <img> de /marca/ con nombre accesible «KiroLogo»', () => {
-    // Se monta solo el <body> del index.html real (sin su <script> de módulo) para
+    // Se monta solo el <body> del juego.html real (sin su <script> de módulo) para
     // inspeccionar el logo tal como lo ve el navegador, sin arrancar la aplicación.
     beforeEach(() => {
       const cuerpo = /<body>([\s\S]*)<\/body>/.exec(HTML)![1]!.replace(/<script[\s\S]*?<\/script>/g, '');
@@ -2766,7 +2766,7 @@ describe('7.7 / 7.8 · marca: logo <img> accesible y mascota de fondo CSS', () =
       expect(fondo![1]!).toMatch(/url\(\s*["']?\/marca\/mascota\.png["']?\s*\)/i);
     });
 
-    it('no se exige que la mascota sea un <img>: el index.html real no la monta como imagen', () => {
+    it('no se exige que la mascota sea un <img>: el juego.html real no la monta como imagen', () => {
       // Confirmación del dato real: el único <img> del documento es el logo; la
       // mascota no aparece como elemento <img> en ninguna parte del cuerpo servido.
       const cuerpo = /<body>([\s\S]*)<\/body>/.exec(HTML)![1]!;
@@ -2907,7 +2907,7 @@ describe('3.2 · la tortuga en reposo del Nivel 0.1 no tapa el extremo final del
 // ============================================================================
 //
 // El grupo «21.3 · estructura de archivos» y la prueba «cada pieza de la interfaz
-// cae en su ranura de index.html» (más la de «hay exactamente UNA región aria-live»)
+// cae en su ranura de juego.html» (más la de «hay exactamente UNA región aria-live»)
 // ya confirman la región aria-live única, las ranuras y los id de los lienzos. Esta
 // tarea NO duplica eso: añade solo el hueco que faltaba de los requisitos 1.1–1.4 y 1.8:
 //
@@ -3016,16 +3016,16 @@ describe('1.1–1.4 · pantalla.css define las tres columnas y el apilado respon
 // 1.2 · Si una pieza no encuentra su ranura, cuelga del contenedor raíz
 // ============================================================================
 //
-// Requisito 1.2: SI una pieza de interfaz no encuentra su Ranura en index.html,
+// Requisito 1.2: SI una pieza de interfaz no encuentra su Ranura en juego.html,
 // ENTONCES la Pantalla DEBERÁ colgarla del contenedor raíz #aplicacion, sin
 // omitirla ni interrumpir el montaje de las demás. En main.ts esto se resuelve con
 // `ranura(id) = getElementById(id) ?? contenedor`: una pieza sin ranura cae en
 // #aplicacion, y el resto de las piezas se montan igual.
 
 describe('1.2 · una pieza sin ranura cuelga de #aplicacion sin romper el montaje', () => {
-  /** Monta el cuerpo del index.html real (sin su <script>). */
+  /** Monta el cuerpo del juego.html real (sin su <script>). */
   function montarIndexReal(): void {
-    const html = readFileSync(join(RAIZ_SRC, '..', 'index.html'), 'utf8');
+    const html = readFileSync(join(RAIZ_SRC, '..', 'juego.html'), 'utf8');
     const cuerpo = /<body>([\s\S]*)<\/body>/.exec(html)![1]!.replace(/<script[\s\S]*?<\/script>/g, '');
     document.documentElement.lang = 'es';
     document.body.innerHTML = cuerpo;

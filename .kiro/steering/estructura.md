@@ -7,7 +7,8 @@ KiroLogo/
 ├── .gitignore
 ├── .nvmrc                       Node 24
 ├── amplify.yml                  compilación en AWS Amplify Hosting
-├── index.html
+├── index.html                   página de inicio: qué es el juego, instrucciones y botón a juego.html
+├── juego.html                   el juego (las ranuras que cuelga main.ts)
 ├── package.json                 name KiroLogo, private true, engines Node >= 24
 ├── package-lock.json            versionado, el despliegue usa npm ci
 ├── tsconfig.json
@@ -19,7 +20,8 @@ KiroLogo/
 │   ├── bitacora.md              cómo se concibió el juego y por qué
 │   └── prompts/                 el prompt de creación de cada spec
 └── src/
-    ├── main.ts                  punto de entrada, arma la pantalla
+    ├── main.ts                  punto de entrada del juego (juego.html), arma la pantalla
+    ├── inicio.ts                punto de entrada de la página de inicio (index.html): solo tipografías
     ├── lenguaje/                el pseudo-lenguaje KiroLogo
     │   ├── vocabulario.ts       tabla única de comandos: nombre, abreviatura, aridad, mundo
     │   ├── lexer.ts             texto → tokens (normaliza acentos y mayúsculas)

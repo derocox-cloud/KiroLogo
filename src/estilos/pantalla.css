@@ -3,7 +3,7 @@
  *
  * La capa ui/ construye su DOM con clases kl-* (editor, panel de comandos,
  * controles, globo, comparación, selector de nivel, semilla y marcador) y main.ts
- * las cuelga de las ranuras que declara index.html. Este archivo estiliza esas
+ * las cuelga de las ranuras que declara juego.html. Este archivo estiliza esas
  * clases y la disposición de los lienzos. Los colores, grosores y trazos del
  * LIENZO viven en tema.css y los lee el motor por getComputedStyle sobre el
  * :root; aquí solo se usan variables de tema para la interfaz, con reserva.
@@ -97,7 +97,7 @@ textarea {
 }
 
 /* El logo es una imagen de trazo fino y blanco: se agranda lo justo para que el trazo
-   se lea sobre el fondo oscuro. Boceto, ver index.html. */
+   se lea sobre el fondo oscuro. Boceto, ver juego.html. */
 .kl-logo {
   display: block;
   height: 3.9rem;

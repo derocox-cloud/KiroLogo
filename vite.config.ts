@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 import { configDefaults } from 'vitest/config';
 
@@ -38,6 +39,11 @@ export default defineConfig({
     // opcionales aparte, que no están instaladas en este proyecto.
     minify: 'oxc',
     rollupOptions: {
+      // Dos páginas: el inicio (index.html) y el juego (juego.html).
+      input: {
+        inicio: fileURLToPath(new URL('./index.html', import.meta.url)),
+        juego: fileURLToPath(new URL('./juego.html', import.meta.url))
+      },
       output: {
         manualChunks: undefined
       }
