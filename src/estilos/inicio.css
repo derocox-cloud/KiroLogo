@@ -540,3 +540,8 @@ main {
     width: 8rem;
   }
 }
+
+.ki-usuario {
+  color: var(--color-texto-secundario);
+  font-weight: 400;
+}
