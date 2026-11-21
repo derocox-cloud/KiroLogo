@@ -516,3 +516,27 @@ main {
     transition: none;
   }
 }
+
+/* ========== MASCOTA ========== */
+.ki-presentacion {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+}
+
+.ki-mascota {
+  flex: none;
+  width: 11rem;
+  height: auto;
+}
+
+@media (max-width: 560px) {
+  .ki-presentacion {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ki-mascota {
+    width: 8rem;
+  }
+}
