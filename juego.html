@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#0f0d16">
+  <title>KiroLogo</title>
+  <!-- Favicon en línea: sin archivo gráfico en el repositorio y sin petición extra. -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%A2%3C/text%3E%3C/svg%3E">
+  <!--
+    Tipografías: Bricolage Grotesque para títulos y texto, JetBrains Mono para el
+    código. Van autoalojadas (paquetes @fontsource-variable, licencia OFL) e
+    importadas desde src/main.ts, así que Vite las empaqueta como activos con hash
+    del propio origen: no se pide nada a un host de fuentes externo. Si por algún
+    motivo no cargan, tema.css deja la pila del sistema como reserva legible.
+  -->
+  <link rel="stylesheet" href="./src/estilos/tema.css">
+  <link rel="stylesheet" href="./src/estilos/pantalla.css">
+</head>
+<body>
+  <!--
+    Contrato con main.ts: la capa ui/ construye su propio DOM con clases kl-* y lo
+    cuelga de la RANURA que le corresponde (si la ranura no existe, del contenedor
+    #aplicacion). Este HTML aporta los elementos estáticos —la región aria-live,
+    la cabecera, los cuadros de los lienzos con los ids que main.ts busca por
+    getElementById— y las ranuras:
+
+      ranura-paleta       vacía: el selector de colores se retiró (cabecera)
+      ranura-ruta         selector de nivel (cabecera)
+      programa           globo, editor, controles y panel de comandos (centro)
+      ranura-comparacion  botón «Comparar con Kiro», junto al título de tu figura
+      ranura-leyenda      qué significa cada trazo, sobre el pie de la superposición
+      ranura-reto         panel de semilla, bajo la figura de Kiro
+      ranura-marcador     las tres estrellas del intento, bajo la figura del jugador
+
+    Layout de tres columnas (ver pantalla.css): la figura de Kiro a la izquierda,
+    el programa al centro y la figura del jugador a la derecha.
+  -->
+  <div id="aplicacion" role="application" aria-label="KiroLogo, juego para aprender pensamiento algorítmico">
+
+    <!-- Región aria-live: único canal de anuncios para lectores de pantalla -->
+    <div id="anuncios" class="region-anuncios" aria-live="polite" aria-atomic="true"></div>
+
+    <header class="kl-cabecera">
+      <div class="kl-marca">
+        <!-- BOCETO de marca: el logo es una imagen local (public/marca/, fuera de git) para
+             que el líder decida si se queda. El nombre sigue siendo texto accesible (alt). -->
+        <h1 class="kl-titulo"><img class="kl-logo" src="/marca/kirologo.png" alt="KiroLogo"></h1>
+        
+      </div>
+      <div id="ranura-paleta"></div>
+      <div id="ranura-ruta" class="kl-ruta"></div>
+    </header>
+
+    <main class="kl-escena">
+
+      <!-- Columna izquierda: la figura de Kiro (referencia) -->
+      <section class="kl-lienzo kl-lienzo-referencia" aria-labelledby="titulo-referencia">
+        <div class="kl-lienzo-cabecera">
+          <h2 id="titulo-referencia" class="kl-lienzo-titulo">Figura de Kiro</h2>
+        </div>
+        <div class="kl-lienzo-cuadro">
+          <canvas id="lienzo-fondo-referencia" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
+          <canvas id="lienzo-referencia" class="kl-capa kl-capa-estela kl-capa-estela-referencia" width="800" height="800" role="img" aria-label="Figura de Kiro">
+            Tu navegador no soporta canvas.
+          </canvas>
+          <canvas id="lienzo-personajes-referencia" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
+        </div>
+        <div id="ranura-reto" class="kl-lienzo-pie"></div>
+      </section>
+
+      <!-- Columna central: la sección del programa -->
+      <div id="programa" class="kl-programa"></div>
+
+      <!-- Columna derecha: la figura del jugador -->
+      <section class="kl-lienzo kl-lienzo-jugador" aria-labelledby="titulo-jugador">
+        <div class="kl-lienzo-cabecera">
+          <h2 id="titulo-jugador" class="kl-lienzo-titulo">Tu figura</h2>
+          <div id="ranura-comparacion"></div>
+        </div>
+        <div class="kl-lienzo-cuadro">
+          <canvas id="lienzo-fondo-jugador" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
+          <canvas id="lienzo-jugador" class="kl-capa kl-capa-estela kl-capa-estela-jugador" width="800" height="800" role="img" aria-label="Tu figura">
+            Tu navegador no soporta canvas.
+          </canvas>
+          <canvas id="lienzo-personajes-jugador" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
+          <!-- Comparación con Kiro: tapa la figura cuando se activa (ver ui/comparacion.ts). -->
+          <canvas id="lienzo-superposicion" class="kl-capa kl-capa-superposicion" width="800" height="800" role="img" aria-label="Tu figura sobre la de Kiro, con lo que coincide, lo que sobra y lo que falta" hidden>
+            Tu navegador no soporta canvas.
+          </canvas>
+          <div id="ranura-leyenda" class="kl-leyenda-ranura"></div>
+        </div>
+        <div class="kl-lienzo-pie">
+          <div id="ranura-marcador"></div>
+        </div>
+      </section>
+
+    </main>
+
+    <script type="module" src="./src/main.ts"></script>
+  </div>
+</body>
+</html>

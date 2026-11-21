@@ -5,100 +5,161 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#0f0d16">
-  <title>KiroLogo</title>
-  <!-- Favicon en línea: sin archivo gráfico en el repositorio y sin petición extra. -->
+  <meta name="description" content="KiroLogo: un juego para aprender pensamiento algorítmico escribiendo instrucciones en un Logo en español. Hecho con Kiro por estudiantes de la comunidad.">
+  <title>KiroLogo · Aprende a pensar como un programa</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%90%A2%3C/text%3E%3C/svg%3E">
   <!--
-    Tipografías: Bricolage Grotesque para títulos y texto, JetBrains Mono para el
-    código. Van autoalojadas (paquetes @fontsource-variable, licencia OFL) e
-    importadas desde src/main.ts, así que Vite las empaqueta como activos con hash
-    del propio origen: no se pide nada a un host de fuentes externo. Si por algún
-    motivo no cargan, tema.css deja la pila del sistema como reserva legible.
+    Página de inicio. El juego vive en juego.html. Comparte con él la paleta (tema.css)
+    y las tipografías autoalojadas (se importan desde src/inicio.ts), así que no pide
+    nada a un host externo. Los estilos propios están en src/estilos/inicio.css.
   -->
   <link rel="stylesheet" href="./src/estilos/tema.css">
-  <link rel="stylesheet" href="./src/estilos/pantalla.css">
+  <link rel="stylesheet" href="./src/estilos/inicio.css">
 </head>
 <body>
-  <!--
-    Contrato con main.ts: la capa ui/ construye su propio DOM con clases kl-* y lo
-    cuelga de la RANURA que le corresponde (si la ranura no existe, del contenedor
-    #aplicacion). Este HTML aporta los elementos estáticos —la región aria-live,
-    la cabecera, los cuadros de los lienzos con los ids que main.ts busca por
-    getElementById— y las ranuras:
+  <a class="kl-saltar" href="#contenido">Saltar al contenido</a>
 
-      ranura-paleta       vacía: el selector de colores se retiró (cabecera)
-      ranura-ruta         selector de nivel (cabecera)
-      programa           globo, editor, controles y panel de comandos (centro)
-      ranura-comparacion  botón «Comparar con Kiro», junto al título de tu figura
-      ranura-leyenda      qué significa cada trazo, sobre el pie de la superposición
-      ranura-reto         panel de semilla, bajo la figura de Kiro
-      ranura-marcador     las tres estrellas del intento, bajo la figura del jugador
+  <div class="ki-pagina">
 
-    Layout de tres columnas (ver pantalla.css): la figura de Kiro a la izquierda,
-    el programa al centro y la figura del jugador a la derecha.
-  -->
-  <div id="aplicacion" role="application" aria-label="KiroLogo, juego para aprender pensamiento algorítmico">
-
-    <!-- Región aria-live: único canal de anuncios para lectores de pantalla -->
-    <div id="anuncios" class="region-anuncios" aria-live="polite" aria-atomic="true"></div>
-
-    <header class="kl-cabecera">
-      <div class="kl-marca">
-        <!-- BOCETO de marca: el logo es una imagen local (public/marca/, fuera de git) para
-             que el líder decida si se queda. El nombre sigue siendo texto accesible (alt). -->
-        <h1 class="kl-titulo"><img class="kl-logo" src="/marca/kirologo.png" alt="KiroLogo"></h1>
-        
-      </div>
-      <div id="ranura-paleta"></div>
-      <div id="ranura-ruta" class="kl-ruta"></div>
+    <header class="ki-cabecera">
+      <h1 class="ki-logo-titulo"><img class="ki-logo" src="/marca/kirologo.png" alt="KiroLogo"></h1>
+      <a class="ki-enlace-cabecera" href="https://github.com/derocox-cloud/KiroLogo" rel="noopener">Código en GitHub</a>
     </header>
 
-    <main class="kl-escena">
+    <main id="contenido">
 
-      <!-- Columna izquierda: la figura de Kiro (referencia) -->
-      <section class="kl-lienzo kl-lienzo-referencia" aria-labelledby="titulo-referencia">
-        <div class="kl-lienzo-cabecera">
-          <h2 id="titulo-referencia" class="kl-lienzo-titulo">Figura de Kiro</h2>
+      <!-- Portada -->
+      <section class="ki-portada" aria-labelledby="titulo-portada">
+        <div class="ki-portada-texto">
+          <p class="ki-etiqueta">Un juego para aprender a programar</p>
+          <h2 id="titulo-portada" class="ki-titulo-grande">La tortuga hace exactamente lo que le dices, no lo que querías decir.</h2>
+          <p class="ki-lead">
+            En KiroLogo, Kiro monta sobre una tortuga y <strong>dibuja una figura en vivo</strong> frente a ti.
+            Tu reto es escribir el programa que la reproduce, en un Logo en español. Al lograrlo, subes de nivel.
+          </p>
+          <div class="ki-acciones">
+            <a class="ki-boton ki-boton-principal" href="/juego.html">▶ Jugar ahora</a>
+            <a class="ki-boton ki-boton-secundario" href="#como-se-juega">Cómo se juega</a>
+          </div>
         </div>
-        <div class="kl-lienzo-cuadro">
-          <canvas id="lienzo-fondo-referencia" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
-          <canvas id="lienzo-referencia" class="kl-capa kl-capa-estela kl-capa-estela-referencia" width="800" height="800" role="img" aria-label="Figura de Kiro">
-            Tu navegador no soporta canvas.
-          </canvas>
-          <canvas id="lienzo-personajes-referencia" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
-        </div>
-        <div id="ranura-reto" class="kl-lienzo-pie"></div>
+        <figure class="ki-portada-figura">
+          <img class="ki-captura" src="/marca/captura-demo.png" width="2880" height="1800"
+               alt="Pantalla de KiroLogo: a la izquierda la figura de Kiro, al centro el editor de código y el panel de comandos, a la derecha tu figura con las tres estrellas.">
+        </figure>
       </section>
 
-      <!-- Columna central: la sección del programa -->
-      <div id="programa" class="kl-programa"></div>
+      <!-- Qué es -->
+      <section class="ki-seccion" aria-labelledby="titulo-que-es">
+        <h2 id="titulo-que-es" class="ki-titulo">De qué trata</h2>
+        <p class="ki-texto">
+          KiroLogo es un juego web inspirado en el
+          <a href="https://el.media.mit.edu/logo-foundation/what_is_logo/logo_programming.html" rel="noopener">Logo del MIT Media Lab</a>.
+          Sirve para afianzar las nociones base de programación: <strong>secuencia, iteración, descomposición,
+          generalización y recursión</strong>. Todo está en español: comandos, mensajes, interfaz y documentación.
+        </p>
+        <ul class="ki-tarjetas">
+          <li class="ki-tarjeta">
+            <h3 class="ki-tarjeta-titulo">Tú escribes</h3>
+            <p>Eres quien programa. Escribes las instrucciones en el editor.</p>
+          </li>
+          <li class="ki-tarjeta ki-tarjeta-kiro">
+            <h3 class="ki-tarjeta-titulo">Kiro interpreta</h3>
+            <p>El fantasma lee tu programa, comenta, da pistas y celebra contigo.</p>
+          </li>
+          <li class="ki-tarjeta">
+            <h3 class="ki-tarjeta-titulo">La tortuga ejecuta</h3>
+            <p>Obedece al pie de la letra y deja una estela con el lápiz. Si el dibujo sale mal, el error está en las instrucciones.</p>
+          </li>
+        </ul>
+      </section>
 
-      <!-- Columna derecha: la figura del jugador -->
-      <section class="kl-lienzo kl-lienzo-jugador" aria-labelledby="titulo-jugador">
-        <div class="kl-lienzo-cabecera">
-          <h2 id="titulo-jugador" class="kl-lienzo-titulo">Tu figura</h2>
-          <div id="ranura-comparacion"></div>
+      <!-- Instrucciones -->
+      <section id="como-se-juega" class="ki-seccion" aria-labelledby="titulo-como">
+        <h2 id="titulo-como" class="ki-titulo">Cómo se juega</h2>
+        <ol class="ki-pasos">
+          <li>
+            <span class="ki-paso-titulo">Mira la demostración.</span>
+            Al entrar a un nivel, Kiro y la tortuga recorren la figura. Fíjate en el punto de partida, el rumbo, la longitud de cada tramo y cada giro.
+          </li>
+          <li>
+            <span class="ki-paso-titulo">Escribe tu programa.</span>
+            Usa el editor del centro. El panel de comandos te muestra qué hace cada instrucción y la inserta con un clic.
+          </li>
+          <li>
+            <span class="ki-paso-titulo">Ejecuta y compara.</span>
+            Pulsa <strong>Ejecutar</strong> para ver tu figura. Con <strong>Paso</strong> avanzas línea por línea, y puedes comparar tu figura con la de Kiro.
+          </li>
+          <li>
+            <span class="ki-paso-titulo">Gana tres estrellas.</span>
+            Se premia la <strong>precisión</strong> (que la figura coincida), la <strong>economía</strong> (pocas instrucciones) y la <strong>abstracción</strong> (usar repeticiones y procedimientos).
+          </li>
+        </ol>
+
+        <div class="ki-ejemplo">
+          <p class="ki-ejemplo-titulo">Tu primer programa: un cuadrado</p>
+          <pre class="ki-codigo" aria-label="Ejemplo de programa"><code>REPITE 4 [AVANZA 100 GIRADERECHA 90]</code></pre>
+          <p class="ki-nota">
+            <code>AVANZA</code> mueve la tortuga hacia adelante, <code>GIRADERECHA</code> la gira en grados y
+            <code>REPITE</code> repite lo que hay entre corchetes. Puedes escribir en mayúsculas o minúsculas y con o sin acentos.
+          </p>
         </div>
-        <div class="kl-lienzo-cuadro">
-          <canvas id="lienzo-fondo-jugador" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
-          <canvas id="lienzo-jugador" class="kl-capa kl-capa-estela kl-capa-estela-jugador" width="800" height="800" role="img" aria-label="Tu figura">
-            Tu navegador no soporta canvas.
-          </canvas>
-          <canvas id="lienzo-personajes-jugador" class="kl-capa" width="800" height="800" aria-hidden="true"></canvas>
-          <!-- Comparación con Kiro: tapa la figura cuando se activa (ver ui/comparacion.ts). -->
-          <canvas id="lienzo-superposicion" class="kl-capa kl-capa-superposicion" width="800" height="800" role="img" aria-label="Tu figura sobre la de Kiro, con lo que coincide, lo que sobra y lo que falta" hidden>
-            Tu navegador no soporta canvas.
-          </canvas>
-          <div id="ranura-leyenda" class="kl-leyenda-ranura"></div>
-        </div>
-        <div class="kl-lienzo-pie">
-          <div id="ranura-marcador"></div>
-        </div>
+      </section>
+
+      <!-- Mundos -->
+      <section class="ki-seccion" aria-labelledby="titulo-mundos">
+        <h2 id="titulo-mundos" class="ki-titulo">Seis mundos por recorrer</h2>
+        <ol class="ki-mundos">
+          <li><span class="ki-mundo-nombre">Primeros pasos</span><span class="ki-mundo-idea">Secuencia</span></li>
+          <li><span class="ki-mundo-nombre">Figuras geométricas</span><span class="ki-mundo-idea">Iteración</span></li>
+          <li><span class="ki-mundo-nombre">Composición</span><span class="ki-mundo-idea">Descomposición</span></li>
+          <li><span class="ki-mundo-nombre">Rosetones</span><span class="ki-mundo-idea">Simetría</span></li>
+          <li><span class="ki-mundo-nombre">Parámetros</span><span class="ki-mundo-idea">Generalización</span></li>
+          <li><span class="ki-mundo-nombre">Fractales</span><span class="ki-mundo-idea">Recursión</span></li>
+        </ol>
+        <p class="ki-nota">Tu progreso se guarda en tu navegador. No hay que crear cuenta.</p>
+      </section>
+
+      <!-- Comunidad -->
+      <section class="ki-seccion ki-comunidad" aria-labelledby="titulo-comunidad">
+        <h2 id="titulo-comunidad" class="ki-titulo">Hecho con Kiro, construido por la comunidad</h2>
+        <p class="ki-texto">
+          KiroLogo se construyó con <a href="https://kiro.dev" rel="noopener"><strong>Kiro</strong></a>, el entorno de desarrollo con agentes de IA de AWS.
+          Cada mundo nació como una <em>spec</em> (requisitos, diseño y tareas) y Kiro ayudó a implementarlas.
+        </p>
+        <p class="ki-texto">
+          Es también un <strong>proyecto comunitario</strong>. Nació junto al <strong>Student Builders Group (SBG)</strong>
+          de la <strong>Universidad del Valle</strong>, y los mundos, las correcciones y las mejoras llegaron como
+          <em>pull requests</em> de estudiantes que dieron sus primeros pasos en software libre.
+        </p>
+        <h3 class="ki-subtitulo">Estudiantes que aportaron con sus pull requests</h3>
+        <ul class="ki-personas">
+          <li><a href="https://github.com/ruizexel" rel="noopener">@ruizexel</a></li>
+          <li><a href="https://github.com/JuanCVO" rel="noopener">@JuanCVO</a></li>
+          <li><a href="https://github.com/pcaa3000" rel="noopener">@pcaa3000</a></li>
+          <li><a href="https://github.com/JuanSe-IT" rel="noopener">@JuanSe-IT</a></li>
+          <li><a href="https://github.com/Kesrigo01" rel="noopener">@Kesrigo01</a></li>
+          <li><a href="https://github.com/jay23606" rel="noopener">@jay23606</a></li>
+          <li><a href="https://github.com/bfs2021" rel="noopener">@bfs2021</a></li>
+        </ul>
+        <p class="ki-texto">
+          ¿Quieres sumarte? Busca un <a href="https://github.com/derocox-cloud/KiroLogo/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22" rel="noopener"><code>good first issue</code></a>
+          y lee la <a href="https://github.com/derocox-cloud/KiroLogo/blob/main/CONTRIBUTING.md" rel="noopener">guía de contribución</a>.
+        </p>
+      </section>
+
+      <!-- Cierre -->
+      <section class="ki-cierre" aria-labelledby="titulo-cierre">
+        <h2 id="titulo-cierre" class="ki-titulo">¿Listo para dibujar?</h2>
+        <a class="ki-boton ki-boton-principal ki-boton-grande" href="/juego.html">▶ Ir al juego</a>
       </section>
 
     </main>
 
-    <script type="module" src="./src/main.ts"></script>
+    <footer class="ki-pie">
+      <p>KiroLogo · Software libre con licencia MIT · Hecho con Kiro por la comunidad</p>
+    </footer>
   </div>
+
+  <script type="module" src="./src/inicio.ts"></script>
 </body>
 </html>

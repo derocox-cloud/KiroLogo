@@ -627,7 +627,7 @@ export function crearAplicacion(deps: DependenciasAplicacion): Aplicacion {
   const documento = deps.documento;
   const contenedor = deps.contenedor ?? (documento.getElementById('aplicacion') as HTMLElement | null) ?? documento.body;
 
-  // Ranuras que declara index.html para colocar cada pieza de ui/ donde el diseño
+  // Ranuras que declara juego.html para colocar cada pieza de ui/ donde el diseño
   // la quiere. Sin la ranura (pruebas, otros HTML) la pieza cae en el contenedor.
   const ranura = (id: string): HTMLElement => documento.getElementById(id) ?? contenedor;
   const centro = ranura('programa');
